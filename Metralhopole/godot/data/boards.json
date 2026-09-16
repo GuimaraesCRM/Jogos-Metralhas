@@ -1,0 +1,792 @@
+{
+  "rules": {
+    "startingMoney": 500000,
+    "lapBonus": 50000,
+    "industryPrice": 25000,
+    "chanceBonus": 25000,
+    "repairs": 15000,
+    "tax": 18000,
+    "turnMs": 75000,
+    "jailTurns": 3
+  },
+  "large": [
+    {
+      "id": 0,
+      "type": "start",
+      "name": "PARTIDA"
+    },
+    {
+      "id": 1,
+      "type": "property",
+      "name": "Avenida Ipiranga",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 2,
+      "type": "property",
+      "name": "Avenida São João",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 3,
+      "type": "property",
+      "name": "Rua Augusta",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 4,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 5,
+      "type": "property",
+      "name": "Avenida Paulista",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 6,
+      "type": "property",
+      "name": "Avenida Atlântica",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 7,
+      "type": "industry",
+      "name": "Indústria Solar",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 8,
+      "type": "property",
+      "name": "Rua Visconde de Pirajá",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 9,
+      "type": "property",
+      "name": "Avenida Vieira Souto",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 10,
+      "type": "property",
+      "name": "Avenida Rio Branco",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 11,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 12,
+      "type": "property",
+      "name": "Avenida Afonso Pena",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 13,
+      "type": "tax",
+      "name": "IMPOSTO"
+    },
+    {
+      "id": 14,
+      "type": "property",
+      "name": "Rua da Bahia",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 15,
+      "type": "jail",
+      "name": "PRISÃO / VISITA"
+    },
+    {
+      "id": 16,
+      "type": "property",
+      "name": "Avenida do Contorno",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 17,
+      "type": "property",
+      "name": "Praça da Liberdade",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 18,
+      "type": "property",
+      "name": "Eixo Monumental",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 19,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 20,
+      "type": "property",
+      "name": "W3 Sul",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 21,
+      "type": "property",
+      "name": "L2 Norte",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 22,
+      "type": "industry",
+      "name": "Indústria Naval",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 23,
+      "type": "property",
+      "name": "Esplanada dos Ministérios",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 24,
+      "type": "property",
+      "name": "Avenida Sete de Setembro",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 25,
+      "type": "property",
+      "name": "Avenida Oceânica",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 26,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 27,
+      "type": "property",
+      "name": "Rua Chile",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 28,
+      "type": "tax",
+      "name": "IMPOSTO"
+    },
+    {
+      "id": 29,
+      "type": "property",
+      "name": "Largo do Pelourinho",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 30,
+      "type": "rest",
+      "name": "FÉRIAS"
+    },
+    {
+      "id": 31,
+      "type": "property",
+      "name": "Avenida Boa Viagem",
+      "city": "Recife",
+      "group": 5,
+      "color": "#ef829a",
+      "price": 100000,
+      "rent": 9000
+    },
+    {
+      "id": 32,
+      "type": "property",
+      "name": "Rua da Aurora",
+      "city": "Recife",
+      "group": 5,
+      "color": "#ef829a",
+      "price": 100000,
+      "rent": 9000
+    },
+    {
+      "id": 33,
+      "type": "property",
+      "name": "Avenida Conde da Boa Vista",
+      "city": "Recife",
+      "group": 5,
+      "color": "#ef829a",
+      "price": 100000,
+      "rent": 9000
+    },
+    {
+      "id": 34,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 35,
+      "type": "property",
+      "name": "Praça do Marco Zero",
+      "city": "Recife",
+      "group": 5,
+      "color": "#ef829a",
+      "price": 100000,
+      "rent": 9000
+    },
+    {
+      "id": 36,
+      "type": "property",
+      "name": "Rua XV de Novembro",
+      "city": "Curitiba",
+      "group": 6,
+      "color": "#8bcac0",
+      "price": 112000,
+      "rent": 10200
+    },
+    {
+      "id": 37,
+      "type": "industry",
+      "name": "Indústria Digital",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 38,
+      "type": "property",
+      "name": "Avenida do Batel",
+      "city": "Curitiba",
+      "group": 6,
+      "color": "#8bcac0",
+      "price": 112000,
+      "rent": 10200
+    },
+    {
+      "id": 39,
+      "type": "property",
+      "name": "Avenida Cândido de Abreu",
+      "city": "Curitiba",
+      "group": 6,
+      "color": "#8bcac0",
+      "price": 112000,
+      "rent": 10200
+    },
+    {
+      "id": 40,
+      "type": "property",
+      "name": "Praça Tiradentes",
+      "city": "Curitiba",
+      "group": 6,
+      "color": "#8bcac0",
+      "price": 112000,
+      "rent": 10200
+    },
+    {
+      "id": 41,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 42,
+      "type": "property",
+      "name": "Avenida Borges de Medeiros",
+      "city": "Porto Alegre",
+      "group": 7,
+      "color": "#bdb8ed",
+      "price": 124000,
+      "rent": 11400
+    },
+    {
+      "id": 43,
+      "type": "tax",
+      "name": "IMPOSTO"
+    },
+    {
+      "id": 44,
+      "type": "property",
+      "name": "Rua dos Andradas",
+      "city": "Porto Alegre",
+      "group": 7,
+      "color": "#bdb8ed",
+      "price": 124000,
+      "rent": 11400
+    },
+    {
+      "id": 45,
+      "type": "go-to-jail",
+      "name": "VÁ À PRISÃO"
+    },
+    {
+      "id": 46,
+      "type": "property",
+      "name": "Avenida Carlos Gomes",
+      "city": "Porto Alegre",
+      "group": 7,
+      "color": "#bdb8ed",
+      "price": 124000,
+      "rent": 11400
+    },
+    {
+      "id": 47,
+      "type": "property",
+      "name": "Praça da Alfândega",
+      "city": "Porto Alegre",
+      "group": 7,
+      "color": "#bdb8ed",
+      "price": 124000,
+      "rent": 11400
+    },
+    {
+      "id": 48,
+      "type": "property",
+      "name": "Avenida Beira-Mar",
+      "city": "Fortaleza",
+      "group": 8,
+      "color": "#cfad7b",
+      "price": 136000,
+      "rent": 12600
+    },
+    {
+      "id": 49,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 50,
+      "type": "property",
+      "name": "Avenida Monsenhor Tabosa",
+      "city": "Fortaleza",
+      "group": 8,
+      "color": "#cfad7b",
+      "price": 136000,
+      "rent": 12600
+    },
+    {
+      "id": 51,
+      "type": "property",
+      "name": "Avenida Eduardo Ribeiro",
+      "city": "Manaus",
+      "group": 8,
+      "color": "#cfad7b",
+      "price": 136000,
+      "rent": 12600
+    },
+    {
+      "id": 52,
+      "type": "industry",
+      "name": "Indústria Metalúrgica",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 53,
+      "type": "property",
+      "name": "Largo de São Sebastião",
+      "city": "Manaus",
+      "group": 8,
+      "color": "#cfad7b",
+      "price": 136000,
+      "rent": 12600
+    },
+    {
+      "id": 54,
+      "type": "property",
+      "name": "Avenida Nazaré",
+      "city": "Belém",
+      "group": 9,
+      "color": "#d5e77d",
+      "price": 148000,
+      "rent": 13800
+    },
+    {
+      "id": 55,
+      "type": "property",
+      "name": "Rua das Pedras",
+      "city": "Búzios",
+      "group": 9,
+      "color": "#d5e77d",
+      "price": 148000,
+      "rent": 13800
+    },
+    {
+      "id": 56,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 57,
+      "type": "property",
+      "name": "Avenida das Cataratas",
+      "city": "Foz do Iguaçu",
+      "group": 9,
+      "color": "#d5e77d",
+      "price": 148000,
+      "rent": 13800
+    },
+    {
+      "id": 58,
+      "type": "tax",
+      "name": "IMPOSTO"
+    },
+    {
+      "id": 59,
+      "type": "property",
+      "name": "Avenida Beira-Mar Norte",
+      "city": "Florianópolis",
+      "group": 9,
+      "color": "#d5e77d",
+      "price": 148000,
+      "rent": 13800
+    }
+  ],
+  "small": [
+    {
+      "id": 0,
+      "type": "start",
+      "name": "PARTIDA"
+    },
+    {
+      "id": 1,
+      "type": "property",
+      "name": "Avenida Ipiranga",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 2,
+      "type": "industry",
+      "name": "Indústria Solar",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 3,
+      "type": "property",
+      "name": "Avenida São João",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 4,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 5,
+      "type": "property",
+      "name": "Rua Augusta",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 6,
+      "type": "property",
+      "name": "Avenida Paulista",
+      "city": "São Paulo",
+      "group": 0,
+      "color": "#ed9e64",
+      "price": 40000,
+      "rent": 3000
+    },
+    {
+      "id": 7,
+      "type": "property",
+      "name": "Avenida Atlântica",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 8,
+      "type": "jail",
+      "name": "PRISÃO / VISITA"
+    },
+    {
+      "id": 9,
+      "type": "property",
+      "name": "Rua Visconde de Pirajá",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 10,
+      "type": "industry",
+      "name": "Indústria Naval",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 11,
+      "type": "property",
+      "name": "Avenida Vieira Souto",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 12,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 13,
+      "type": "property",
+      "name": "Avenida Rio Branco",
+      "city": "Rio de Janeiro",
+      "group": 1,
+      "color": "#50bdd4",
+      "price": 52000,
+      "rent": 4200
+    },
+    {
+      "id": 14,
+      "type": "property",
+      "name": "Avenida Afonso Pena",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 15,
+      "type": "property",
+      "name": "Rua da Bahia",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 16,
+      "type": "rest",
+      "name": "FÉRIAS"
+    },
+    {
+      "id": 17,
+      "type": "property",
+      "name": "Avenida do Contorno",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 18,
+      "type": "industry",
+      "name": "Indústria Digital",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 19,
+      "type": "property",
+      "name": "Praça da Liberdade",
+      "city": "Belo Horizonte",
+      "group": 2,
+      "color": "#79bd8a",
+      "price": 64000,
+      "rent": 5400
+    },
+    {
+      "id": 20,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 21,
+      "type": "property",
+      "name": "Eixo Monumental",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 22,
+      "type": "property",
+      "name": "W3 Sul",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 23,
+      "type": "property",
+      "name": "L2 Norte",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 24,
+      "type": "go-to-jail",
+      "name": "VÁ À PRISÃO"
+    },
+    {
+      "id": 25,
+      "type": "property",
+      "name": "Esplanada dos Ministérios",
+      "city": "Brasília",
+      "group": 3,
+      "color": "#a389dc",
+      "price": 76000,
+      "rent": 6600
+    },
+    {
+      "id": 26,
+      "type": "industry",
+      "name": "Indústria Metalúrgica",
+      "color": "#77b4cf",
+      "price": 25000
+    },
+    {
+      "id": 27,
+      "type": "property",
+      "name": "Avenida Sete de Setembro",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 28,
+      "type": "event",
+      "name": "SORTE"
+    },
+    {
+      "id": 29,
+      "type": "property",
+      "name": "Avenida Oceânica",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 30,
+      "type": "property",
+      "name": "Rua Chile",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    },
+    {
+      "id": 31,
+      "type": "property",
+      "name": "Largo do Pelourinho",
+      "city": "Salvador",
+      "group": 4,
+      "color": "#efcb62",
+      "price": 88000,
+      "rent": 7800
+    }
+  ]
+}

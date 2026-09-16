@@ -6,9 +6,9 @@ import path from 'node:path';
 await mkdir('.cache', {recursive:true});
 await mkdir('test-results', {recursive:true});
 const profile = await mkdtemp(path.resolve('.cache/desktop-test-'));
-const env = {...process.env, MONOPOLY_USER_DATA:profile, MONOPOLY_SMOKE:'1'};
+const env = {...process.env, METRALHOPOLE_USER_DATA:profile, METRALHOPOLE_SMOKE:'1'};
 delete env.ELECTRON_RUN_AS_NODE;
-const args = process.env.MONOPOLY_TEST_EXE ? {executablePath:process.env.MONOPOLY_TEST_EXE, args:[]} : {args:['.']};
+const args = process.env.METRALHOPOLE_TEST_EXE ? {executablePath:process.env.METRALHOPOLE_TEST_EXE, args:[]} : {args:['.']};
 const application = await electron.launch({...args, env});
 const errors = [];
 try {
@@ -17,7 +17,7 @@ try {
   await page.locator('#host').waitFor();
   // O Chromium empacotado pode não disponibilizar uma superfície de captura
   // para janelas ocultas. Capturas visuais são feitas no teste de desenvolvimento.
-  if (!process.env.MONOPOLY_TEST_EXE) await page.screenshot({path:'test-results/desktop-menu.png'});
+  if (!process.env.METRALHOPOLE_TEST_EXE) await page.screenshot({path:'test-results/desktop-menu.png'});
   await page.locator('#name').fill('Guilherme');
   await page.locator('#host').click();
   await page.waitForFunction(() => /^[A-Z0-9]{6}$/.test(document.getElementById('room-code').textContent));
@@ -30,10 +30,16 @@ try {
   await page.locator('#start').click();
   await page.locator('[data-action="roll"]').click();
   await page.locator('[data-action="end"]').waitFor();
-  assert.equal(await page.locator('.tile').count(), 24);
+  assert.equal(await page.locator('.tile').count(), 60);
   assert.equal(await page.locator('.token').count(), 8);
-  if (!process.env.MONOPOLY_TEST_EXE) await page.screenshot({path:'test-results/desktop-game.png'});
+  if (!process.env.METRALHOPOLE_TEST_EXE) await page.screenshot({path:'test-results/desktop-game.png'});
   await page.locator('[data-action="end"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
+  for (let attempt = 0; attempt < 2 && await page.locator('[data-action="roll"]').count(); attempt++) {
+    await page.locator('[data-action="roll"]').click();
+    await page.locator('[data-action="end"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
+  }
   await page.waitForFunction(() => document.getElementById('turn-title').textContent === 'Amigo 1');
   await page.locator('#rules-button').click();
   assert.equal(await page.locator('#rules').isVisible(), true);

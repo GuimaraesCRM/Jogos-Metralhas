@@ -5,6 +5,7 @@ import {createRoom, join, act, tick} from '../game.js';
 function setup() {
   const r = createRoom('ABC123', 'Ana'); join(r, 'Bruno'); join(r, 'Carla');
   act(r, r.players[0].token, 'start');
+  for (const p of r.players) p.money = 1500;
   r.properties[1] = {owner:r.players[0].id, level:2};
   r.properties[2] = {owner:r.players[1].id, level:1};
   return r;
@@ -68,7 +69,7 @@ test('revalida saldo e titularidade no aceite sem transferências parciais', () 
 test('fim de turno, timeout e desistência invalidam ofertas pendentes', () => {
   for (const reason of ['end','timeout','leave']) {
     const r = setup(); const [a,b] = r.players;
-    act(r, a.token, 'roll', null, () => 1);
+    let i = 0; act(r, a.token, 'roll', null, () => [1,2][i++]);
     const id = offer(r);
     if (reason === 'end') act(r, a.token, 'end');
     if (reason === 'timeout') { r.deadline = Date.now() - 1; tick(r); }

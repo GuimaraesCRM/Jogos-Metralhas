@@ -4,15 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
-  <title>Monopoly Metralhas</title>
+  <title>Metralhopole</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
     <div class="brand-icon">M<span>↗</span></div>
-    <div><div class="eyebrow">JOGOS METRALHAS</div><h1>Metrópole<span> / Monopoly</span></h1></div>
-    <div class="header-right"><span class="pill">2–8 JOGADORES</span><span id="connection" class="muted">EDIÇÃO DESKTOP</span><button id="rules-button" class="ghost">Como jogar</button></div>
+    <div><div class="eyebrow">JOGOS METRALHAS</div><h1>Metralhopole</h1></div>
+    <div class="header-right"><span class="pill">2–8 JOGADORES</span><span id="connection" class="muted">EDIÇÃO DESKTOP</span><button id="pause" class="ghost" hidden>Pausar partida</button><button id="rules-button" class="ghost">Como jogar</button></div>
   </header>
+  <div id="pause-banner" role="status" hidden></div>
   <main>
     <aside class="left-panel">
       <section id="setup" class="panel">
@@ -33,13 +34,14 @@
         <div id="players"></div>
         <button id="start" class="primary wide">Começar partida</button>
         <p id="lobby-note" class="hint"></p>
+        <button id="reconnect" class="secondary wide">Reconectar à partida</button>
         <button id="leave" class="ghost wide">Sair da sala</button>
       </section>
     </aside>
     <section class="table-area">
       <div class="table-heading"><div><div class="eyebrow">UMA CIDADE. MUITAS POSSIBILIDADES.</div><h2 id="table-title">Construa sua sorte.</h2></div><button id="view" class="ghost">Vista de cima</button></div>
-      <div class="board-scene"><div id="board" class="board"><div class="city"><div class="city-label">METRÓPOLE<span>CLUBE DOS METRALHAS</span></div><div class="buildings"><i></i><i></i><i></i><i></i><i></i></div><div class="park"></div><div class="center-dice"><span id="die-one">⚄</span><span id="die-two">⚂</span></div><div class="city-subtitle">GRANDES NEGÓCIOS • BONS AMIGOS</div></div></div></div>
-      <div class="table-footer"><span><i class="live-dot"></i> <span id="round">20 rodadas · maior patrimônio vence</span></span><span>+ $200 por volta completa</span></div>
+      <div class="board-scene"><div id="board" class="board"><div class="city"><div class="city-label">METRALHOPOLE<span>CLUBE DOS METRALHAS</span></div><div class="buildings"><i></i><i></i><i></i><i></i><i></i></div><div class="park"></div><div class="center-dice"><span id="die-one">⚄</span><span id="die-two">⚂</span></div><div class="city-subtitle">CONQUISTE AS QUATRO INDÚSTRIAS</div></div></div></div>
+      <div class="table-footer"><span><i class="live-dot"></i> <span id="round">60 casas · 44 propriedades</span></span><span>Clique em uma casa para ver detalhes · + R$ 50.000 por volta</span></div>
     </section>
     <aside class="right-panel">
       <section class="panel turn-panel"><div class="eyebrow accent" id="turn-label">SEU LUGAR ESTÁ RESERVADO</div><h2 id="turn-title">Vamos jogar?</h2><p id="turn-description" class="muted">Uma partida de negócios, sorte e boas disputas.</p><div id="timer" class="timer" hidden></div><div id="actions"></div></section>
@@ -55,13 +57,30 @@
       <label for="trade-type">O que você quer fazer?</label><select id="trade-type"><option value="buy">Comprar uma propriedade de alguém</option><option value="sell">Vender uma propriedade minha</option></select>
       <label for="trade-target">Com quem?</label><select id="trade-target" required></select>
       <label for="trade-property">Qual propriedade?</label><select id="trade-property" required></select>
-      <label for="trade-price">Preço total da oferta ($)</label><input id="trade-price" type="number" min="1" step="1" required placeholder="Ex.: 250">
+      <label for="trade-price">Preço total da oferta (R$)</label><input id="trade-price" type="number" min="1" step="1" required placeholder="Ex.: 50000">
       <p id="trade-budget" class="hint"></p><p class="hint">Uma propriedade por oferta, com todas as melhorias. A outra pessoa precisa aceitar. O tempo do seu turno continua contando.</p>
       <div class="button-row"><button type="button" id="close-trade" class="secondary">Voltar</button><button id="send-trade" type="submit" class="primary">Enviar oferta</button></div>
     </form>
   </dialog>
+  <dialog id="tile-dialog"><button id="close-tile" class="ghost close">Fechar ×</button><div class="eyebrow accent">CONHEÇA A CIDADE</div><h2 id="tile-title"></h2><p id="tile-detail" class="muted"></p></dialog>
   <dialog id="leave-dialog"><h2>Sair da sala?</h2><p class="muted">Durante a partida, sair conta como desistência. Se você hospeda, o servidor continua aberto até fechar o aplicativo.</p><div class="button-row"><button id="cancel-leave" class="secondary">Continuar jogando</button><button id="confirm-leave" class="primary">Sair da sala</button></div></dialog>
-  <dialog id="rules"><button id="close-rules" class="ghost close">Fechar ×</button><div class="eyebrow accent">GUIA RÁPIDO</div><h2>Negócios sem complicação.</h2><ol><li>De 2 a 8 pessoas. Cada uma começa com $1.500.</li><li>No seu turno, lance os dois dados e percorra o tabuleiro.</li><li>Compre o terreno onde parar ou passe. Terrenos de outros jogadores cobram aluguel automaticamente.</li><li>Melhore seus terrenos no seu turno, até três níveis. Cada nível acrescenta um aluguel base e custa metade do preço do terreno.</li><li>Uma volta rende $200. Sorte dá $150 ou cobra $90; imposto custa $120. Férias e café são casas de descanso.</li><li>Sem dinheiro para pagar? Você paga o saldo restante e vai à falência. Os terrenos voltam ao banco; não há hipotecas nem venda.</li><li>Ganha quem sobreviver ou tiver maior patrimônio após 20 rodadas. Empates dividem a vitória.</li></ol><p class="hint">Cada turno dura até 75 segundos. Não há venda automática, hipotecas, leilões, prisão, bônus de conjuntos ou turno extra por dados iguais nesta versão. No seu turno, use Negociar propriedades para oferecer a compra ou venda de um terreno: escolha o jogador e o preço. Só o destinatário pode aceitar ou recusar. A transferência inclui melhorias e exige saldo. Ofertas expiram ao acabar o turno ou sair um participante. O relógio continua contando; cancele a oferta para voltar a lançar dados, comprar do banco ou melhorar terrenos. A aparência 3D usa perspectiva, sem câmera livre.</p></dialog>
+  <dialog id="rules">
+    <button id="close-rules" class="ghost close">Fechar ×</button><div class="eyebrow accent">GUIA DA METRALHOPOLE</div><h2>Uma cidade para conquistar.</h2>
+    <ol>
+      <li>De 2 a 8 pessoas, cada uma com R$ 500.000. São 60 casas, 40 propriedades comuns e quatro indústrias. Não há limite de rodadas.</li>
+      <li>Vence o último sobrevivente ou quem conquistar as quatro indústrias, inclusive por negociação.</li>
+      <li>Uma volta completa rende R$ 50.000. Propriedades custam de R$ 40.000 a R$ 148.000; melhorias custam metade do preço original e aumentam o aluguel, até três níveis.</li>
+      <li>Cada indústria custa R$ 25.000. Ao cair na indústria de outra pessoa, pague R$ 25.000 × a soma dos dois dados. Exemplo: 3 + 4 = aluguel de R$ 175.000. Indústrias não recebem melhorias.</li>
+      <li>Uma dupla permite outra jogada depois de resolver a casa. Três duplas consecutivas no mesmo turno mandam à prisão, sem mover pela terceira jogada.</li>
+      <li>Vai para a prisão quem tira a carta Sorte correspondente, tira três duplas seguidas ou cai em Vá à prisão. Cair normalmente na casa Prisão é apenas visita. O transporte para a prisão não rende bônus de partida.</li>
+      <li>Para sair: tirar uma dupla (anda a soma, sem jogada extra), usar uma carta Sair da prisão antes dos dados, ou cumprir três turnos preso. Após o terceiro turno de espera, volta a andar no próximo. O turno em que foi preso não conta.</li>
+      <li>A carta Sair da prisão fica guardada até o uso. Presos continuam recebendo aluguéis e podem negociar no próprio turno.</li>
+      <li>Negocie no seu turno: escolha comprador ou vendedor, propriedade e preço. Só o destinatário aceita ou recusa. Uma oferta por vez; melhorias acompanham o imóvel. Sem venda automática, hipotecas ou leilões.</li>
+      <li>Sorte também concede R$ 25.000 ou cobra R$ 15.000. Imposto custa R$ 18.000. Sem saldo para uma cobrança, há falência e os terrenos voltam ao banco.</li>
+      <li>O turno dura 75 segundos. Pausar congela o tempo restante e as ações para todos; qualquer jogador ativo pode retomar. Ofertas também ficam suspensas.</li>
+      <li>Reconectar recupera sua sessão e progresso no mesmo aplicativo, enquanto o servidor estiver ativo. Sair da sala é desistir. Fechar o anfitrião encerra as salas.</li>
+    </ol>
+  </dialog>
   <script type="module" src="app.js"></script>
 </body>
 </html>

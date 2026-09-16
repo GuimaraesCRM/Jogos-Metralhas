@@ -8,6 +8,7 @@ import {createRoom, join, act} from '../game.js';
 // Fixture determinística em servidor de teste: a API pública não permite definir saldos ou terrenos.
 const room = createRoom('TRADE1', 'Ana'); join(room, 'Bruno');
 act(room, room.players[0].token, 'start');
+for (const player of room.players) player.money = 1500;
 room.properties[1] = {owner:room.players[0].id, level:2};
 room.properties[2] = {owner:room.players[1].id, level:1};
 const server = createServer({rooms:new Map([[room.code, room]])});
@@ -18,9 +19,9 @@ await mkdir('.cache', {recursive:true});
 try {
   for (const player of room.players) {
     const profile = await mkdtemp(path.resolve('.cache/trade-test-'));
-    const env = {...process.env, MONOPOLY_USER_DATA:profile, MONOPOLY_SMOKE:'1'};
+    const env = {...process.env, METRALHOPOLE_USER_DATA:profile, METRALHOPOLE_SMOKE:'1'};
     delete env.ELECTRON_RUN_AS_NODE;
-    const args = process.env.MONOPOLY_TEST_EXE ? {executablePath:process.env.MONOPOLY_TEST_EXE, args:[]} : {args:['.']};
+    const args = process.env.METRALHOPOLE_TEST_EXE ? {executablePath:process.env.METRALHOPOLE_TEST_EXE, args:[]} : {args:['.']};
     const app = await electron.launch({...args, env}); apps.push(app);
     const page = await app.firstWindow(); pages.push(page);
     page.on('pageerror', error => errors.push(error.message));

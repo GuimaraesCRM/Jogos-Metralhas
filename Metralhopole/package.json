@@ -1,6 +1,6 @@
 {
-  "name": "metralhas-monopoly",
-  "version": "0.1.0",
+  "name": "metralhopole",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Jogo desktop de propriedades para 2 a 8 amigos",
@@ -12,6 +12,7 @@
     "test": "node --test",
     "test:desktop": "node scripts/smoke-desktop.js",
     "test:trade": "node scripts/smoke-trade.js",
+    "test:expanded": "node scripts/smoke-expanded.js",
     "build": "electron-builder --win portable --x64"
   },
   "engines": {
@@ -23,8 +24,8 @@
     "playwright": "1.63.0"
   },
   "build": {
-    "appId": "com.metralhas.monopoly",
-    "productName": "Monopoly Metralhas",
+    "appId": "com.metralhas.metralhopole",
+    "productName": "Metralhopole",
     "directories": {
       "output": "dist"
     },
@@ -40,6 +41,6 @@
       "target": "portable",
       "signAndEditExecutable": false
     },
-    "artifactName": "Monopoly-Metralhas-${version}-${arch}.${ext}"
+    "artifactName": "Metralhopole-${version}-${arch}.${ext}"
   }
 }

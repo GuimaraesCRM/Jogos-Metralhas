@@ -3,3 +3,21 @@
 #players{max-height:370px;overflow-y:auto;padding-right:3px}main{align-items:start}.table-area{height:calc(100vh - 148px)}.board-scene{min-height:460px}.player{padding:8px 7px}.player small{font-size:9px}
 
 select{font:inherit;width:100%;padding:12px;border-radius:9px;border:1px solid #39465a;background:#111b2a;color:#f5f6f8;font-size:13px}select:focus-visible{outline:2px solid #c6f185;outline-offset:3px}#trade-dialog{width:490px}#trade-panel h4{margin:14px 0 8px;font-size:16px}#trade-panel .button-row button{padding:10px}#trade-panel .muted strong{color:#c6f185}
+
+/* Tabuleiro expandido: 15 casas por lado, quatro cantos e detalhes acessíveis. */
+.board{--tile:clamp(28px,2.45vw,40px);grid-template-columns:repeat(16,var(--tile));grid-template-rows:repeat(16,var(--tile));gap:2px;transform:rotateX(30deg) rotateZ(-25deg) scale(.82)}
+.board.top{transform:rotateX(0) rotateZ(0) scale(.9)}
+.city{grid-area:2 / 2 / 16 / 16;justify-content:center}
+.city-label{font-size:clamp(22px,2.2vw,34px);margin-top:0;letter-spacing:2px}
+.buildings{margin-top:35px;height:135px;transform:skewY(10deg) scale(1.25)}
+.center-dice{margin-top:35px}.city-subtitle{bottom:24px}
+.tile{padding:2px 1px;border-radius:3px;cursor:pointer}.tile .stripe{height:5px}
+.tile-name{font-size:7px;line-height:1.05;margin:4px 0 1px;overflow-wrap:anywhere}
+.tile-price{font-size:7px}.tile-symbol{font-size:12px}.owner-mark{font-size:7px;bottom:0;left:1px}
+.tile.special.industry{background:#9ec4d8}.tile.special.jail{background:#d3c9bd}.tile.special.go-to-jail{background:#e7ae9c}
+.tokens{bottom:3px;gap:1px}.token{width:11px;height:14px;font-size:8px;line-height:13px;transform:translateY(-3px)}.token.jailed{background-image:repeating-linear-gradient(90deg,transparent 0 3px,#25354480 3px 4px)}
+.table-footer{flex-wrap:wrap;line-height:1.6}.player{flex-wrap:wrap}.player-name{flex:1;min-width:110px}.player-money{font-size:12px;width:100%;padding-left:39px}.asset{flex-wrap:wrap}.asset-name{flex:1;min-width:125px}.asset button{font-size:9px}.table-area{overflow:hidden}
+#pause-banner{background:#dce9bb;color:#233527;padding:13px 24px;text-align:center;font-size:13px;font-weight:600}#tile-dialog{width:480px}
+@media(max-width:1250px){.board{--tile:28px;transform:rotateX(30deg) rotateZ(-25deg) scale(.71)}.board.top{transform:rotateX(0) rotateZ(0) scale(.86)}.tile-name{font-size:6px}.tile-price{font-size:6px}.city-label{font-size:21px}.header-right{gap:7px}.header-right .pill{display:none}}
+#players{overflow-x:hidden}.player-name small{overflow-wrap:anywhere}.player-name{min-width:0}
+.board{transform-style:flat}.tile:hover:not(:disabled){transform:none}

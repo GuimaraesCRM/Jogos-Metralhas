@@ -40,5 +40,5 @@ export function createServer({rooms = new Map()} = {}) {
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT || 3000);
-  createServer().listen(port, '0.0.0.0', () => console.log(`Monopoly disponível em http://localhost:${port}`));
+  createServer().listen(port, '0.0.0.0', () => console.log(`Metralhopole disponível em http://localhost:${port}`));
 }

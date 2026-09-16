@@ -4,17 +4,45 @@ const palette = ['#c6f185', '#7bc6f1', '#ee98b3', '#eac776', '#bca1ef', '#76d9c2
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session;
 try { session = JSON.parse(localStorage.getItem('session') || 'null'); } catch { localStorage.removeItem('session'); }
-let state, busy = false, polling = false, connected = false, noticeTimer, hostAddresses = [], boardStamp;
+let state, busy = false, polling = false, connected = false, animating = false, noticeTimer, hostAddresses = [], boardStamp;
+const displayedPositions = new Map();
+let lastAnimatedMove = 0;
 const initialRightPanel = document.querySelector('.right-panel').innerHTML;
 function notify(message) { $('notice').textContent = message.replace(/^Error invoking remote method '[^']+': Error: /, ''); $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => $('notice').hidden = true, 6500); }
 async function request(path, body, endpoint = session?.endpoint || $('endpoint').value.trim()) {
   return window.desktop.request({endpoint, path, body, token: session?.token});
 }
 async function perform(fn) {
-  if (busy) return;
+  if (busy || animating) return;
   busy = true; if (state) render();
   try { await fn(); } catch (e) { notify(e.message); }
   finally { busy = false; if (state) render(); }
+}
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function acceptState(latest) {
+  const movement = latest.lastMove;
+  const shouldAnimate = movement && movement.sequence > lastAnimatedMove && displayedPositions.has(movement.player);
+  state = latest;
+  for (const player of state.players) if (!displayedPositions.has(player.id)) displayedPositions.set(player.id, player.position);
+  if (!shouldAnimate) {
+    for (const player of state.players) displayedPositions.set(player.id, player.position);
+    if (movement) lastAnimatedMove = movement.sequence;
+    render(); return;
+  }
+  animating = true;
+  displayedPositions.set(movement.player, movement.from);
+  render();
+  for (const position of movement.path) {
+    await delay(movement.direct ? 320 : 145);
+    displayedPositions.set(movement.player, position);
+    boardStamp = undefined;
+    renderBoard();
+    const pawn = document.querySelector(`.token[data-player-id="${movement.player}"]`);
+    pawn?.classList.add('moving');
+  }
+  lastAnimatedMove = movement.sequence;
+  animating = false;
+  render();
 }
 function saveSession(data, endpoint) {
   session = {...data, endpoint}; localStorage.setItem('session', JSON.stringify(session));
@@ -35,7 +63,7 @@ async function poll(manual = false) {
     if (session !== activeSession) return;
     const wasDisconnected = !connected; connected = true;
     $('connection').textContent = '● CONECTADO';
-    if (wasDisconnected || JSON.stringify(latest) !== JSON.stringify(state)) { state = latest; render(); }
+    if (wasDisconnected || JSON.stringify(latest) !== JSON.stringify(state)) await acceptState(latest);
     if (manual) notify('Reconectado! Seu dinheiro, propriedades, cartas e posição foram recuperados.');
   }
   catch(e) { if (session !== activeSession) return; connected = false; if (state) render(); $('connection').textContent = '○ SEM CONEXÃO'; $('setup').hidden = true; $('room-panel').hidden = false; $('room-code').textContent = session.code; $('lobby-note').textContent = 'Conexão interrompida. Seu progresso permanece no servidor. Use Reconectar ou aguarde a tentativa automática; não use Sair para reconectar.'; if (manual) notify('Ainda sem conexão. Confira o anfitrião; sua sessão foi mantida para tentar novamente.'); }
@@ -48,7 +76,7 @@ function boardLocation(id) {
   return [id - SIDE * 3 + 1, SIDE + 1];
 }
 function renderBoard() {
-  const stamp = JSON.stringify({board:state?.board || preview, players:state?.players, properties:state?.properties});
+  const stamp = JSON.stringify({board:state?.board || preview, players:state?.players, properties:state?.properties, displayed:[...displayedPositions]});
   if (stamp === boardStamp) return;
   boardStamp = stamp;
   $('board').querySelectorAll('.tile').forEach(el => el.remove());
@@ -57,11 +85,11 @@ function renderBoard() {
     const [row, col] = boardLocation(tile.id); el.style.gridRow = row; el.style.gridColumn = col;
     const lot = state?.properties[tile.id];
     const owner = lot ? state.players.findIndex(p => p.id === lot.owner) : -1;
-    const tokens = (state?.players || []).map((p, i) => ({...p, index:i})).filter(p => !p.bankrupt && p.position === tile.id);
+    const tokens = (state?.players || []).map((p, i) => ({...p, index:i, visualPosition:displayedPositions.get(p.id) ?? p.position})).filter(p => !p.bankrupt && p.visualPosition === tile.id);
     el.style.setProperty('--color', tile.color || '#abc8a9'); el.style.setProperty('--owner', palette[owner] || '#344');
     el.title = tile.name + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(tile.rent * (lot.level + 1))}` : '');
     el.setAttribute('aria-label', el.title + ' — ver detalhes');
-    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${lot ? `<span class="owner-mark">${owner + 1} ${'◆'.repeat(lot.level)}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}">${p.index + 1}</span>`).join('')}</span>`;
+    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${lot ? `<span class="owner-mark">${owner + 1} ${'◆'.repeat(lot.level)}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}"><span>${p.index + 1}</span></span>`).join('')}</span>`;
     $('board').append(el);
   }
 }
@@ -71,7 +99,7 @@ function render() {
   if (!state || !session) return;
   const me = state.players.find(p => p.id === session.id);
   const current = state.players[state.turn];
-  const mine = current?.id === session.id && state.phase === 'playing' && !me?.bankrupt && !state.paused && connected;
+  const mine = current?.id === session.id && state.phase === 'playing' && !me?.bankrupt && !state.paused && connected && !animating;
   $('pause').hidden = state.phase !== 'playing'; $('pause').disabled = busy || !connected || me?.bankrupt;
   $('pause').textContent = state.paused ? 'Retomar partida' : 'Pausar partida';
   $('pause-banner').hidden = !state.paused || state.phase !== 'playing';
@@ -138,13 +166,13 @@ $('host').onclick = () => perform(async () => {
 });
 $('create').onclick = () => perform(() => enter('create'));
 $('join').onclick = () => perform(() => enter('join'));
-$('start').onclick = () => perform(async () => { state = await request('/api/action', {code: session.code, action:'start'}); });
+$('start').onclick = () => perform(async () => { await acceptState(await request('/api/action', {code: session.code, action:'start'})); });
 document.addEventListener('click', event => {
   const tileButton = event.target.closest('[data-tile]');
   if (tileButton) { showTile(Number(tileButton.dataset.tile)); return; }
   if (event.target.closest('[data-open-trade]')) { openTrade(); return; }
   const button = event.target.closest('[data-action]');
-  if (button) perform(async () => { state = await request('/api/action', {code:session.code, action:button.dataset.action, value:button.dataset.action.startsWith('trade-') ? button.dataset.value : Number(button.dataset.value)}); });
+  if (button) perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:button.dataset.action, value:button.dataset.action.startsWith('trade-') ? button.dataset.value : Number(button.dataset.value)})); });
 });
 $('trade-type').onchange = fillTradeProperties;
 $('trade-target').onchange = fillTradeProperties;
@@ -152,7 +180,7 @@ $('close-trade').onclick = () => $('trade-dialog').close();
 $('trade-form').onsubmit = event => {
   event.preventDefault();
   const value = {type:$('trade-type').value, target:$('trade-target').value, property:Number($('trade-property').value), price:Number($('trade-price').value)};
-  perform(async () => { state = await request('/api/action', {code:session.code, action:'trade-offer', value}); });
+  perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:'trade-offer', value})); });
 };
 $('leave').onclick = () => $('leave-dialog').showModal();
 $('cancel-leave').onclick = () => $('leave-dialog').close();
@@ -169,7 +197,7 @@ $('copy-code').onclick = () => navigator.clipboard.writeText(session.code).then(
 $('view').onclick = () => { const top = $('board').classList.toggle('top'); $('view').textContent = top ? 'Vista 3D' : 'Vista de cima'; };
 $('rules-button').onclick = () => $('rules').showModal(); $('close-rules').onclick = () => $('rules').close();
 $('reconnect').onclick = () => { if (polling || busy) notify('Uma tentativa de conexão já está em andamento.'); else { $('connection').textContent = 'RECONECTANDO…'; poll(true); } };
-$('pause').onclick = () => perform(async () => { state = await request('/api/action', {code:session.code, action:state.paused ? 'resume' : 'pause'}); });
+$('pause').onclick = () => perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:state.paused ? 'resume' : 'pause'})); });
 function showTile(id) {
   const tile = (state?.board || preview)[id], lot = state?.properties[id];
   $('tile-title').textContent = tile.name;

@@ -21,3 +21,18 @@ select{font:inherit;width:100%;padding:12px;border-radius:9px;border:1px solid #
 @media(max-width:1250px){.board{--tile:28px;transform:rotateX(30deg) rotateZ(-25deg) scale(.71)}.board.top{transform:rotateX(0) rotateZ(0) scale(.86)}.tile-name{font-size:6px}.tile-price{font-size:6px}.city-label{font-size:21px}.header-right{gap:7px}.header-right .pill{display:none}}
 #players{overflow-x:hidden}.player-name small{overflow-wrap:anywhere}.player-name{min-width:0}
 .board{transform-style:flat}.tile:hover:not(:disabled){transform:none}
+
+/* Casas maiores e peões para até oito participantes por casa. */
+.board{--tile:clamp(42px,3.35vw,58px);gap:3px;padding:12px;transform:rotateX(28deg) rotateZ(-23deg) scale(.7)}
+.board.top{transform:rotateX(0) rotateZ(0) scale(.78)}
+.board-scene{min-height:640px;overflow:visible}.table-area{min-height:790px;height:auto}
+.tile{min-width:var(--tile);min-height:var(--tile);padding:3px 2px}.tile-name{font-size:8px;margin:5px 1px 2px}.tile-price{font-size:7px}.tile-symbol{font-size:15px}
+.tokens{inset:auto 2px 2px 2px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,20px);align-items:end;justify-items:center;gap:1px;height:40px;z-index:8}
+.token{position:relative;width:13px;height:19px;background:transparent;border:0;border-radius:0;box-shadow:none;transform:none;color:#12212b;filter:drop-shadow(1px 2px 1px #17243199);animation:pawn-arrive .24s ease-out}
+.token::before{content:'';position:absolute;left:3px;top:0;width:8px;height:8px;border-radius:50%;background:var(--player);border:1px solid #fff;box-shadow:inset -2px -1px 0 #0002}
+.token::after{content:'';position:absolute;left:1px;bottom:0;width:12px;height:11px;background:var(--player);clip-path:polygon(30% 0,70% 0,78% 62%,100% 78%,100% 100%,0 100%,0 78%,22% 62%);border-radius:2px;box-shadow:inset -2px -1px 0 #0002}
+.token>span{position:absolute;inset:7px 0 auto;z-index:2;text-align:center;font-size:7px;font-weight:900;line-height:9px}.token.jailed{background:none}.token.jailed::after{background:repeating-linear-gradient(90deg,var(--player) 0 3px,#27394c 3px 4px)}
+.token.moving{animation:pawn-step .3s cubic-bezier(.2,.9,.25,1.2)}
+@keyframes pawn-step{0%{transform:translateY(-14px) scale(1.15)}100%{transform:translateY(0) scale(1)}}
+@keyframes pawn-arrive{0%{opacity:.6;transform:translateY(-7px)}100%{opacity:1;transform:none}}
+@media(max-width:1250px){.board{--tile:42px;transform:rotateX(28deg) rotateZ(-23deg) scale(.64)}.board.top{transform:rotateX(0) rotateZ(0) scale(.74)}.board-scene{min-height:590px}}

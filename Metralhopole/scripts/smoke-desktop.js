@@ -28,10 +28,21 @@ try {
   }
   await page.waitForFunction(() => document.querySelectorAll('.player').length === 8);
   await page.locator('#start').click();
+  await page.evaluate(() => {
+    const session = JSON.parse(localStorage.getItem('session'));
+    window.movementSteps = [];
+    new MutationObserver(() => {
+      const pawn = document.querySelector(`.token[data-player-id="${session.id}"]`);
+      const position = pawn?.closest('[data-tile]')?.dataset.tile;
+      if (position !== undefined && window.movementSteps.at(-1) !== position) window.movementSteps.push(position);
+    }).observe(document.getElementById('board'), {childList:true, subtree:true});
+  });
   await page.locator('[data-action="roll"]').click();
   await page.locator('[data-action="end"]').waitFor();
+  assert.ok((await page.evaluate(() => window.movementSteps)).length >= 3, 'o peão deve ocupar casas intermediárias durante a animação');
   assert.equal(await page.locator('.tile').count(), 60);
   assert.equal(await page.locator('.token').count(), 8);
+  assert.equal(await page.locator('.token span').count(), 8);
   if (!process.env.METRALHOPOLE_TEST_EXE) await page.screenshot({path:'test-results/desktop-game.png'});
   await page.locator('[data-action="end"]').click();
   await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
@@ -54,5 +65,6 @@ try {
   assert.deepEqual(errors, []);
   console.log('Desktop validado: janela, hospedagem, oito jogadores, turno, regras, câmera, reconexão e saída.');
 } finally {
+  if (errors.length) console.error('Erros da janela:', errors);
   await application.evaluate(({app}) => app.exit(0)).catch(() => {});
 }

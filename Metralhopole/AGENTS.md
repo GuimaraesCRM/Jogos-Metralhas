@@ -10,4 +10,6 @@ Não há venda automática, hipotecas ou leilões. Negociações manuais de comp
 
 O tabuleiro tem 60 casas, 40 propriedades comuns e quatro indústrias de R$ 25.000, uma por lado. A definição compartilhada está em `public/board.js`. Indústrias cobram o preço original multiplicado pela soma dos dados; não recebem melhorias. Quatro indústrias do mesmo dono encerram a partida imediatamente, inclusive após negociação. Não há limite de rodadas; a outra vitória é por sobrevivência.
 
+As casas devem comportar visualmente os oito peões em grade 4×2. Peças são peões coloridos e numerados, não círculos ou botões. `lastMove` é produzido pelo servidor com o caminho autoritativo; o cliente deve animar cada casa confirmada e bloquear novas ações até concluir. Não derive um destino diferente no cliente nem pule diretamente para a posição final em uma jogada normal.
+
 Prisão e Vá à prisão ficam em cantos opostos. Visita normal não prende. Carta Sorte, terceira dupla no mesmo turno e casa Vá à prisão prendem. Saída por dupla, três turnos próprios cumpridos ou carta guardada. A dupla de saída não dá jogada extra. A pausa deve congelar o tempo restante no servidor e impedir ações da partida até retomar. Reconectar usa a sessão existente sem resetar progresso; sair da sala é desistência. Valide com `npm test`, `npm run test:desktop`, `npm run test:trade` e `npm run test:expanded`.

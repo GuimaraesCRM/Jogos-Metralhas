@@ -10,7 +10,7 @@ function shuffle(cards) {
   return result;
 }
 export function createRoom(code, name) {
-  const room = {code, phase:'lobby', players:[], properties:{}, turn:0, round:1, stage:'roll', dice:[], doubles:0, extraRoll:false, logs:[], winner:null, winnerReason:null, touched:Date.now(), deadline:null, paused:false, pauseRemaining:null, pausedBy:null, trade:null, lastCard:null,
+  const room = {code, phase:'lobby', players:[], properties:{}, turn:0, round:1, stage:'roll', dice:[], doubles:0, extraRoll:false, logs:[], winner:null, winnerReason:null, touched:Date.now(), deadline:null, paused:false, pauseRemaining:null, pausedBy:null, trade:null, lastCard:null, lastMove:null, moveSequence:0,
     deck:shuffle(['bonus','bonus','bonus','bonus','repair','repair','repair','repair','jail','jail','release','release']), discard:[]};
   join(room, name);
   return room;
@@ -120,8 +120,11 @@ function respondToTrade(r, p, action, id) {
   log(r, `${buyer.name} comprou ${board[offer.property].name} de ${seller.name} por ${money(offer.price)}.`);
   checkVictory(r);
 }
-function sendToJail(r, p, reason) {
+function sendToJail(r, p, reason, appendCurrentMove = false) {
+  const from = p.position;
   p.position = JAIL; p.jailed = true; p.jailTurns = 0;
+  const currentMove = appendCurrentMove && r.lastMove?.player === p.id && r.lastMove.to === from ? r.lastMove : null;
+  r.lastMove = {sequence:++r.moveSequence, player:p.id, from:currentMove?.from ?? from, to:JAIL, path:[...(currentMove?.path || []), JAIL], direct:!currentMove};
   r.extraRoll = false; r.doubles = 0; r.stage = 'end';
   log(r, `${p.name} foi para a prisão: ${reason}. Não recebe bônus de partida nesse deslocamento.`);
 }
@@ -141,13 +144,15 @@ function drawCard(r, p) {
     return;
   }
   r.discard.push(card);
-  if (card === 'jail') sendToJail(r, p, 'carta Sorte');
+  if (card === 'jail') sendToJail(r, p, 'carta Sorte', true);
   else if (card === 'bonus') { p.money += RULES.chanceBonus; log(r, `${p.name} ganhou ${money(RULES.chanceBonus)} na Sorte.`); }
   else { charge(r, p, RULES.repairs); log(r, `${p.name} recebeu uma cobrança de ${money(RULES.repairs)} por reparos.`); }
 }
 function move(r, p, total) {
+  const from = p.position;
   if (p.position + total >= board.length) { p.money += RULES.lapBonus; log(r, `${p.name} recebeu ${money(RULES.lapBonus)} pela volta.`); }
   p.position = (p.position + total) % board.length;
+  r.lastMove = {sequence:++r.moveSequence, player:p.id, from, to:p.position, path:Array.from({length:total}, (_, step) => (from + step + 1) % board.length), direct:false};
   const tile = board[p.position];
   r.stage = 'end'; log(r, `${p.name} tirou ${r.dice.join(' + ')} e chegou em ${tile.name}.`);
   if (buyable(tile)) {
@@ -160,7 +165,7 @@ function move(r, p, total) {
     }
   } else if (tile.type === 'tax') { charge(r, p, RULES.tax); log(r, `${p.name} recebeu uma cobrança de ${money(RULES.tax)} de imposto.`); }
   else if (tile.type === 'event') drawCard(r, p);
-  else if (tile.type === 'go-to-jail') sendToJail(r, p, 'casa Vá à prisão');
+  else if (tile.type === 'go-to-jail') sendToJail(r, p, 'casa Vá à prisão', true);
   else if (tile.type === 'jail') log(r, `${p.name} está apenas visitando a prisão.`);
   if (p.bankrupt) next(r);
 }

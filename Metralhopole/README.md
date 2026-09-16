@@ -25,7 +25,7 @@ npm run test:expanded
 npm run build
 ```
 
-O executável portátil é gerado em `dist/Metralhopole-0.2.0-x64.exe`. Distribua esse arquivo aos amigos; não é necessário copiar o código-fonte. O build inicial baixa componentes de empacotamento. O executável ainda não tem assinatura digital. Outros sistemas operacionais não foram preparados ou validados.
+O executável portátil é gerado em `dist/Metralhopole-0.2.1-x64.exe`. Distribua esse arquivo aos amigos; não é necessário copiar o código-fonte. O build inicial baixa componentes de empacotamento. O executável ainda não tem assinatura digital. Outros sistemas operacionais não foram preparados ou validados.
 
 O teste desktop usa uma janela oculta e oito clientes, exige a porta 3000 livre e grava capturas em `test-results/` e um perfil descartável em `.cache/`. Para validar o aplicativo empacotado, defina `METRALHOPOLE_TEST_EXE` com o caminho absoluto de `dist/win-unpacked/Metralhopole.exe` e execute `npm run test:desktop`.
 
@@ -58,6 +58,7 @@ Qualquer jogador ativo pode usar **Pausar partida** e **Retomar partida**. A pau
 ## Regras desta versão
 
 - Cada jogador começa com **R$ 500.000**. O tabuleiro tem **60 casas: 40 propriedades comuns, quatro indústrias e 16 casas especiais**. Clique em uma casa para consultar detalhes. Há vista em perspectiva e vista de cima.
+- O tabuleiro usa casas ampliadas e organiza até oito peões em uma grade de quatro por duas dentro da mesma casa. Cada peão tem a cor e o número do jogador. Depois que o servidor confirma os dados, a interface anima o peão por todas as casas do caminho; envios à prisão terminam com o salto para o canto da prisão. A posição final continua sendo definida exclusivamente pelo servidor.
 - As propriedades comuns custam de **R$ 40.000 a R$ 148.000**, com aluguéis base de **R$ 3.000 a R$ 13.800**. Esses valores são parâmetros de jogo, não preços reais de mercado.
 - Dois dados são sorteados pelo servidor. Passar pela partida rende **R$ 50.000**. Uma dupla permite nova jogada no mesmo turno, depois de resolver a casa. A terceira dupla consecutiva manda à prisão antes de mover pela terceira jogada. A contagem reinicia ao passar a vez.
 - Ao cair em terreno livre, compre ou passe. Em terreno de outra pessoa, pague aluguel automaticamente.

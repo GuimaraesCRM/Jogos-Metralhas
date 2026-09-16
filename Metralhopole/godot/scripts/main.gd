@@ -2,8 +2,8 @@ extends Node3D
 
 const TILES := 60
 const PER_SIDE := 15
-const STEP := 2.25
-const EDGE := 16.875
+const BOARD_EDGE := 19.0
+const CORNER_SIZE := 3.8
 const PLAYER := preload("res://assets/models/character-male-a.glb")
 const API_SCRIPT := preload("res://scripts/game_api.gd")
 const SERVER_SCRIPT := preload("res://scripts/server_manager.gd")
@@ -14,7 +14,7 @@ var pawn_index := 0
 var dice: Array[RigidBody3D] = []
 var yaw := -0.7
 var pitch := -0.72
-var distance := 48.0
+var distance := 53.0
 var dragging := false
 var rng := RandomNumberGenerator.new()
 var api: GameApi
@@ -95,12 +95,12 @@ func make_world() -> void:
 	sun.light_energy = 1.3
 	sun.shadow_enabled = true
 	add_child(sun)
-	add_child(cube(Vector3(39.5, 0.8, 39.5), Color("526b64"), Vector3(0, -0.6, 0)))
-	add_child(cube(Vector3(35.0, 0.35, 35.0), Color("a9c7a8"), Vector3.ZERO))
+	add_child(cube(Vector3(44.0, 0.8, 44.0), Color("526b64"), Vector3(0, -0.6, 0)))
+	add_child(cube(Vector3(39.8, 0.35, 39.8), Color("a9c7a8"), Vector3.ZERO))
 	var floor_body := StaticBody3D.new()
 	var floor_shape := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(35, 0.4, 35)
+	shape.size = Vector3(39.8, 0.4, 39.8)
 	floor_shape.shape = shape
 	floor_body.position.y = 0.15
 	floor_body.add_child(floor_shape)
@@ -111,8 +111,8 @@ func make_board(count := TILES) -> void:
 	board_root = Node3D.new(); board_root.name = "CasasDoTabuleiro"; add_child(board_root); points.clear()
 	board_labels_for = 0
 	var per_side := count / 4
-	var board_edge := 17.0
-	var corner_size := 3.25
+	var board_edge := BOARD_EDGE
+	var corner_size := CORNER_SIZE
 	var tile_step := (board_edge * 2.0 - corner_size) / float(per_side - 1)
 	var corner_colors := [Color("f39b98"), Color("c58bda"), Color("efb4da"), Color("d09be2")]
 	for index in count:
@@ -144,7 +144,7 @@ func label_board(board_data: Array) -> void:
 	for index in mini(board_data.size(), points.size()):
 		var tile: Dictionary = board_data[index]; var label := Label3D.new(); var side := index / (board_data.size() / 4)
 		label.text = wrap_board_name(str(tile.get("name", ""))) + ("\nR$ %d mil" % (int(tile.get("price", 0)) / 1000) if tile.has("price") else "")
-		label.font_size = 20; label.pixel_size = 0.009; label.modulate = Color("1c3335"); label.outline_size = 2; label.outline_modulate = Color("fffffff0")
+		label.font_size = 22; label.pixel_size = 0.009; label.modulate = Color("1c3335"); label.outline_size = 2; label.outline_modulate = Color("fffffff0")
 		var outward := Vector3(points[index].x, 0, points[index].z).normalized()
 		label.position = points[index] + outward * 0.22 + Vector3(0, 0.055, 0); label.rotation_degrees = Vector3(-90, 0, [0, 90, 180, -90][side])
 		board_root.add_child(label)
@@ -163,14 +163,14 @@ func wrap_board_name(value: String) -> String:
 
 func add_group_strip(index: int, tile: Dictionary, count: int) -> void:
 	var per_side := count / 4; var side := index / per_side
-	var board_edge := 17.0; var corner_size := 3.25; var tile_step := (board_edge * 2.0 - corner_size) / float(per_side - 1)
+	var board_edge := BOARD_EDGE; var corner_size := CORNER_SIZE; var tile_step := (board_edge * 2.0 - corner_size) / float(per_side - 1)
 	var size := Vector3(tile_step - 0.12, 0.07, 0.48)
 	var offset := Vector3(0, 0.055, 0)
 	match side:
-		0: offset.z = -1.34
-		1: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = -1.34
-		2: offset.z = 1.34
-		_: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = 1.34
+		0: offset.z = -(corner_size * 0.5 - 0.26)
+		1: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = -(corner_size * 0.5 - 0.26)
+		2: offset.z = corner_size * 0.5 - 0.26
+		_: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = corner_size * 0.5 - 0.26
 	board_root.add_child(cube(size, Color(str(tile.get("color", "#d6d6d6"))), points[index] + offset))
 
 func make_pawn() -> void:

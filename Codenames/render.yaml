@@ -11,7 +11,7 @@
 # Detalhes e alternativas em Codenames/README.md.
 services:
   - type: web
-    name: palavras-secretas
+    name: metralhas-secretos
     runtime: docker
     plan: free
     region: oregon

@@ -6,6 +6,8 @@
  * app abrindo instantaneamente, sem passo de build.
  */
 
+import { NOME_DO_JOGO, iniciais } from '/shared/protocolo.js';
+
 /**
  * Cria um elemento. As propriedades viram atributos, com três atalhos:
  * `classe`, `texto` e `ao` (ouvintes de evento).
@@ -112,7 +114,29 @@ export function logo(tamanho = 'grande') {
   return el(
     'div',
     { classe: `logo logo--${tamanho}` },
-    el('div', { classe: 'logo__titulo', texto: 'Palavras Secretas' }),
+    el('div', { classe: 'logo__titulo', texto: NOME_DO_JOGO }),
     el('div', { classe: 'logo__linha', texto: 'jogo de espionagem' })
   );
+}
+
+/**
+ * Retrato do jogador: a foto do launcher quando existir, senão as iniciais.
+ *
+ * A imagem entra por `background-image` em vez de <img> de propósito — assim um
+ * endereço quebrado não deixa o ícone de imagem partida no meio da lista, só
+ * mostra o círculo com as iniciais por baixo.
+ */
+export function retrato(jogador, classeExtra = '') {
+  const no = el('span', {
+    classe: `retrato ${classeExtra}`.trim(),
+    texto: iniciais(jogador.nome),
+    title: jogador.nome
+  });
+
+  if (jogador.avatar) {
+    no.style.backgroundImage = `url("${CSS.escape(jogador.avatar)}")`;
+    no.dataset.comFoto = 'sim';
+  }
+
+  return no;
 }

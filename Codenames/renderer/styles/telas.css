@@ -327,17 +327,6 @@
   white-space: nowrap;
 }
 
-.jogador__sigla {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 99px;
-  background: var(--cor-time, var(--fundo-3));
-  color: #fdf6ec;
-  font-size: 11px;
-  font-weight: 700;
-}
 
 .lobby__sem-time {
   display: flex;
@@ -940,4 +929,154 @@
   flex: 1 0 28%;
   font-size: 12px;
   padding: 7px 6px;
+}
+
+/* ----------------------------------------------------------------- retrato */
+
+/*
+ * Retrato do jogador. As iniciais ficam no texto do elemento e a foto entra
+ * como fundo: quando o endereço do avatar falha, as iniciais reaparecem
+ * sozinhas, sem ícone de imagem quebrada.
+ */
+.retrato {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  background-color: var(--fundo-3);
+  background-size: cover;
+  background-position: center;
+  color: var(--texto-suave);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.retrato[data-com-foto='sim'] {
+  color: transparent;
+}
+
+.retrato--grande {
+  width: 46px;
+  height: 46px;
+  font-size: 15px;
+}
+
+/* ------------------------------------------------- identidade do launcher */
+
+.identidade {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.identidade.oculta {
+  display: none;
+}
+
+.identidade__nome {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.identidade__origem {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ouro);
+  margin-top: 2px;
+}
+
+/* ----------------------------------------------------------------- bancada */
+
+/*
+ * Quem ficou fora dos times. Era uma linha discreta que ninguém via, e dava
+ * para começar a partida sem perceber que alguém tinha sobrado. Agora tem
+ * moldura, título e destaque em âmbar quando há gente sem escolher.
+ */
+.bancada {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background: linear-gradient(180deg, var(--fundo-2), var(--fundo-1));
+  transition: border-color var(--suave), box-shadow var(--suave);
+}
+
+/* Sem ninguém de fora, o cartão recua para não competir com os times. */
+.bancada[data-vazia='sim'] {
+  opacity: 0.72;
+}
+
+.bancada__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bancada__titulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.bancada__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bancada__rotulo {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* Gente sem time é problema a resolver antes de começar: cor de aviso. */
+.bancada__rotulo--alerta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--ouro-claro);
+}
+
+.bancada__rotulo--alerta::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--ouro);
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.16);
+}
+
+.bancada__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bancada__lista .jogador {
+  flex: 0 1 auto;
+  min-width: 170px;
+}
+
+.etiqueta--voce {
+  background: rgba(201, 162, 39, 0.2);
+  color: var(--ouro-claro);
+}
+
+.elenco__time--plateia {
+  --cor-time: var(--texto-fraco);
 }

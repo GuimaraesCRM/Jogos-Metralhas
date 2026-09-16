@@ -10,6 +10,7 @@
  */
 
 import { el, icone } from './ui.js';
+import { NOME_DO_JOGO } from '/shared/protocolo.js';
 
 const janela = () => window.appDesktop?.janela;
 
@@ -28,8 +29,8 @@ export function criarBarraDeTitulo() {
     el(
       'div',
       { classe: 'barra__marca' },
-      el('span', { classe: 'barra__selo', texto: 'PS' }),
-      el('span', { classe: 'barra__nome', texto: 'Palavras Secretas' })
+      el('span', { classe: 'barra__selo', texto: 'MS' }),
+      el('span', { classe: 'barra__nome', texto: NOME_DO_JOGO })
     ),
     el(
       'div',

@@ -1,4 +1,4 @@
-import {board as preview, SIDE, RULES, INDUSTRIES, buyable, ownsGroup, rentFor, money} from './board.js';
+import {board as preview, RULES, INDUSTRIES, RENT_MULTIPLIERS, improvementCost, buyable, ownsGroup, rentFor, money} from './board.js';
 const $ = id => document.getElementById(id);
 const palette = ['#c6f185', '#7bc6f1', '#ee98b3', '#eac776', '#bca1ef', '#76d9c2', '#f2a477', '#d4dee8'];
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -42,13 +42,14 @@ async function throwDice(values) {
   await delay(920);
   dice.forEach((die, index) => {
     die.className = `die3d value-${values[index]}`;
+    die.querySelector('.face-1').textContent = ['','●','●   ●','●\n  ●\n    ●','●   ●\n●   ●','●   ●\n  ●\n●   ●','●   ●\n●   ●\n●   ●'][values[index]];
     die.setAttribute('aria-label', `Dado ${index + 1}: ${values[index]}`);
   });
 }
 async function acceptState(latest) {
   const movement = latest.lastMove;
   const shouldAnimate = movement && movement.sequence > lastAnimatedMove && displayedPositions.has(movement.player);
-  const diceStamp = latest.dice?.length ? `${latest.round}:${latest.turn}:${latest.stage}:${latest.dice.join('-')}:${movement?.sequence || 0}` : '';
+  const diceStamp = latest.rollSequence || 0;
   const shouldThrow = diceStamp && diceStamp !== lastDiceStamp;
   if (diceStamp) lastDiceStamp = diceStamp;
   state = latest;
@@ -81,7 +82,7 @@ function saveSession(data, endpoint) {
 async function enter(kind) {
   if (!$('name').value.trim()) throw Error('Digite seu nome antes de continuar.');
   const endpoint = $('endpoint').value.trim();
-  const body = {name: $('name').value, code: $('code').value.trim().toUpperCase()};
+  const body = {name: $('name').value, code: $('code').value.trim().toUpperCase(), maxPlayers:Number($('board-size').value)};
   const data = await request(`/api/${kind}`, body, endpoint);
   saveSession(data, endpoint); await poll();
 }
@@ -101,6 +102,7 @@ async function poll(manual = false) {
   finally { polling = false; }
 }
 function boardLocation(id) {
+  const SIDE = (state?.board || preview).length / 4;
   if (id <= SIDE) return [SIDE + 1, SIDE + 1 - id];
   if (id <= SIDE * 2) return [SIDE * 2 + 1 - id, 1];
   if (id <= SIDE * 3) return [1, id - SIDE * 2 + 1];
@@ -110,6 +112,7 @@ function renderBoard() {
   const stamp = JSON.stringify({board:state?.board || preview, players:state?.players, properties:state?.properties, displayed:[...displayedPositions]});
   if (stamp === boardStamp) return;
   boardStamp = stamp;
+  const side=(state?.board || preview).length/4; $('board').style.setProperty('--grid-side',side+1); $('board').classList.toggle('compact-board',side===8);
   $('board').querySelectorAll('.tile').forEach(el => el.remove());
   for (const tile of state?.board || preview) {
     const el = document.createElement('button'); el.type = 'button'; el.dataset.tile = tile.id; el.className = `tile ${tile.type !== 'property' ? 'special ' + tile.type : ''}`;
@@ -120,7 +123,8 @@ function renderBoard() {
     el.style.setProperty('--color', tile.color || '#abc8a9'); el.style.setProperty('--owner', palette[owner] || '#344');
     el.title = tile.name + (tile.city ? ` · ${tile.city}` : '') + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(displayedRent(tile, lot)) + (completeGroup(tile, lot) && lot.level === 0 ? ' (grupo completo)' : '')}` : '');
     el.setAttribute('aria-label', el.title + ' — ver detalhes');
-    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${lot ? `<span class="owner-mark">${owner + 1} ${'◆'.repeat(lot.level)}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}"><span>${p.index + 1}</span></span>`).join('')}</span>`;
+    const buildings=lot?.level ? `<span class="property-buildings ${lot.level===4?'hotel':''}">${lot.level===4?'<i></i>':Array.from({length:lot.level},()=>'<i></i>').join('')}</span>`:'';
+    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${buildings}${lot ? `<span class="owner-mark" title="${esc(state.players[owner].name)}">J${owner + 1}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}"><span>${p.index + 1}</span></span>`).join('')}</span>`;
     $('board').append(el);
   }
 }
@@ -139,27 +143,31 @@ function render() {
   $('pause-banner').textContent = `Partida pausada por ${state.players.find(p => p.id === state.pausedBy)?.name || 'um jogador'}. O tempo do turno está congelado.`;
   $('room-code').textContent = state.code;
   $('host-address').textContent = hostAddresses.length ? `Endereços desta máquina: ${hostAddresses.join(' ou ')}. Compartilhe o endereço acessível aos amigos e o código.` : `Servidor: ${session.endpoint}`;
-  $('player-count').textContent = `${state.players.length}/8`;
-  $('players').innerHTML = state.players.map((p,i) => `<div class="player ${p.id === current?.id && state.phase === 'playing' ? 'current' : ''} ${p.bankrupt ? 'out' : ''}"><div class="avatar" style="--player:${palette[i]}">${i + 1}</div><div class="player-name">${esc(p.name)}${p.id === session.id ? ' (você)' : ''}<small>${p.bankrupt ? 'Faliu' : `${p.jailed ? `Preso ${p.jailTurns}/3 · ` : ''}${INDUSTRIES.filter(id => state.properties[id]?.owner === p.id).length}/4 indústrias · ${p.jailCards} carta(s)`}</small><small>Patrimônio ${money(p.wealth)}</small></div><div class="player-money">${money(p.money)}</div></div>`).join('');
+  $('player-count').textContent = `${state.players.length}/${state.maxPlayers || 8}`;
+  $('players').innerHTML = state.players.map((p,i) => `<div class="player ${p.id === current?.id && state.phase === 'playing' ? 'current' : ''} ${p.bankrupt ? 'out' : ''}"><div class="avatar" style="--player:${palette[i]}">${i + 1}</div><div class="player-name">${esc(p.name)}${p.id === session.id ? ' (você)' : ''}<small>${p.bankrupt ? 'Faliu' : `${p.jailed ? `Preso ${p.jailTurns}/3 · ` : ''}${(state.industries||INDUSTRIES).filter(id => state.properties[id]?.owner === p.id).length}/4 indústrias · ${p.jailCards} carta(s)`}</small><small>Patrimônio ${money(p.wealth)}</small></div><div class="player-money">${money(p.money)}</div></div>`).join('');
   $('hud-avatar').style.setProperty('--player', palette[state.players.findIndex(p => p.id === session.id)]);
   $('hud-turn').textContent = mine ? 'SUA VEZ' : `VEZ DE ${current?.name || ''}`;
   $('hud-name').textContent = me?.name || '';
   $('hud-money').textContent = me ? money(me.money) : '';
   $('start').hidden = state.phase !== 'lobby' || state.players[0]?.id !== session.id;
   $('start').disabled = busy || state.players.length < 2;
-  $('lobby-note').textContent = state.phase === 'lobby' ? 'Compartilhe o código e o endereço. O anfitrião inicia com 2 a 8 jogadores.' : 'Sair durante a partida conta como desistência. Você pode fechar e reabrir o aplicativo para reconectar, se não for o anfitrião.';
-  $('round').textContent = state.phase === 'lobby' ? '60 casas · 44 propriedades' : `Rodada ${state.round} · sem limite de rodadas`;
+  $('lobby-note').textContent = state.phase === 'lobby' ? `Compartilhe o código e o endereço. O anfitrião inicia com 2 a ${state.maxPlayers || 8} jogadores.` : 'Sair durante a partida conta como desistência. Você pode fechar e reabrir o aplicativo para reconectar, se não for o anfitrião.';
+  $('round').textContent = state.phase === 'lobby' ? `${state.board.length} casas · ${state.board.filter(buyable).length} propriedades` : `Rodada ${state.round} · sem limite de rodadas`;
   $('table-title').textContent = state.phase === 'lobby' ? 'A mesa está aberta.' : state.phase === 'finished' ? 'Bons negócios, pessoal.' : mine ? 'Sua vez de fazer história.' : `${current.name} está jogando.`;
   $('turn-label').textContent = state.phase === 'lobby' ? 'ANTES DA PRIMEIRA JOGADA' : state.phase === 'finished' ? 'FIM DE PARTIDA' : mine ? 'É A SUA VEZ' : 'NA VEZ DE';
   $('turn-title').textContent = state.phase === 'lobby' ? 'Convide a turma.' : state.phase === 'finished' ? 'Temos um vencedor!' : current.name;
   $('turn-description').textContent = state.phase === 'lobby' ? 'Conquiste as quatro indústrias ou seja o último jogador a sobreviver.' : state.phase === 'finished' ? state.players.filter(p => state.winner.includes(p.id)).map(p => p.name).join(' e ') + (state.winnerReason === 'industries' ? ' venceu com as quatro indústrias!' : ' venceu como último sobrevivente!') : state.paused ? 'A partida e o cronômetro estão pausados.' : !connected ? 'Reconecte para continuar de onde parou.' : me?.bankrupt ? 'Você faliu, mas pode acompanhar o restante da partida.' : mine ? current.jailed ? `Na prisão: ${current.jailTurns}/3 turnos cumpridos. Tire uma dupla, espere ou use uma carta (${current.jailCards} disponível).` : state.stage === 'roll' ? `Lance os dados.${state.doubles ? ` ${state.doubles} dupla(s) neste turno: a terceira manda à prisão!` : ''}` : `Você está em ${state.board[current.position].name}.${state.extraRoll ? ' Tirou uma dupla e joga novamente.' : ''}` : 'Acompanhe o tabuleiro enquanto espera sua vez.';
   const disabled = busy ? 'disabled' : '';
-  $('actions').innerHTML = mine ? `${state.stage === 'roll' ? `<button class="primary" data-action="roll" ${disabled}>⚄ ${me.jailed ? 'Tentar uma dupla' : 'Lançar dados'}</button>${me.jailed ? `<button class="secondary" data-action="jail-wait" ${disabled}>Esperar na prisão</button><button class="secondary" data-action="jail-card" ${busy || !me.jailCards ? 'disabled' : ''}>Usar carta de saída (${me.jailCards})</button>` : ''}` : `${state.stage === 'buy' ? `<button class="primary" data-action="buy" ${busy || me.money < state.board[me.position].price ? 'disabled' : ''}>Comprar por ${money(state.board[me.position].price)}</button>` : ''}<button class="secondary" data-action="end" ${disabled}>${state.extraRoll ? (state.stage === 'buy' ? 'Não comprar; jogar novamente' : 'Jogar novamente') : (state.stage === 'buy' ? 'Não comprar e passar' : 'Encerrar turno')} →</button>`}` : '';
+  if (!mine) $('actions').innerHTML='';
+  else if(state.stage==='roll') $('actions').innerHTML=`<button class="primary" data-action="roll" ${disabled}>⚄ ${me.jailed?'Tentar uma dupla':'Lançar dados'}</button>${me.jailed?`<button class="secondary" data-action="jail-wait">Esperar na prisão</button><button class="secondary" data-action="jail-card" ${!me.jailCards?'disabled':''}>Usar carta de saída (${me.jailCards})</button>`:''}`;
+  else if(state.stage==='rent') { const pay=state.pendingPayment, short=me.money<pay.amount, owned=Object.entries(state.properties).filter(([,lot])=>lot.owner===me.id); $('actions').innerHTML=`<p>Aluguel de <strong>${money(pay.amount)}</strong> por ${esc(state.board[pay.property].name)}.</p><button class="primary" data-action="rent-confirm" ${short?'disabled':''}>Confirmar pagamento</button>${short?`<p class="hint">Faltam ${money(pay.amount-me.money)}. Venda imóveis ou negocie.</p>${owned.length?`<button class="secondary" data-action="sell-bank-auto">Venda automática ao banco</button>${owned.map(([id])=>`<button class="secondary" data-action="sell-bank" data-value="${id}">Vender ${esc(state.board[id].name)} ao banco</button>`).join('')}<button class="secondary" data-open-trade>Negociar com jogador</button>`:'<button class="secondary" data-action="declare-bankruptcy">Declarar falência</button>'}`:''}`; }
+  else if(state.stage==='choice') { const choice=state.pendingChoice, eligible=state.board.filter(tile=>choice.type==='joker'?buyable(tile)&&!state.properties[tile.id]:choice.type==='carnival'?tile.type==='property'&&state.properties[tile.id]?.owner===me.id:tile.type==='property'&&state.properties[tile.id]&&state.properties[tile.id].owner!==me.id); $('actions').innerHTML=`<p>Escolha para usar ${choice.type==='joker'?'METRALHA CORINGA':choice.type==='carnival'?'Carnaval':'Apagão'}:</p>${eligible.map(tile=>`<button class="secondary" data-action="card-choice" data-value="${tile.id}">${esc(tile.name)}</button>`).join('')}`; }
+  else { const tile=state.board[me.position],lot=state.properties[me.position]; let upgrade=''; if(state.stage==='upgrade'&&tile.type==='property'){ const max=(lot.visits||1)>=3?4:3; upgrade=Array.from({length:max-lot.level},(_,i)=>lot.level+i+1).map(level=>{const cost=Array.from({length:level-lot.level},(_,j)=>improvementCost(tile,lot.level+j+1)).reduce((a,b)=>a+b,0);return `<button class="primary" data-action="upgrade" data-value="${tile.id}" data-level="${level}">${level===4?'Construir hotel':`Construir ${level} casa(s)`} · ${money(cost)}</button>`}).join(''); } $('actions').innerHTML=`${state.stage==='buy'?`<button class="primary" data-action="buy">Comprar por ${money(tile.price)}</button>`:''}${upgrade}<button class="secondary" data-action="end">${state.extraRoll?'Jogar novamente':'Encerrar turno'} →</button>`; }
   $('timer').hidden = state.phase !== 'playing'; updateTimer();
   renderTrade(mine);
   const assets = Object.entries(state.properties).filter(([,lot]) => lot.owner === session.id);
   $('asset-count').textContent = assets.length;
-  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2), set = completeGroup(tile, lot); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `${esc(tile.city)} · nível ${lot.level} · aluguel ${money(displayedRent(tile, lot))}${set && lot.level === 0 ? ' · grupo completo 2×' : ''}`}</small></div>${tile.type === 'property' ? `<button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button>` : '<span class="hint">⚙</span>'}</div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
+  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id], set = completeGroup(tile, lot); return `<div class="asset" style="--asset-color:${tile.color}"><div class="asset-name"><strong>${esc(tile.name)}</strong><small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `${esc(tile.city)} · ${lot.level===4?'hotel':`${lot.level} casa(s)`} · aluguel ${money(displayedRent(tile, lot))}${set && lot.level === 0 ? ' · grupo completo 2×' : ''}`}</small></div></div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
   $('feed').innerHTML = state.logs.map(text => `<div class="feed-item">${esc(text)}</div>`).join('') || '<p class="hint">Os acontecimentos da partida aparecem aqui.</p>';
   $('menu-room').innerHTML = `<span>Sala <strong>${esc(state.code)}</strong></span><span>Servidor <strong>${esc(session.endpoint)}</strong></span><span>Rodada <strong>${state.round}</strong></span><span>Conexão <strong>${connected ? 'online' : 'interrompida'}</strong></span>`;
   $('menu-players').innerHTML = $('players').innerHTML;
@@ -213,7 +221,7 @@ document.addEventListener('click', event => {
   if (tileButton) { showTile(Number(tileButton.dataset.tile)); return; }
   if (event.target.closest('[data-open-trade]')) { openTrade(); return; }
   const button = event.target.closest('[data-action]');
-  if (button) perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:button.dataset.action, value:button.dataset.action.startsWith('trade-') ? button.dataset.value : Number(button.dataset.value)})); });
+  if (button) perform(async () => { const value=button.dataset.level?{property:Number(button.dataset.value),level:Number(button.dataset.level)}:button.dataset.action.startsWith('trade-')?button.dataset.value:button.dataset.value===undefined?undefined:Number(button.dataset.value); await acceptState(await request('/api/action', {code:session.code, action:button.dataset.action, value})); });
 });
 $('trade-type').onchange = fillTradeProperties;
 $('trade-target').onchange = fillTradeProperties;
@@ -278,6 +286,7 @@ $('menu-pause').onclick = () => { $('game-menu').close(); $('pause').click(); };
 $('menu-reconnect').onclick = () => { $('game-menu').close(); $('reconnect').click(); };
 $('menu-rules').onclick = () => { $('game-menu').close(); $('rules').showModal(); };
 $('menu-leave').onclick = () => { $('game-menu').close(); $('leave-dialog').showModal(); };
+$('menu-quit').onclick = () => window.desktop.quit();
 document.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || !document.body.classList.contains('game-active')) return;
   if ($('game-menu').open) { event.preventDefault(); $('game-menu').close(); return; }
@@ -287,7 +296,7 @@ document.addEventListener('keydown', event => {
 function showTile(id) {
   const tile = (state?.board || preview)[id], lot = state?.properties[id];
   $('tile-title').textContent = tile.name;
-  $('tile-detail').textContent = buyable(tile) ? `${tile.city ? tile.city + '. ' : ''}Preço original: ${money(tile.price)}. ${lot ? 'Proprietário: ' + state.players.find(p => p.id === lot.owner).name + '.' : 'Disponível no banco.'} ${tile.type === 'industry' ? `Aluguel: ${money(tile.price)} multiplicado pela soma dos dois dados. Conquiste as quatro indústrias para vencer. Não recebe melhorias.` : `Aluguel: ${money(lot ? displayedRent(tile, lot) : tile.rent)}. Nível ${lot?.level || 0} de 3.${lot && completeGroup(tile, lot) && lot.level === 0 ? ' O proprietário possui as quatro propriedades desta cor, então o aluguel base está dobrado.' : ''}`}` : ({jail:'Cair aqui pelo movimento normal é apenas uma visita. Quem foi enviado à prisão precisa tirar uma dupla, cumprir três turnos ou usar a carta de saída.', 'go-to-jail':'Você é enviado à prisão no canto oposto, sem bônus de partida pelo deslocamento.', event:'Compre uma carta Sorte: bônus, reparos, ir à prisão ou guardar uma carta Sair da prisão.',start:`Cada volta completa rende ${money(RULES.lapBonus)}.`,rest:'Casa de descanso. Nenhuma cobrança.',tax:`Pague ${money(RULES.tax)} ao banco.`})[tile.type];
+  $('tile-detail').textContent = buyable(tile) ? `${tile.city ? tile.city + '. ' : ''}Preço: ${money(tile.price)}. ${lot ? 'Proprietário: ' + state.players.find(p => p.id === lot.owner).name + '.' : 'Disponível no banco.'} ${tile.type === 'industry' ? `Aluguel: ${money(tile.price)} × dados. Não recebe melhorias.` : `Tabela: sem construção ${money(tile.rent)}; 1 casa ${money(tile.rent*RENT_MULTIPLIERS[1])}; 2 casas ${money(tile.rent*RENT_MULTIPLIERS[2])}; 3 casas ${money(tile.rent*RENT_MULTIPLIERS[3])}; hotel ${money(tile.rent*RENT_MULTIPLIERS[4])}. Custos: casas ${money(improvementCost(tile,1))} cada; hotel ${money(improvementCost(tile,4))}. Estado atual: ${lot?.level===4?'hotel':`${lot?.level||0} casa(s)`}.`}` : ({jail:'Cair aqui pelo movimento normal é apenas uma visita.', 'go-to-jail':'Você é enviado à prisão.', event:'Compre uma carta Sorte.',start:`Cada volta rende ${money(RULES.lapBonus)}.`,rest:'Descanso.',tax:`Pague ${money(RULES.tax)}.`})[tile.type];
   $('tile-dialog').showModal();
 }
 $('close-tile').onclick = () => $('tile-dialog').close();

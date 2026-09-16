@@ -52,11 +52,12 @@ body.game-active{height:100vh;overflow:hidden;background:radial-gradient(circle 
 body.game-active header,body.game-active .left-panel{display:none}
 body.game-active main{display:block;width:100vw;height:100vh;max-width:none;padding:0;margin:0}
 body.game-active .table-area{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;border:0;border-radius:0;background:radial-gradient(ellipse at 50% 49%,#d4edb8 0,#8fb778 31%,#78b1c7 32%,#acd7e6 72%,#7fb2c8 100%);overflow:hidden}
-body.game-active .board-scene{position:absolute;inset:0;min-height:0;height:100vh;perspective:1500px;padding:30px 40px 70px}
+body.game-active .board-scene{position:absolute;inset:0;min-height:0;height:100vh;perspective:1500px;padding:0 40px 150px}
 body.game-active .board{--tile:clamp(45px,4.25vmin,69px);--camera-zoom:.83;box-shadow:0 13px 0 #789081,0 27px 0 #4c6259,0 55px 75px #15344388}
 body.game-active .table-heading{position:fixed;z-index:40;top:16px;right:18px;padding:0;pointer-events:none}
 body.game-active .table-heading>div:first-child{display:none}
 body.game-active .camera-controls{pointer-events:auto;max-width:none;padding:8px;background:#122638cc;border:1px solid #ffffff22;border-radius:15px;box-shadow:0 10px 35px #10263366;backdrop-filter:blur(10px)}
+body.game-active .camera-controls{display:none}
 body.game-active .table-footer{position:fixed;left:20px;bottom:14px;z-index:30;padding:8px 12px;border-radius:10px;background:#102535b8;color:#d6e9ef;backdrop-filter:blur(7px)}
 body.game-active .right-panel{position:fixed;right:22px;bottom:55px;z-index:35;width:310px;pointer-events:none}
 body.game-active .right-panel>.panel{display:none}
@@ -74,10 +75,10 @@ body.game-active .turn-panel .muted{margin:5px 0}
 .die3d{width:58px;height:58px;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(9px 14px 7px #29442d70)}
 .die-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre;line-height:15px;border:2px solid #ffe1cc;border-radius:12px;background:radial-gradient(circle at 32% 25%,#ff796b,#cf2924 55%,#84120f);color:#fff;font-style:normal;font-size:14px;letter-spacing:7px;box-shadow:inset -8px -8px 12px #5f080855,inset 5px 5px 10px #fff4}
 .die-face.face-1{transform:translateZ(29px)}.die-face.face-2{transform:rotateY(90deg) translateZ(29px)}.die-face.face-3{transform:rotateY(-90deg) translateZ(29px)}.die-face.face-4{transform:rotateX(90deg) translateZ(29px)}.die-face.face-5{transform:rotateX(-90deg) translateZ(29px)}.die-face.face-6{transform:rotateY(180deg) translateZ(29px)}
-.die3d.value-1{transform:rotateX(-12deg) rotateY(12deg)}.die3d.value-2{transform:rotateY(-90deg) rotateZ(8deg)}.die3d.value-3{transform:rotateY(90deg) rotateZ(-8deg)}.die3d.value-4{transform:rotateX(-90deg) rotateZ(8deg)}.die3d.value-5{transform:rotateX(90deg) rotateZ(-8deg)}.die3d.value-6{transform:rotateY(180deg) rotateZ(8deg)}
+.die3d.value-1,.die3d.value-2,.die3d.value-3,.die3d.value-4,.die3d.value-5,.die3d.value-6{transform:rotateX(-16deg) rotateY(24deg) rotateZ(-4deg)}
 .die3d.rolling{animation:dice-throw .9s cubic-bezier(.18,.7,.28,1)}.die3d:nth-child(2).rolling{animation-name:dice-throw-two;animation-delay:.06s}
-@keyframes dice-throw{0%{transform:translate3d(-120px,-190px,160px) rotateX(0) rotateY(0) rotateZ(0)}55%{transform:translate3d(30px,-35px,70px) rotateX(720deg) rotateY(540deg) rotateZ(360deg)}78%{transform:translate3d(-9px,3px,16px) rotateX(900deg) rotateY(720deg)}100%{transform:translate3d(0,0,0) rotateX(1080deg) rotateY(900deg)}}
-@keyframes dice-throw-two{0%{transform:translate3d(130px,-210px,180px) rotateX(0) rotateY(0)}58%{transform:translate3d(-25px,-42px,80px) rotateX(-720deg) rotateY(720deg) rotateZ(-540deg)}80%{transform:translate3d(8px,4px,18px) rotateX(-900deg) rotateY(900deg)}100%{transform:translate3d(0,0,0) rotateX(-1080deg) rotateY(1080deg)}}
+@keyframes dice-throw{0%{transform:translate3d(-360px,-260px,220px) rotateX(0) rotateY(0) rotateZ(0)}38%{transform:translate3d(210px,-120px,130px) rotateX(540deg) rotateY(420deg) rotateZ(270deg)}67%{transform:translate3d(-125px,65px,65px) rotateX(840deg) rotateY(720deg)}84%{transform:translate3d(45px,-18px,24px) rotateX(990deg) rotateY(810deg)}100%{transform:translate3d(0,0,0) rotateX(1080deg) rotateY(900deg)}}
+@keyframes dice-throw-two{0%{transform:translate3d(380px,-280px,240px) rotateX(0) rotateY(0)}40%{transform:translate3d(-230px,-90px,145px) rotateX(-570deg) rotateY(540deg) rotateZ(-450deg)}69%{transform:translate3d(145px,75px,72px) rotateX(-870deg) rotateY(810deg)}85%{transform:translate3d(-52px,-15px,25px) rotateX(-1020deg) rotateY(960deg)}100%{transform:translate3d(0,0,0) rotateX(-1080deg) rotateY(1080deg)}}
 
 /* Peões elevados sobre as casas, com volume, brilho e sombra. */
 .board{transform-style:preserve-3d}.tile{transform-style:preserve-3d}.tokens{transform-style:preserve-3d;overflow:visible}
@@ -87,3 +88,29 @@ body.game-active .turn-panel .muted{margin:5px 0}
 .token>span{inset:12px 0 auto;color:#fff;text-shadow:0 1px 2px #000;font-size:8px}.tokens{grid-template-rows:repeat(2,30px);height:60px;bottom:4px}.token.moving{animation:pawn-step-3d .3s cubic-bezier(.2,.9,.25,1.2)}
 @keyframes pawn-step-3d{0%{transform:translateZ(55px) translateY(-15px) scale(1.18)}100%{transform:translateZ(22px) translateY(0) scale(1)}}
 @media(max-width:1200px){body.game-active .board{--tile:43px}.hud-player{min-width:210px}.menu-grid{grid-template-columns:1fr 1fr}.menu-grid>section:last-child{grid-column:1/-1}}
+
+/* A entrada e o lobby também usam a mesa cheia; os formulários flutuam sobre ela. */
+body:not(.game-active){height:100vh;overflow:hidden;background:#79afc5}
+body:not(.game-active) header{position:fixed;left:20px;top:18px;z-index:50;width:auto;height:62px;padding:8px 16px;border:1px solid #ffffff2b;border-radius:16px;background:#10263bdb;box-shadow:0 12px 34px #0d243866;backdrop-filter:blur(12px)}
+body:not(.game-active) header .brand-icon{width:42px;height:42px;font-size:24px}body:not(.game-active) header .header-right{display:none}
+body:not(.game-active) main{display:block;width:100vw;height:100vh;max-width:none;padding:0;margin:0}
+body:not(.game-active) .table-area{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;border:0;border-radius:0;background:radial-gradient(ellipse at 50% 49%,#d4edb8 0,#8fb778 31%,#78b1c7 32%,#acd7e6 72%,#7fb2c8 100%);overflow:hidden}
+body:not(.game-active) .board-scene{position:absolute;inset:0;min-height:0;height:100vh;perspective:1500px;padding:25px 30px 60px}
+body:not(.game-active) .board{--tile:clamp(43px,4vmin,65px)}
+body:not(.game-active) .left-panel{position:fixed;left:22px;top:98px;bottom:22px;z-index:45;width:310px;overflow:auto;padding-right:4px}
+body:not(.game-active) .left-panel .panel{background:#13283ceb;border-color:#ffffff25;box-shadow:0 16px 45px #10213180;backdrop-filter:blur(13px)}
+body:not(.game-active) .right-panel{display:none}
+body:not(.game-active) .table-heading{position:fixed;right:18px;top:16px;z-index:40;padding:0;pointer-events:none}
+body:not(.game-active) .table-heading>div:first-child{display:none}
+body:not(.game-active) .camera-controls{pointer-events:auto;max-width:none;padding:8px;background:#122638cc;border:1px solid #ffffff22;border-radius:15px;box-shadow:0 10px 35px #10263366;backdrop-filter:blur(10px)}
+body:not(.game-active) .table-footer{position:fixed;right:20px;bottom:14px;z-index:30;padding:8px 12px;border-radius:10px;background:#102535b8;color:#d6e9ef;backdrop-filter:blur(7px)}
+@media(max-width:1200px){body:not(.game-active) .left-panel{width:280px}body:not(.game-active) .board{--tile:42px}}
+
+body.game-active .board{--tile:clamp(52px,5.1vmin,76px)}
+.board{grid-template-columns:repeat(var(--grid-side,16),var(--tile));grid-template-rows:repeat(var(--grid-side,16),var(--tile))}.city{grid-area:2 / 2 / var(--grid-side,16) / var(--grid-side,16)}
+.compact-board{--tile:clamp(72px,8vmin,105px)!important}.compact-board .tile-name{font-size:10px}.compact-board .tile-price{font-size:9px}
+.property-buildings{position:absolute;top:5px;right:2px;z-index:12;display:flex;gap:1px;transform:translateZ(13px);filter:drop-shadow(2px 3px 2px #172c2999)}
+.property-buildings i{display:block;width:7px;height:8px;background:linear-gradient(90deg,#197a43,#52d47f,#126334);transform:skewY(-12deg);border-top:2px solid #9cf0b4}
+.property-buildings.hotel i{width:17px;height:11px;background:linear-gradient(90deg,#8d1720,#ef5060,#76121b);border-top:3px solid #ff9ca4}
+.asset{background:#f1eee2;color:#263b3b;border:0;border-top:7px solid var(--asset-color,#8bcac0);border-radius:8px;padding:10px;margin:8px 0;box-shadow:0 5px 12px #0003}.asset small{color:#526665}.asset-swatch{display:none}
+.danger{color:#ff9f9f;border-color:#7d3c46}.menu-actions{flex-wrap:wrap}.menu-actions button{min-width:140px}

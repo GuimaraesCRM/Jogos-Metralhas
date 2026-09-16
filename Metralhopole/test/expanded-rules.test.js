@@ -68,7 +68,7 @@ test('carta de saída é guardada, consumida uma vez e devolvida ao descarte', (
 test('aluguel industrial usa preço original vezes soma, sem melhorias', () => {
   const r = setup(), [a,b] = r.players; const id = INDUSTRIES[0];
   r.properties[id] = {owner:b.id,level:0}; a.position = id-5;
-  roll(r,2,3); assert.equal(a.money,RULES.startingMoney-125000); assert.equal(b.money,RULES.startingMoney+125000);
+  roll(r,2,3); assert.equal(r.stage,'rent'); act(r,a.token,'rent-confirm'); assert.equal(a.money,RULES.startingMoney-125000); assert.equal(b.money,RULES.startingMoney+125000);
   nextOwnTurn(r); r.properties[id].owner = a.id;
   assert.throws(() => act(r,a.token,'upgrade',id),/Indústrias/);
   a.position=id-5; const balance=a.money; roll(r,2,3); assert.equal(a.money,balance);

@@ -47,8 +47,14 @@ try {
   });
   await page.locator('[data-action="roll"]').click();
   await page.waitForFunction(() => window.movementSteps.length >= 3);
-  await page.locator('[data-action="end"]').waitFor();
+  await page.waitForFunction(() => !document.querySelector('[data-action="roll"]'));
   assert.match(await page.locator('#die-one').getAttribute('class'), /value-[1-6]/);
+  if (await page.locator('[data-action="buy"]').count()) {
+    await page.locator('[data-action="buy"]').click();
+  }
+  if (await page.locator('[data-action="card-choice"]').count()) await page.locator('[data-action="card-choice"]').first().click();
+  if (await page.locator('[data-action="rent-confirm"]').count()) await page.locator('[data-action="rent-confirm"]').click();
+  await page.locator('[data-action="end"]').waitFor();
   assert.ok((await page.evaluate(() => window.movementSteps)).length >= 3, 'o peão deve ocupar casas intermediárias durante a animação');
   assert.equal(await page.locator('.tile').count(), 60);
   assert.equal(await page.locator('.token').count(), 8);
@@ -58,6 +64,10 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
   for (let attempt = 0; attempt < 2 && await page.locator('[data-action="roll"]').count(); attempt++) {
     await page.locator('[data-action="roll"]').click();
+    await page.waitForFunction(() => !document.querySelector('[data-action="roll"]'));
+    if (await page.locator('[data-action="buy"]').count()) await page.locator('[data-action="buy"]').click();
+    if (await page.locator('[data-action="card-choice"]').count()) await page.locator('[data-action="card-choice"]').first().click();
+    if (await page.locator('[data-action="rent-confirm"]').count()) await page.locator('[data-action="rent-confirm"]').click();
     await page.locator('[data-action="end"]').click();
     await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
   }
@@ -66,20 +76,13 @@ try {
   await page.locator('#menu-rules').click();
   assert.equal(await page.locator('#rules').isVisible(), true);
   await page.locator('#close-rules').click();
-  await page.locator('#view').click();
-  assert.equal(await page.locator('.board.top').count(), 1);
-  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-tilt')), '0deg');
-  await page.locator('#view').click();
-  await page.locator('#zoom-in').click();
-  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-zoom')), '0.9');
-  await page.locator('#rotate-right').click();
-  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-8deg');
+  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-23deg');
   const scene = await page.locator('.board-scene').boundingBox();
   await page.mouse.move(scene.x + scene.width / 2, scene.y + scene.height / 2);
   await page.mouse.down();
   await page.mouse.move(scene.x + scene.width / 2 + 60, scene.y + scene.height / 2 + 20, {steps:4});
   await page.mouse.up();
-  assert.notEqual(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-8deg');
+  assert.notEqual(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-23deg');
   assert.equal(await page.locator('#tile-dialog').isVisible(), false);
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('#players .player').length === 8);

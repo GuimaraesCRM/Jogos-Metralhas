@@ -1,0 +1,26 @@
+# Modelo de deploy do servidor de partidas no Render (plano gratuito).
+#
+# O Render procura o render.yaml na RAIZ do repositorio, e as regras do bundle
+# nao permitem criar arquivos fora da pasta do jogo. Entao use este arquivo de
+# um destes dois jeitos:
+#
+#   a) copie-o para a raiz do SEU fork; ou
+#   b) crie o servico pelo painel do Render usando estes mesmos valores
+#      (Root Directory: MetralhasStrikeBlock, Dockerfile: server/Dockerfile).
+#
+# Atencao: o plano gratuito hiberna apos inatividade e acorda em ~1 minuto.
+# Para um FPS, um servidor com ping baixo e sempre ligado joga muito melhor —
+# detalhes e alternativas (Docker, systemd) em MetralhasStrikeBlock/README.md.
+services:
+  - type: web
+    name: metralhas-strike-block
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: MetralhasStrikeBlock
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: PORT
+        value: 8790

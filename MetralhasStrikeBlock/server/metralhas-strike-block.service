@@ -1,0 +1,34 @@
+# Modelo de servico systemd para o servidor de partidas.
+#
+# Uso, num servidor Linux com Node 20 ou superior:
+#   sudo cp metralhas-strike-block.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now metralhas-strike-block
+#
+# Ajuste User, WorkingDirectory e PORT conforme a sua maquina. O diretorio de
+# trabalho precisa conter server/ e shared/ (copie a pasta MetralhasStrikeBlock
+# inteira, sem node_modules, e rode `npm install --omit=dev` com o package.json
+# de server/ na raiz — o Dockerfile ao lado mostra o arranjo).
+
+[Unit]
+Description=Servidor de partidas do jogo Metralhas Strike Block
+After=network.target
+
+[Service]
+Type=simple
+User=metralhas
+WorkingDirectory=/opt/metralhas-strike-block
+Environment=NODE_ENV=production
+Environment=PORT=8790
+ExecStart=/usr/bin/node server/index.js
+Restart=always
+RestartSec=3
+
+# O servidor so precisa ler os proprios arquivos e abrir uma porta.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

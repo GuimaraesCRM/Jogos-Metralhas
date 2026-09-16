@@ -1,0 +1,17 @@
+{
+  "name": "metralhas-strike-block-servidor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor de partidas do jogo Metralhas Strike Block.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}

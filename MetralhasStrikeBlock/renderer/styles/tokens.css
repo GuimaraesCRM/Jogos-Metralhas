@@ -1,0 +1,25 @@
+/* Paleta e medidas do jogo inteiro. Tema: noite de arena, azul vs vermelho. */
+
+:root {
+  --fundo: #10141c;
+  --fundo-2: #171d28;
+  --fundo-3: #1f2734;
+  --borda: #2c3648;
+  --texto: #e8edf5;
+  --texto-fraco: #9aa7bd;
+
+  --azul: #4d8fe0;
+  --azul-escuro: #2b5ca8;
+  --vermelho: #e05252;
+  --vermelho-escuro: #a82b2b;
+
+  --ouro: #e4be4a;
+  --verde: #58c07a;
+  --perigo: #ff5d5d;
+
+  --raio: 10px;
+  --sombra: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  --fonte: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --fonte-mono: 'Cascadia Mono', 'Consolas', monospace;
+}

@@ -1,0 +1,72 @@
+{
+  "name": "metralhas-strike-block",
+  "productName": "Metralhas Strike Block",
+  "version": "0.1.0",
+  "description": "FPS multiplayer em arena de blocos: Azul contra Vermelho, rounds com economia e menu de compra.",
+  "author": "Metralhas Strike Block",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "postinstall": "node scripts/vendor.cjs",
+    "vendor": "node scripts/vendor.cjs",
+    "start": "electron .",
+    "dev": "node scripts/dev.js",
+    "server": "node server/index.js",
+    "test": "node --test shared/fisica.test.js shared/mapa.test.js shared/armas.test.js shared/regras.test.js server/integracao.test.js electron/identidade-launcher.test.cjs",
+    "icone": "electron scripts/gerar-icone.cjs",
+    "build": "node scripts/vendor.cjs && npm run icone && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.metralhasstrikeblock.app",
+    "productName": "Metralhas Strike Block",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "!electron/*.test.cjs",
+      "renderer/**/*",
+      "shared/**/*",
+      "!shared/*.test.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icone.ico"
+    },
+    "portable": {
+      "artifactName": "Metralhas Strike Block ${version} (portatil).exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Metralhas Strike Block",
+      "artifactName": "Metralhas Strike Block ${version} (instalador).exe"
+    }
+  },
+  "dependencies": {
+    "three": "^0.170.0",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "electron": "^44.4.1",
+    "electron-builder": "^26.15.3"
+  }
+}

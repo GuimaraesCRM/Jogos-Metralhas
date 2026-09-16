@@ -1,0 +1,97 @@
+/* Menu de compra estilo CS2: categorias à esquerda, itens no meio. */
+
+.menu-compra {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(860px, 94vw);
+  max-height: 84vh;
+  background: rgba(12, 16, 24, 0.96);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  padding: 18px 22px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-compra .cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.menu-compra .cabecalho h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.menu-compra .dinheiro {
+  color: var(--verde);
+  font-family: var(--fonte-mono);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.menu-compra .corpo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.categoria-compra h3 {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.item-compra {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.item-compra .nome {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.item-compra .detalhe {
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+
+.item-compra .preco {
+  color: var(--verde);
+  font-family: var(--fonte-mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.item-compra:disabled .preco {
+  color: var(--texto-fraco);
+}
+
+.item-compra.comprado {
+  border-color: var(--verde);
+}
+
+.menu-compra .rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}

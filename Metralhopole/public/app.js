@@ -1,6 +1,9 @@
 import {board as preview, RULES, INDUSTRIES, RENT_MULTIPLIERS, improvementCost, buyable, ownsGroup, rentFor, money} from './board.js';
+import './model3d.js';
 const $ = id => document.getElementById(id);
 const palette = ['#c6f185', '#7bc6f1', '#ee98b3', '#eac776', '#bca1ef', '#76d9c2', '#f2a477', '#d4dee8'];
+const characters=['character-female-a','character-female-b','character-female-c','character-female-d','character-female-e','character-female-f','character-male-a','character-male-b','character-male-c','character-male-d','character-male-e','character-male-f'];
+const modelUrl=name=>`./models/${encodeURIComponent(name)}.glb`;
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session;
 try { session = JSON.parse(localStorage.getItem('session') || 'null'); } catch { localStorage.removeItem('session'); }
@@ -18,7 +21,7 @@ function applyCamera() {
 function setCamera(next, top = false) {
   if (next.zoom !== undefined) next.zoom = Math.round(next.zoom * 100) / 100;
   Object.assign(camera, next); $('board').classList.toggle('top', top); applyCamera();
-  $('view').textContent = top ? 'Vista 3D' : 'Vista de cima';
+  const view=$('view'); if(view) view.textContent = top ? 'Vista 3D' : 'Vista de cima';
 }
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 const completeGroup = (tile, lot) => !!(state && lot && tile.type === 'property' && ownsGroup(state.board, state.properties, lot.owner, tile.group));
@@ -38,11 +41,11 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function throwDice(values) {
   if (!values?.length) return;
   const dice = [$('die-one'), $('die-two')];
-  for (const die of dice) { die.classList.remove('rolling'); void die.offsetWidth; die.classList.add('rolling'); }
-  await delay(920);
+  for (const [index,die] of dice.entries()) die.querySelector('model-3d')?.animateThrow(values[index]);
+  await delay(1180);
   dice.forEach((die, index) => {
     die.className = `die3d value-${values[index]}`;
-    die.querySelector('.face-1').textContent = ['','●','●   ●','●\n  ●\n    ●','●   ●\n●   ●','●   ●\n  ●\n●   ●','●   ●\n●   ●\n●   ●'][values[index]];
+    die.dataset.value=values[index];
     die.setAttribute('aria-label', `Dado ${index + 1}: ${values[index]}`);
   });
 }
@@ -82,7 +85,7 @@ function saveSession(data, endpoint) {
 async function enter(kind) {
   if (!$('name').value.trim()) throw Error('Digite seu nome antes de continuar.');
   const endpoint = $('endpoint').value.trim();
-  const body = {name: $('name').value, code: $('code').value.trim().toUpperCase(), maxPlayers:Number($('board-size').value)};
+  const body = {name: $('name').value, code: $('code').value.trim().toUpperCase(), maxPlayers:Number($('board-size').value),character:$('character').value};
   const data = await request(`/api/${kind}`, body, endpoint);
   saveSession(data, endpoint); await poll();
 }
@@ -123,8 +126,8 @@ function renderBoard() {
     el.style.setProperty('--color', tile.color || '#abc8a9'); el.style.setProperty('--owner', palette[owner] || '#344');
     el.title = tile.name + (tile.city ? ` · ${tile.city}` : '') + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(displayedRent(tile, lot)) + (completeGroup(tile, lot) && lot.level === 0 ? ' (grupo completo)' : '')}` : '');
     el.setAttribute('aria-label', el.title + ' — ver detalhes');
-    const buildings=lot?.level ? `<span class="property-buildings ${lot.level===4?'hotel':''}">${lot.level===4?'<i></i>':Array.from({length:lot.level},()=>'<i></i>').join('')}</span>`:'';
-    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${buildings}${lot ? `<span class="owner-mark" title="${esc(state.players[owner].name)}">J${owner + 1}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}"><span>${p.index + 1}</span></span>`).join('')}</span>`;
+    const buildings=lot?.level ? `<span class="property-buildings"><model-3d src="${modelUrl(lot.level===4?'Hotel':`${lot.level} casa${lot.level===1?'':'s'}`)}" aria-label="${lot.level===4?'Hotel':`${lot.level} casa(s)`}"></model-3d></span>`:'';
+    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${buildings}${lot ? `<span class="owner-mark" title="${esc(state.players[owner].name)}">J${owner + 1}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}"><model-3d src="${modelUrl(p.character)}"></model-3d><span>${p.index + 1}</span></span>`).join('')}</span>`;
     $('board').append(el);
   }
 }
@@ -243,14 +246,6 @@ $('confirm-leave').onclick = () => perform(async () => {
   $('die-one').className = 'die3d value-5'; $('die-two').className = 'die3d value-3'; render();
 });
 $('copy-code').onclick = () => navigator.clipboard.writeText(session.code).then(() => notify('Código copiado! Envie também o endereço do servidor.')).catch(() => notify(`Código: ${session.code}`));
-$('view').onclick = () => $('board').classList.contains('top') ? setCamera({tilt:28, rotation:-23, zoom:.82}) : setCamera({tilt:0, rotation:0, zoom:.9}, true);
-$('reset-view').onclick = () => setCamera({tilt:28, rotation:-23, zoom:.82});
-$('zoom-in').onclick = () => setCamera({zoom:clamp(camera.zoom + .08, .4, 1.2)});
-$('zoom-out').onclick = () => setCamera({zoom:clamp(camera.zoom - .08, .4, 1.2)});
-$('rotate-left').onclick = () => setCamera({rotation:camera.rotation - 15});
-$('rotate-right').onclick = () => setCamera({rotation:camera.rotation + 15});
-$('tilt-up').onclick = () => setCamera({tilt:clamp(camera.tilt - 8, 0, 65)});
-$('tilt-down').onclick = () => setCamera({tilt:clamp(camera.tilt + 8, 0, 65)});
 document.querySelector('.board-scene').addEventListener('wheel', event => {
   event.preventDefault(); setCamera({zoom:clamp(camera.zoom + (event.deltaY < 0 ? .07 : -.07), .4, 1.2)});
 }, {passive:false});
@@ -300,4 +295,7 @@ function showTile(id) {
   $('tile-dialog').showModal();
 }
 $('close-tile').onclick = () => $('tile-dialog').close();
+$('character-picker').innerHTML=characters.map((character,index)=>`<button type="button" data-character="${character}" class="${character===$('character').value?'selected':''}" title="Personagem ${index+1}"><model-3d src="${modelUrl(character)}"></model-3d><span>${index+1}</span></button>`).join('');
+$('character-picker').onclick=event=>{const button=event.target.closest('[data-character]');if(!button)return;$('character').value=button.dataset.character;$('character-picker').querySelectorAll('button').forEach(item=>item.classList.toggle('selected',item===button));};
+for(const die of [$('die-one'),$('die-two')]) die.innerHTML='<model-3d src="procedural:dice"></model-3d>';
 applyCamera(); renderBoard(); if (session) poll(); setInterval(poll, 1200); setInterval(updateTimer, 250);

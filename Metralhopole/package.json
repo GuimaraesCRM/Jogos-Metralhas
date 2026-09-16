@@ -1,6 +1,6 @@
 {
   "name": "metralhopole",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Jogo desktop de propriedades para 2 a 8 amigos",
@@ -42,5 +42,8 @@
       "signAndEditExecutable": false
     },
     "artifactName": "Metralhopole-${version}-${arch}.${ext}"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
   }
 }

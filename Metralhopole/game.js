@@ -2,6 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 
 import {board, smallBoard, RULES, JAIL, INDUSTRIES, SMALL_INDUSTRIES, buyable, ownsGroup, rentFor, improvementCost, money} from './public/board.js';
 export {board, RULES, JAIL, INDUSTRIES};
+export const CHARACTERS=['character-female-a','character-female-b','character-female-c','character-female-d','character-female-e','character-female-f','character-male-a','character-male-b','character-male-c','character-male-d','character-male-e','character-male-f'];
 function shuffle(cards) {
   const result = [...cards];
   for (let i = result.length - 1; i > 0; i--) {
@@ -13,16 +14,19 @@ export function createRoom(code, name, options = {}) {
   const maxPlayers = Number(options.maxPlayers) === 4 ? 4 : 8;
   const room = {code, maxPlayers, board:maxPlayers===4?smallBoard:board, industries:maxPlayers===4?SMALL_INDUSTRIES:INDUSTRIES, jail:maxPlayers===4?8:JAIL, phase:'lobby', players:[], properties:{}, turn:0, round:1, stage:'roll', dice:[], rollSequence:0, doubles:0, extraRoll:false, logs:[], winner:null, winnerReason:null, touched:Date.now(), deadline:null, paused:false, pauseRemaining:null, pausedBy:null, trade:null, pendingPayment:null, pendingChoice:null, carnival:null, lastCard:null, lastMove:null, moveSequence:0,
     deck:shuffle(['bonus','bonus','promotion','promotion','refund','lottery','repair','repair','plumbing','taxFine','jail','jail','release','release','carnival','blackout','joker']), discard:[]};
-  join(room, name);
+  join(room, name, options.character);
   return room;
 }
-export function join(room, name) {
+export function join(room, name, requestedCharacter) {
   if (room.phase !== 'lobby') throw Error('A partida já começou.');
   if (room.players.length >= room.maxPlayers) throw Error(`A sala está cheia (${room.maxPlayers} jogadores).`);
   const clean = String(name || '').trim().slice(0, 20);
   if (!clean) throw Error('Informe seu nome.');
   if (room.players.some(p => p.name.toLowerCase() === clean.toLowerCase())) throw Error('Esse nome já está na sala.');
-  const p = {id:randomUUID(), token:randomUUID(), name:clean, money:RULES.startingMoney, position:0, bankrupt:false, jailed:false, jailTurns:0, jailCards:0};
+  const used=new Set(room.players.map(p=>p.character)); const character=requestedCharacter||CHARACTERS.find(item=>!used.has(item));
+  if(!CHARACTERS.includes(character)) throw Error('Escolha um personagem válido.');
+  if(used.has(character)) throw Error('Esse personagem já foi escolhido por outro jogador.');
+  const p = {id:randomUUID(), token:randomUUID(), name:clean, character, money:RULES.startingMoney, position:0, bankrupt:false, jailed:false, jailTurns:0, jailCards:0};
   room.players.push(p);
   return p;
 }

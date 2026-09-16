@@ -15,6 +15,13 @@ test('tabuleiro de quatro jogadores tem 32 casas, 20 propriedades, quatro sortes
   assert.equal(r.board.filter(t=>t.type==='industry').length,4);
 });
 
+test('cada jogador precisa usar um personagem 3D exclusivo', () => {
+  const r=createRoom('MODEL1','Ana',{character:'character-female-a'});
+  assert.throws(()=>join(r,'Beto','character-female-a'),/já foi escolhido/);
+  const beto=join(r,'Beto','character-male-a');
+  assert.equal(r.players[0].character,'character-female-a'); assert.equal(beto.character,'character-male-a');
+});
+
 test('aluguel aguarda confirmação e permite vender imóvel ao banco antes do pagamento', () => {
   const r=game(),[a,b]=r.players;
   r.properties[3]={owner:b.id,level:0,visits:1}; r.properties[1]={owner:a.id,level:0,visits:1};

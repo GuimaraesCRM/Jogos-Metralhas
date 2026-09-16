@@ -14,6 +14,8 @@ const errors = [];
 try {
   const page = await application.firstWindow();
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('requestfailed', request => errors.push(`${request.url()} — ${request.failure()?.errorText}`));
   await page.locator('#host').waitFor();
   // O Chromium empacotado pode não disponibilizar uma superfície de captura
   // para janelas ocultas. Capturas visuais são feitas no teste de desenvolvimento.
@@ -29,7 +31,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('#players .player').length === 8);
   await page.locator('#start').click();
   await page.waitForFunction(() => document.body.classList.contains('game-active'));
-  assert.equal(await page.locator('.die-face').count(), 12);
+  assert.equal(await page.locator('.dice-arena model-3d').count(), 2);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#game-menu').isVisible(), true);
   assert.match(await page.locator('#menu-room').textContent(), /Sala/);

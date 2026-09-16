@@ -16,8 +16,17 @@ Este repositório contém o futuro bundle Jogos Metralhas: vários jogos indepen
 
 1. Leia este arquivo, `RESPONSAVEIS.md` e as instruções específicas da pasta autorizada.
 2. Identifique o colaborador e o jogo da tarefa. Não use apenas o nome local do computador ou o autor configurado no Git como prova de identidade.
-3. Confira a atribuição em `RESPONSAVEIS.md`. Se faltar responsável, houver ambiguidade ou a tarefa envolver mais de um jogo, esclareça o escopo antes de editar.
+3. Confira a atribuição em `RESPONSAVEIS.md`. Para jogos existentes, a atribuição é obrigatória. Para um jogo novo ainda não cadastrado, siga a exceção de primeiro PR abaixo. Se houver ambiguidade sobre identidade, pasta ou responsável, ou a tarefa envolver mais de um jogo, esclareça o escopo antes de editar.
 4. Uma tarefa de jogo autoriza alterações somente na pasta desse jogo, cujo nome deve ser o nome do jogo. Isso inclui arquivos novos, exclusões, renomeações, formatação, assets, testes, dependências e arquivos gerados.
+
+## Primeiro PR de um jogo novo
+
+- O colaborador pode iniciar um jogo e enviar seu primeiro PR sem cadastro prévio em `RESPONSAVEIS.md`, inclusive por fork.
+- Identifique o colaborador, seu usuário GitHub e o nome do jogo. Confira a `main` atualizada: a pasta deve ser nova na raiz, ter o nome do jogo e não estar cadastrada ou ocupada por outro jogo. Não reutilize uma pasta existente sem atribuição.
+- Essa exceção autoriza somente a criação e o desenvolvimento dentro da nova pasta proposta, incluindo ajustes no mesmo PR durante a revisão. Não autoriza alterações em arquivos existentes fora dela, outros jogos, regras ou cadastro de responsáveis.
+- No `README.md` e no `AGENTS.md` locais, registre o autor proposto, seu usuário GitHub, a pasta e a situação de cadastro pendente. No PR, informe esses mesmos dados e o que está sendo desenvolvido.
+- Guilherme revisa a proposta, cadastra manualmente o responsável em `RESPONSAVEIS.md` e aprova o PR antes da integração. Abrir um PR não reserva automaticamente o jogo nem concede responsabilidade definitiva. Se houver propostas conflitantes, encaminhe a decisão a Guilherme.
+- Após a integração, vale a atribuição cadastrada. A ausência de cadastro em um jogo já existente não permite usar esta exceção para assumir sua pasta.
 
 ## Limites obrigatórios
 

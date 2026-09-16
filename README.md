@@ -15,9 +15,9 @@ Por enquanto, cada jogo deve funcionar e ser testado de forma independente e doc
 ## Antes de começar
 
 1. Leia [AGENTS.md](AGENTS.md) e [CONTRIBUTING.md](CONTRIBUTING.md).
-2. Consulte [RESPONSAVEIS.md](RESPONSAVEIS.md). Guilherme deve cadastrar seu usuário do GitHub e sua pasta antes de você começar.
+2. Consulte [RESPONSAVEIS.md](RESPONSAVEIS.md). Para jogos existentes, trabalhe apenas na pasta atribuída a você. Para um jogo novo, você pode começar sem cadastro prévio em uma nova pasta com o nome do jogo, desde que ela não exista nem esteja atribuída.
 3. Abra sua IA na raiz do repositório e peça que leia `AGENTS.md`, `RESPONSAVEIS.md` e as instruções do seu jogo antes de fazer alterações.
-4. Trabalhe apenas na pasta do jogo atribuído a você.
+4. Trabalhe apenas na pasta atribuída ou na nova pasta proposta. No primeiro PR, informe jogo, pasta, seu nome e usuário GitHub; registre também esses dados na documentação local como cadastro pendente. Guilherme cadastra o responsável e aprova o PR antes da integração. Não altere o cadastro por conta própria.
 
 Exemplo de organização futura, sem atribuição de responsáveis:
 
@@ -52,4 +52,4 @@ Todos podem abrir pull requests, inclusive por forks. Para integrar uma contribu
 
 A proteção de `main` exige revisão do responsável e bloqueia force push e exclusão da branch. Guilherme mantém a exceção administrativa para manutenção própria; a IA não pode usá-la para integrar PRs sem um pedido explícito dele. Colaboradores não devem receber acesso administrativo.
 
-Instruções em texto não impedem edições locais em outras pastas. A revisão deve rejeitar alterações fora da pasta atribuída, mesmo quando enviadas por pull request.
+Instruções em texto não impedem edições locais em outras pastas. A revisão deve rejeitar alterações fora da pasta atribuída ou, no primeiro PR de um jogo novo, fora da nova pasta proposta.

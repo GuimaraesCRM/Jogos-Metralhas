@@ -114,7 +114,7 @@ func make_board(count := TILES) -> void:
 	var board_edge := 17.0
 	var corner_size := 3.25
 	var tile_step := (board_edge * 2.0 - corner_size) / float(per_side - 1)
-	var colors := [Color("ef9a9a"), Color("90caf9"), Color("ffe082"), Color("ce93d8"), Color("80cbc4"), Color("ffab91")]
+	var corner_colors := [Color("f39b98"), Color("c58bda"), Color("efb4da"), Color("d09be2")]
 	for index in count:
 		var side := index / per_side
 		var slot := index % per_side
@@ -135,18 +135,31 @@ func make_board(count := TILES) -> void:
 				2: at = Vector3(-offset, 0.35, -board_edge)
 				_: at = Vector3(-board_edge, 0.35, offset); size = Vector3(corner_size, 0.32, tile_step - 0.08)
 		points.append(Vector3(at.x, at.y + size.y * 0.5 + 0.03, at.z))
-		board_root.add_child(cube(size, colors[(index / 5) % colors.size()] if index % 5 == 0 else Color("f4f0df"), at))
+		board_root.add_child(cube(size, corner_colors[side] if slot == 0 else Color("f4f0df"), at))
 	var title := Label3D.new(); title.text = "METRALHOPOLE"; title.font_size = 72; title.pixel_size = 0.018; title.modulate = Color("345c50"); title.outline_size = 4; title.position = Vector3(0, 0.3, -2.2); title.rotation_degrees.x = -90; board_root.add_child(title)
 
 func label_board(board_data: Array) -> void:
 	if board_labels_for == board_data.size(): return
 	board_labels_for = board_data.size()
 	for index in mini(board_data.size(), points.size()):
-		var tile: Dictionary = board_data[index]; var label := Label3D.new(); var name := str(tile.get("name", "")); if name.length() > 16: name = name.left(15) + "…"
-		label.text = name + ("\nR$ %d mil" % (int(tile.get("price", 0)) / 1000) if tile.has("price") else "")
-		label.font_size = 28; label.pixel_size = 0.012; label.modulate = Color("203735"); label.outline_size = 3; label.outline_modulate = Color("ffffffcc"); label.position = points[index] + Vector3(0, 0.015, 0); label.rotation_degrees.x = -90
+		var tile: Dictionary = board_data[index]; var label := Label3D.new(); var side := index / (board_data.size() / 4)
+		label.text = wrap_board_name(str(tile.get("name", ""))) + ("\nR$ %d mil" % (int(tile.get("price", 0)) / 1000) if tile.has("price") else "")
+		label.font_size = 20; label.pixel_size = 0.009; label.modulate = Color("1c3335"); label.outline_size = 2; label.outline_modulate = Color("fffffff0")
+		var outward := Vector3(points[index].x, 0, points[index].z).normalized()
+		label.position = points[index] + outward * 0.22 + Vector3(0, 0.055, 0); label.rotation_degrees = Vector3(-90, 0, [0, 90, 180, -90][side])
 		board_root.add_child(label)
-		if tile.get("type", "") == "property": add_group_strip(index, tile, board_data.size())
+		if tile.get("type", "") in ["property", "industry"]: add_group_strip(index, tile, board_data.size())
+
+func wrap_board_name(value: String) -> String:
+	var words := value.to_upper().split(" "); var lines: Array[String] = [""]
+	for word in words:
+		var candidate := word if lines[-1].is_empty() else lines[-1] + " " + word
+		if candidate.length() <= 12: lines[-1] = candidate
+		elif lines.size() < 2: lines.append(word)
+		else:
+			if lines[-1].length() < 11: lines[-1] += " " + word.left(maxi(1, 10 - lines[-1].length()))
+			lines[-1] = lines[-1].left(11) + "…"; break
+	return "\n".join(lines)
 
 func add_group_strip(index: int, tile: Dictionary, count: int) -> void:
 	var per_side := count / 4; var side := index / per_side
@@ -154,10 +167,10 @@ func add_group_strip(index: int, tile: Dictionary, count: int) -> void:
 	var size := Vector3(tile_step - 0.12, 0.07, 0.48)
 	var offset := Vector3(0, 0.055, 0)
 	match side:
-		0: offset.z = 1.34
-		1: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = 1.34
-		2: offset.z = -1.34
-		_: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = -1.34
+		0: offset.z = -1.34
+		1: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = -1.34
+		2: offset.z = 1.34
+		_: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = 1.34
 	board_root.add_child(cube(size, Color(str(tile.get("color", "#d6d6d6"))), points[index] + offset))
 
 func make_pawn() -> void:

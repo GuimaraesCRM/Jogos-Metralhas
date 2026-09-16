@@ -49,8 +49,6 @@ var lobby_content: VBoxContainer
 var pause_banner: PanelContainer
 var trade_popup: PanelContainer
 var preview_index := 0
-var character_preview: SubViewport
-var character_preview_root: Node3D
 var preview_initialized := false
 var online_heading: Label
 
@@ -365,15 +363,35 @@ func make_lobby_screen(parent: Control) -> void:
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; panel.add_child(scroll)
 	lobby_content = VBoxContainer.new(); lobby_content.custom_minimum_size.x = 850; lobby_content.add_theme_constant_override("separation", 14); scroll.add_child(lobby_content)
 
-func make_player_lobby_card(player: Dictionary) -> Control:
-	var card := PanelContainer.new(); card.custom_minimum_size = Vector2(190, 145); card.add_theme_stylebox_override("panel", panel_style(Color("263e49dd"), 14, Color("ffffff20")))
+func make_player_lobby_card(player: Dictionary, me: Dictionary, players: Array) -> Control:
+	var mine: bool = player.id == api.player_id
+	var card := PanelContainer.new(); card.custom_minimum_size = Vector2(250, 245 if mine else 205); card.add_theme_stylebox_override("panel", panel_style(Color("2b4652ee") if mine else Color("263e49dd"), 14, Color("9bd06499") if mine else Color("ffffff20")))
 	var box := VBoxContainer.new(); card.add_child(box)
-	var preview := SubViewportContainer.new(); preview.custom_minimum_size = Vector2(150, 86); preview.stretch = true; box.add_child(preview)
-	var viewport := SubViewport.new(); viewport.size = Vector2i(300, 172); viewport.transparent_bg = true; viewport.own_world_3d = true; viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS; preview.add_child(viewport)
-	var scene: PackedScene = load("res://assets/models/%s.glb" % player.character); var model := scene.instantiate(); model.scale = Vector3.ONE * 0.72; viewport.add_child(model)
-	var camera := Camera3D.new(); camera.position = Vector3(0, 1.05, 2.8); camera.look_at_from_position(camera.position, Vector3(0, 0.85, 0)); viewport.add_child(camera)
+	var preview := SubViewportContainer.new(); preview.custom_minimum_size = Vector2(210, 135); preview.stretch = true; box.add_child(preview)
+	var viewport := SubViewport.new(); viewport.size = Vector2i(420, 270); viewport.transparent_bg = true; viewport.own_world_3d = true; viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS; preview.add_child(viewport)
+	var model_root := Node3D.new(); viewport.add_child(model_root)
+	var camera := Camera3D.new(); camera.position = Vector3(0, 1.05, 3.0); camera.look_at_from_position(camera.position, Vector3(0, 0.82, 0)); viewport.add_child(camera)
 	var light := DirectionalLight3D.new(); light.rotation_degrees = Vector3(-45, -30, 0); light.light_energy = 2.0; viewport.add_child(light)
-	var name := Label.new(); name.text = player.name; name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; name.add_theme_font_size_override("font_size", 16); box.add_child(name)
+	var name := Label.new(); name.text = "%s%s" % [player.name, "  ·  VOCÊ" if mine else ""]; name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; name.add_theme_font_size_override("font_size", 16); box.add_child(name)
+	var set_model := func(character: String):
+		for child in model_root.get_children(): child.queue_free()
+		var scene: PackedScene = load("res://assets/models/%s.glb" % character); var model := scene.instantiate(); model.scale = Vector3.ONE * 3.0; model_root.add_child(model)
+	if mine:
+		if not preview_initialized: preview_index = maxi(0, CHARACTERS.find(str(me.character))); preview_initialized = true
+		var controls := HBoxContainer.new(); controls.add_theme_constant_override("separation", 6); box.add_child(controls)
+		var previous := Button.new(); previous.text = "◀"; previous.custom_minimum_size.x = 44; controls.add_child(previous)
+		var confirm := Button.new(); confirm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; controls.add_child(confirm)
+		var next := Button.new(); next.text = "▶"; next.custom_minimum_size.x = 44; controls.add_child(next)
+		var refresh := func():
+			var selected: String = CHARACTERS[preview_index]; var used_by: String = ""
+			for other in players:
+				if other.id != api.player_id and other.character == selected: used_by = other.name
+			set_model.call(selected); confirm.disabled = not used_by.is_empty(); confirm.text = "USADO POR %s" % used_by if not used_by.is_empty() else "CONFIRMADO" if selected == me.character else "CONFIRMAR"
+		previous.pressed.connect(func(): preview_index = posmod(preview_index - 1, CHARACTERS.size()); refresh.call())
+		next.pressed.connect(func(): preview_index = (preview_index + 1) % CHARACTERS.size(); refresh.call())
+		confirm.pressed.connect(func(): await send_action("set-character", CHARACTERS[preview_index]))
+		refresh.call()
+	else: set_model.call(str(player.character))
 	return card
 
 func render_lobby(me: Dictionary, players: Array) -> void:
@@ -384,8 +402,7 @@ func render_lobby(me: Dictionary, players: Array) -> void:
 	var code := Label.new(); code.text = "CÓDIGO DA SALA:  %s" % api.code; code.add_theme_font_size_override("font_size", 20); code_row.add_child(code)
 	var copy := Button.new(); copy.text = "COPIAR"; copy.pressed.connect(func(): DisplayServer.clipboard_set(api.code); copy.text = "COPIADO!"); code_row.add_child(copy)
 	var roster := HFlowContainer.new(); roster.alignment = FlowContainer.ALIGNMENT_CENTER; roster.add_theme_constant_override("h_separation", 10); lobby_content.add_child(roster)
-	for player in players: roster.add_child(make_player_lobby_card(player))
-	add_character_selector(me, players, lobby_content)
+	for player in players: roster.add_child(make_player_lobby_card(player, me, players))
 	if players[0].id == api.player_id:
 		var start := Button.new(); start.text = "INICIAR PARTIDA"; start.pressed.connect(func(): await send_action("start")); lobby_content.add_child(start)
 	else:
@@ -449,32 +466,6 @@ func make_property_card(tile: Dictionary, lot: Dictionary) -> Control:
 	var light := DirectionalLight3D.new(); light.rotation_degrees = Vector3(-55, -35, 0); light.light_energy = 1.8; viewport.add_child(light)
 	var info := RichTextLabel.new(); info.bbcode_enabled = true; info.fit_content = true; info.add_theme_font_size_override("normal_font_size", 12); info.text = "[b]%s[/b]\n[color=#aebfc7]%s[/color]\n%s" % [tile.name, tile.get("city", "Indústria"), "HOTEL" if level == 4 else "%d CASA(S)" % level if level > 0 else "SEM MELHORIA"]; info.custom_minimum_size.x = 74; row.add_child(info)
 	return card
-
-func add_character_selector(me: Dictionary, players: Array, target_box: VBoxContainer) -> void:
-	var title := Label.new(); title.text = "ESCOLHA SEU PERSONAGEM"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 19); target_box.add_child(title)
-	if not preview_initialized: preview_index = maxi(0, CHARACTERS.find(str(me.character))); preview_initialized = true
-	var preview_box := SubViewportContainer.new(); preview_box.custom_minimum_size = Vector2(350, 190); preview_box.stretch = true; target_box.add_child(preview_box)
-	character_preview = SubViewport.new(); character_preview.size = Vector2i(700, 430); character_preview.transparent_bg = true; character_preview.own_world_3d = true; character_preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS; preview_box.add_child(character_preview)
-	character_preview_root = Node3D.new(); character_preview.add_child(character_preview_root)
-	character_preview.add_child(cube(Vector3(1.75, 0.12, 1.75), Color("36505b"), Vector3(0, -0.05, 0)))
-	var camera := Camera3D.new(); camera.current = true; camera.position = Vector3(0, 1.05, 2.45); camera.look_at_from_position(camera.position, Vector3(0, 0.88, 0)); character_preview.add_child(camera)
-	var key := DirectionalLight3D.new(); key.rotation_degrees = Vector3(-35, -30, 0); key.light_energy = 2.0; character_preview.add_child(key)
-	var fill := OmniLight3D.new(); fill.position = Vector3(-2, 2, 2); fill.light_energy = 5.0; fill.omni_range = 6; character_preview.add_child(fill)
-	var controls := HBoxContainer.new(); controls.add_theme_constant_override("separation", 8); target_box.add_child(controls)
-	var previous := Button.new(); previous.text = "◀"; previous.custom_minimum_size.x = 54; controls.add_child(previous)
-	var choose := Button.new(); choose.name = "ChooseCharacter"; choose.size_flags_horizontal = Control.SIZE_EXPAND_FILL; controls.add_child(choose)
-	var next := Button.new(); next.text = "▶"; next.custom_minimum_size.x = 54; controls.add_child(next)
-	var refresh := func():
-		for child in character_preview_root.get_children(): child.queue_free()
-		var selected: String = CHARACTERS[preview_index]; var used_by: String = ""
-		for player in players:
-			if player.id != api.player_id and player.character == selected: used_by = player.name
-		var scene: PackedScene = load("res://assets/models/%s.glb" % selected); var model := scene.instantiate(); character_preview_root.add_child(model); fit_character(model)
-		choose.disabled = not used_by.is_empty(); choose.text = "INDISPONÍVEL · %s" % used_by if not used_by.is_empty() else "SELECIONADO" if selected == me.character else "USAR ESTE PERSONAGEM"
-	previous.pressed.connect(func(): preview_index = posmod(preview_index - 1, CHARACTERS.size()); refresh.call())
-	next.pressed.connect(func(): preview_index = (preview_index + 1) % CHARACTERS.size(); refresh.call())
-	choose.pressed.connect(func(): await send_action("set-character", CHARACTERS[preview_index]))
-	refresh.call()
 
 func make_escape_menu(layer: Control) -> void:
 	escape_menu = PanelContainer.new(); escape_menu.visible = false; escape_menu.custom_minimum_size = Vector2(520, 440)

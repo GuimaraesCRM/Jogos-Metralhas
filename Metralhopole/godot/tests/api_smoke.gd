@@ -16,6 +16,8 @@ func run() -> void:
 	if not created.ok: fail(created.error); return
 	var joined: Dictionary = await guest.join_room("Convidado Godot", "character-female-a", host.code)
 	if not joined.ok: fail(joined.error); return
+	var changed: Dictionary = await guest.action("set-character", "character-female-b")
+	if not changed.ok or changed.data.players[1].character != "character-female-b": fail("A seleção de personagem no lobby não sincronizou."); return
 	var started: Dictionary = await host.action("start")
 	if not started.ok or started.data.phase != "playing": fail("A partida Godot não iniciou."); return
 	var rolled: Dictionary = await host.action("roll")

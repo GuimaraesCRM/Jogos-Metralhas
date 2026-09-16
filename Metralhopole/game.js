@@ -206,6 +206,14 @@ export function act(r, token, action, value, dice = () => randomInt(1, 7)) {
   const p = r.players.find(p => p.token === token);
   if (!p) throw Error('Sessão inválida.');
   tick(r);
+  if (action === 'set-character') {
+    if (r.phase !== 'lobby') throw Error('O personagem só pode ser alterado no lobby.');
+    if (!CHARACTERS.includes(value)) throw Error('Escolha um personagem válido.');
+    if (r.players.some(other => other !== p && other.character === value)) throw Error('Esse personagem já foi escolhido por outro jogador.');
+    p.character = value;
+    log(r, `${p.name} escolheu um novo personagem.`);
+    return;
+  }
   if (action === 'leave') {
     if (r.phase === 'lobby') r.players = r.players.filter(other => other !== p);
     else if (r.phase === 'playing' && !p.bankrupt) {

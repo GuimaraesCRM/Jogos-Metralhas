@@ -38,6 +38,14 @@ var escape_menu: PanelContainer
 var setup_box: VBoxContainer
 var escape_info: Label
 var hud_card: PanelContainer
+var portfolio_panel: PanelContainer
+var portfolio_box: HBoxContainer
+var portfolio_heading: Label
+var preview_index := 0
+var character_preview: SubViewport
+var character_preview_root: Node3D
+var preview_initialized := false
+var online_heading: Label
 
 func _ready() -> void:
 	rng.randomize()
@@ -131,6 +139,19 @@ func label_board(board_data: Array) -> void:
 		label.text = name + ("\nR$ %d mil" % (int(tile.get("price", 0)) / 1000) if tile.has("price") else "")
 		label.font_size = 28; label.pixel_size = 0.012; label.modulate = Color("203735"); label.outline_size = 3; label.outline_modulate = Color("ffffffcc"); label.position = points[index] + Vector3(0, 0.015, 0); label.rotation_degrees.x = -90
 		board_root.add_child(label)
+		if tile.get("type", "") == "property": add_group_strip(index, tile, board_data.size())
+
+func add_group_strip(index: int, tile: Dictionary, count: int) -> void:
+	var per_side := count / 4; var side := index / per_side
+	var board_edge := 17.0; var corner_size := 3.25; var tile_step := (board_edge * 2.0 - corner_size) / float(per_side - 1)
+	var size := Vector3(tile_step - 0.12, 0.07, 0.48)
+	var offset := Vector3(0, 0.055, 0)
+	match side:
+		0: offset.z = 1.34
+		1: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = 1.34
+		2: offset.z = -1.34
+		_: size = Vector3(0.48, 0.07, tile_step - 0.12); offset.x = -1.34
+	board_root.add_child(cube(size, Color(str(tile.get("color", "#d6d6d6"))), points[index] + offset))
 
 func make_pawn() -> void:
 	pawn = Node3D.new(); var visual := PLAYER.instantiate(); pawn.add_child(visual); add_child(pawn); fit_character(visual)
@@ -261,15 +282,11 @@ func make_online_ui() -> void:
 	var box := VBoxContainer.new()
 	box.custom_minimum_size = Vector2(380, 0); box.add_theme_constant_override("separation", 10)
 	scroll.add_child(box)
-	var heading := Label.new(); heading.text = "JOGAR ONLINE"; heading.add_theme_font_size_override("font_size", 25); box.add_child(heading)
+	online_heading = Label.new(); online_heading.text = "JOGAR ONLINE"; online_heading.add_theme_font_size_override("font_size", 25); box.add_child(online_heading)
 	setup_box = VBoxContainer.new(); setup_box.add_theme_constant_override("separation", 9); box.add_child(setup_box)
 	name_input = field(setup_box, "Seu nome", "Guilherme")
 	endpoint_input = field(setup_box, "Servidor", "http://127.0.0.1:3000")
 	code_input = field(setup_box, "Código da sala", "")
-	character_input = OptionButton.new()
-	for character in CHARACTERS: character_input.add_item(character)
-	character_input.select(6)
-	setup_box.add_child(character_input)
 	size_input = OptionButton.new(); size_input.add_item("Até 8 jogadores", 8); size_input.add_item("Até 4 jogadores", 4); setup_box.add_child(size_input)
 	var create_button := Button.new(); create_button.text = "HOSPEDAR SALA"; create_button.pressed.connect(create_online_room); setup_box.add_child(create_button)
 	var join_button := Button.new(); join_button.text = "ENTRAR NA SALA"; join_button.pressed.connect(join_online_room); setup_box.add_child(join_button)
@@ -278,6 +295,7 @@ func make_online_ui() -> void:
 	actions_box = VBoxContainer.new(); actions_box.add_theme_constant_override("separation", 6); box.add_child(actions_box)
 	var timer := Timer.new(); timer.wait_time = 1.0; timer.autostart = true; timer.timeout.connect(poll_state); add_child(timer)
 	make_escape_menu(ui_root)
+	make_portfolio(ui_root)
 	get_viewport().size_changed.connect(layout_ui); layout_ui()
 
 func layout_ui() -> void:
@@ -285,8 +303,60 @@ func layout_ui() -> void:
 	var viewport := get_viewport().get_visible_rect().size
 	var width := clampf(viewport.x * 0.23, 390.0, 470.0)
 	online_panel.position = Vector2(viewport.x - width - 28, 28)
-	online_panel.size = Vector2(width, minf(viewport.y - 56, 760.0))
+	online_panel.size = Vector2(width, minf(viewport.y - 56, 690.0))
 	if escape_menu: escape_menu.position = (viewport - escape_menu.custom_minimum_size) * 0.5
+	if portfolio_panel:
+		portfolio_panel.position = Vector2(28, viewport.y - 260)
+		portfolio_panel.size = Vector2(minf(viewport.x - width - 84, 930), 232)
+
+func make_portfolio(parent: Control) -> void:
+	portfolio_panel = PanelContainer.new(); portfolio_panel.visible = false
+	portfolio_panel.add_theme_stylebox_override("panel", panel_style(Color("152630e8"), 18, Color("ffffff22"))); parent.add_child(portfolio_panel)
+	var outer := VBoxContainer.new(); outer.add_theme_constant_override("separation", 9); portfolio_panel.add_child(outer)
+	portfolio_heading = Label.new(); portfolio_heading.text = "MEU PATRIMÔNIO"; portfolio_heading.add_theme_font_size_override("font_size", 20); outer.add_child(portfolio_heading)
+	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; outer.add_child(scroll)
+	portfolio_box = HBoxContainer.new(); portfolio_box.add_theme_constant_override("separation", 10); scroll.add_child(portfolio_box)
+
+func make_property_card(tile: Dictionary, lot: Dictionary) -> Control:
+	var card := PanelContainer.new(); card.custom_minimum_size = Vector2(215, 145)
+	var color := Color(str(tile.get("color", "#78909c"))); card.add_theme_stylebox_override("panel", panel_style(Color("20333ddd"), 12, color))
+	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); card.add_child(row)
+	var viewport_box := SubViewportContainer.new(); viewport_box.custom_minimum_size = Vector2(88, 105); viewport_box.stretch = true; row.add_child(viewport_box)
+	var viewport := SubViewport.new(); viewport.size = Vector2i(128, 144); viewport.transparent_bg = true; viewport.own_world_3d = true; viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS; viewport_box.add_child(viewport)
+	var root := Node3D.new(); viewport.add_child(root); root.add_child(cube(Vector3(1.8, 0.18, 1.5), color, Vector3.ZERO))
+	var level := int(lot.get("level", 0)); var building_count := mini(level, 3)
+	for index in building_count: root.add_child(cube(Vector3(0.34, 0.45, 0.34), Color("e6f2d5"), Vector3(-0.5 + index * 0.5, 0.31, 0)))
+	if level == 4: root.add_child(cube(Vector3(1.0, 0.85, 0.55), Color("f1c56e"), Vector3(0, 0.52, 0)))
+	var camera := Camera3D.new(); camera.position = Vector3(2.7, 2.5, 3.2); camera.look_at_from_position(camera.position, Vector3(0, 0.25, 0)); viewport.add_child(camera)
+	var light := DirectionalLight3D.new(); light.rotation_degrees = Vector3(-55, -35, 0); light.light_energy = 1.8; viewport.add_child(light)
+	var info := RichTextLabel.new(); info.bbcode_enabled = true; info.fit_content = true; info.text = "[b]%s[/b]\n[color=#aebfc7]%s[/color]\n%s" % [tile.name, tile.get("city", "Indústria"), "HOTEL" if level == 4 else "%d CASA(S)" % level if level > 0 else "SEM MELHORIA"]; info.custom_minimum_size.x = 92; row.add_child(info)
+	return card
+
+func add_character_selector(me: Dictionary, players: Array) -> void:
+	var title := Label.new(); title.text = "ESCOLHA SEU PERSONAGEM"; title.add_theme_font_size_override("font_size", 19); actions_box.add_child(title)
+	if not preview_initialized: preview_index = maxi(0, CHARACTERS.find(str(me.character))); preview_initialized = true
+	var preview_box := SubViewportContainer.new(); preview_box.custom_minimum_size = Vector2(350, 215); preview_box.stretch = true; actions_box.add_child(preview_box)
+	character_preview = SubViewport.new(); character_preview.size = Vector2i(700, 430); character_preview.transparent_bg = true; character_preview.own_world_3d = true; character_preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS; preview_box.add_child(character_preview)
+	character_preview_root = Node3D.new(); character_preview.add_child(character_preview_root)
+	character_preview.add_child(cube(Vector3(1.75, 0.12, 1.75), Color("36505b"), Vector3(0, -0.05, 0)))
+	var camera := Camera3D.new(); camera.current = true; camera.position = Vector3(0, 1.05, 2.45); camera.look_at_from_position(camera.position, Vector3(0, 0.88, 0)); character_preview.add_child(camera)
+	var key := DirectionalLight3D.new(); key.rotation_degrees = Vector3(-35, -30, 0); key.light_energy = 2.0; character_preview.add_child(key)
+	var fill := OmniLight3D.new(); fill.position = Vector3(-2, 2, 2); fill.light_energy = 5.0; fill.omni_range = 6; character_preview.add_child(fill)
+	var controls := HBoxContainer.new(); controls.add_theme_constant_override("separation", 8); actions_box.add_child(controls)
+	var previous := Button.new(); previous.text = "◀"; previous.custom_minimum_size.x = 54; controls.add_child(previous)
+	var choose := Button.new(); choose.name = "ChooseCharacter"; choose.size_flags_horizontal = Control.SIZE_EXPAND_FILL; controls.add_child(choose)
+	var next := Button.new(); next.text = "▶"; next.custom_minimum_size.x = 54; controls.add_child(next)
+	var refresh := func():
+		for child in character_preview_root.get_children(): child.queue_free()
+		var selected: String = CHARACTERS[preview_index]; var used_by: String = ""
+		for player in players:
+			if player.id != api.player_id and player.character == selected: used_by = player.name
+		var scene: PackedScene = load("res://assets/models/%s.glb" % selected); var model := scene.instantiate(); character_preview_root.add_child(model); fit_character(model)
+		choose.disabled = not used_by.is_empty(); choose.text = "INDISPONÍVEL · %s" % used_by if not used_by.is_empty() else "SELECIONADO" if selected == me.character else "USAR ESTE PERSONAGEM"
+	previous.pressed.connect(func(): preview_index = posmod(preview_index - 1, CHARACTERS.size()); refresh.call())
+	next.pressed.connect(func(): preview_index = (preview_index + 1) % CHARACTERS.size(); refresh.call())
+	choose.pressed.connect(func(): await send_action("set-character", CHARACTERS[preview_index]))
+	refresh.call()
 
 func make_escape_menu(layer: Control) -> void:
 	escape_menu = PanelContainer.new(); escape_menu.visible = false; escape_menu.custom_minimum_size = Vector2(520, 440)
@@ -312,7 +382,7 @@ func create_online_room() -> void:
 	set_online_status("Criando sala...")
 	if api.endpoint.begins_with("http://127.0.0.1") or api.endpoint.begins_with("http://localhost"):
 		if not await local_server.ensure_local_server(): set_online_status("Não foi possível iniciar o servidor local."); return
-	var result := await api.create_room(name_input.text, CHARACTERS[character_input.selected], size_input.get_item_id(size_input.selected))
+	var result := await api.create_room(name_input.text, "", size_input.get_item_id(size_input.selected))
 	if not result.ok: set_online_status(result.error); return
 	code_input.text = api.code
 	save_session()
@@ -325,7 +395,7 @@ func create_online_room() -> void:
 func join_online_room() -> void:
 	api.endpoint = endpoint_input.text.strip_edges()
 	set_online_status("Entrando na sala...")
-	var result := await api.join_room(name_input.text, CHARACTERS[character_input.selected], code_input.text)
+	var result := await api.join_room(name_input.text, "", code_input.text)
 	if not result.ok: set_online_status(result.error); return
 	save_session()
 	set_online_status("Conectado à sala %s." % api.code)
@@ -374,7 +444,7 @@ func sync_online_players() -> void:
 		var position_index := clampi(int(data.position), 0, points.size() - 1)
 		var slot: int = index % 8
 		var offset := Vector3((slot % 4 - 1.5) * 0.34, 0, (slot / 4 - 0.5) * 0.45)
-		var movement: Dictionary = game_state.get("lastMove", {})
+		var movement: Dictionary = game_state.get("lastMove") if game_state.get("lastMove") is Dictionary else {}
 		if movement.get("player", "") == data.id and int(movement.get("sequence", 0)) > last_move_sequence:
 			animate_online_move(model, movement.get("path", []), offset)
 		else:
@@ -384,7 +454,8 @@ func sync_online_players() -> void:
 		model.visible = not bool(data.get("bankrupt", false))
 	for id in player_nodes.keys():
 		if not alive.has(id): player_nodes[id].queue_free(); player_nodes.erase(id)
-	last_move_sequence = maxi(last_move_sequence, int(game_state.get("lastMove", {}).get("sequence", 0)))
+	var last_move: Dictionary = game_state.get("lastMove") if game_state.get("lastMove") is Dictionary else {}
+	last_move_sequence = maxi(last_move_sequence, int(last_move.get("sequence", 0)))
 
 func animate_online_move(model: Node3D, path: Array, offset: Vector3) -> void:
 	var tween := create_tween()
@@ -444,13 +515,20 @@ func render_actions() -> void:
 	if me.is_empty(): return
 	var phase := str(game_state.get("phase", "lobby")); var stage := str(game_state.get("stage", "roll"))
 	setup_box.visible = false
+	online_heading.text = "LOBBY DA SALA" if phase == "lobby" else "CENTRAL DA PARTIDA"
 	set_online_status("Sala %s · %d/%d jogadores\n%s · R$ %d" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), me.name, int(me.money)])
 	if escape_info:
 		var names: Array[String] = []
 		for player in players: names.append("• %s%s" % [player.name, "  ·  R$ %d" % int(player.money) if phase != "lobby" else ""])
 		escape_info.text = "SALA %s  ·  %d/%d JOGADORES\n\n%s" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), "\n".join(names)]
+	update_portfolio(me)
 	var logs: Array = game_state.get("logs", []); if not logs.is_empty(): online_status.text += "\n\n" + "\n".join(logs.slice(maxi(0, logs.size() - 4)))
 	if phase == "lobby":
+		var roster_title := Label.new(); roster_title.text = "JOGADORES  ·  %d/%d" % [players.size(), int(game_state.get("maxPlayers", 8))]; roster_title.add_theme_font_size_override("font_size", 18); actions_box.add_child(roster_title)
+		var roster := HFlowContainer.new(); roster.add_theme_constant_override("h_separation", 6); roster.add_theme_constant_override("v_separation", 6); actions_box.add_child(roster)
+		for player in players:
+			var chip := Label.new(); chip.text = "  %s  " % player.name; chip.add_theme_stylebox_override("normal", panel_style(Color("304752cc"), 9, Color("ffffff1f"))); roster.add_child(chip)
+		add_character_selector(me, players)
 		if players[0].id == api.player_id: action_button("Iniciar partida", "start")
 		action_button("Sair da sala", "leave")
 		return
@@ -507,11 +585,28 @@ func add_trade_controls(me: Dictionary) -> void:
 		await send_action("trade-offer", {"type": "sell" if kind.selected == 1 else "buy", "target": target.get_item_metadata(target.selected), "property": property.get_item_metadata(property.selected), "price": int(price.text)})
 	); actions_box.add_child(send)
 
+func update_portfolio(me: Dictionary) -> void:
+	portfolio_panel.visible = str(game_state.get("phase", "lobby")) != "lobby"
+	if not portfolio_panel.visible: return
+	portfolio_heading.text = "MEU PATRIMÔNIO  ·  R$ %s" % format_money(int(me.money))
+	for child in portfolio_box.get_children(): child.queue_free()
+	for raw_id in game_state.get("properties", {}):
+		var lot: Dictionary = game_state.properties[raw_id]
+		if lot.owner == api.player_id: portfolio_box.add_child(make_property_card(game_state.board[int(raw_id)], lot))
+	if portfolio_box.get_child_count() == 0:
+		var empty := Label.new(); empty.text = "Você ainda não possui propriedades."; empty.add_theme_color_override("font_color", Color("aebfc7")); portfolio_box.add_child(empty)
+
+func format_money(value: int) -> String:
+	var raw := str(value); var result := ""
+	while raw.length() > 3:
+		result = "." + raw.right(3) + result; raw = raw.left(raw.length() - 3)
+	return raw + result
+
 func send_action(action: String, value: Variant = null) -> void:
 	var result := await api.action(action, value)
 	if not result.ok: set_online_status(result.error); return
 	if action == "leave":
-		api.code = ""; api.token = ""; api.player_id = ""; game_state = {}; setup_box.visible = true
+		api.code = ""; api.token = ""; api.player_id = ""; game_state = {}; setup_box.visible = true; preview_initialized = false; portfolio_panel.visible = false
 		set_online_status("Você saiu da sala. Crie uma nova sala ou entre em outra.")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://session.cfg")); return
 	apply_server_state(result.data)

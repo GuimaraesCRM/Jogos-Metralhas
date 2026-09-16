@@ -22,6 +22,16 @@ test('cada jogador precisa usar um personagem 3D exclusivo', () => {
   assert.equal(r.players[0].character,'character-female-a'); assert.equal(beto.character,'character-male-a');
 });
 
+test('personagem pode ser trocado no lobby sem duplicar e trava após o início', () => {
+  const r=createRoom('MODEL2','Ana',{character:'character-female-a'});
+  const beto=join(r,'Beto','character-male-a');
+  act(r,beto.token,'set-character','character-male-b');
+  assert.equal(beto.character,'character-male-b');
+  assert.throws(()=>act(r,r.players[0].token,'set-character','character-male-b'),/já foi escolhido/);
+  act(r,r.players[0].token,'start');
+  assert.throws(()=>act(r,beto.token,'set-character','character-male-c'),/lobby/);
+});
+
 test('aluguel aguarda confirmação e permite vender imóvel ao banco antes do pagamento', () => {
   const r=game(),[a,b]=r.players;
   r.properties[3]={owner:b.id,level:0,visits:1}; r.properties[1]={owner:a.id,level:0,visits:1};

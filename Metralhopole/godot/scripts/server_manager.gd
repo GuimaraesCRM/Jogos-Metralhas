@@ -14,7 +14,10 @@ func ensure_local_server() -> bool:
 		var candidates: Array = []; OS.execute("where", ["node"], candidates, true)
 		if not candidates.is_empty(): node_path = str(candidates[0]).split("\n")[0].strip_edges()
 	if not FileAccess.file_exists(node_path) or not FileAccess.file_exists(root_script): return false
-	process_id = OS.create_process(node_path, [root_script], false)
+	if node_path == packaged_node:
+		var command := "& '%s' '%s'" % [node_path.replace("'", "''"), root_script.replace("'", "''")]
+		process_id = OS.create_process("powershell.exe", ["-NoProfile", "-WindowStyle", "Hidden", "-Command", command], false)
+	else: process_id = OS.create_process(node_path, [root_script], false)
 	await get_tree().create_timer(0.65).timeout
 	return process_id > 0 and OS.is_process_running(process_id)
 

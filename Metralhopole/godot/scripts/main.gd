@@ -34,6 +34,7 @@ var board_root: Node3D
 var construction_nodes := {}
 var last_move_sequence := 0
 var board_labels_for := 0
+var escape_menu: PanelContainer
 
 func _ready() -> void:
 	rng.randomize()
@@ -168,7 +169,7 @@ func make_hud() -> void:
 	var layer := CanvasLayer.new()
 	var label := Label.new()
 	label.position = Vector2(24, 24)
-	label.text = "METRALHOPOLE 3D · GODOT 4\nESPAÇO: física dos dados · M: mover peão\nArraste: câmera · Roda: zoom"
+	label.text = "METRALHOPOLE 3D\nArraste: girar câmera · Roda: zoom · ESC: menu"
 	label.add_theme_font_size_override("font_size", 20)
 	layer.add_child(label)
 	add_child(layer)
@@ -182,8 +183,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		yaw -= event.relative.x * 0.007
 		pitch = clamp(pitch + event.relative.y * 0.005, -1.25, -0.3)
 		update_camera()
-	elif event.is_action_pressed("roll_dice"): roll_dice()
-	elif event.is_action_pressed("move_demo"): move_pawn(rng.randi_range(2, 12))
+	elif event.is_action_pressed("ui_cancel") and escape_menu: escape_menu.visible = not escape_menu.visible
 
 func roll_dice() -> void:
 	for index in dice.size():
@@ -234,6 +234,21 @@ func make_online_ui() -> void:
 	online_status = Label.new(); online_status.text = "Inicie o servidor Node e crie ou entre em uma sala."; online_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(online_status)
 	actions_box = VBoxContainer.new(); actions_box.add_theme_constant_override("separation", 6); box.add_child(actions_box)
 	var timer := Timer.new(); timer.wait_time = 1.0; timer.autostart = true; timer.timeout.connect(poll_state); add_child(timer)
+	make_escape_menu(layer)
+
+func make_escape_menu(layer: CanvasLayer) -> void:
+	escape_menu = PanelContainer.new(); escape_menu.visible = false; escape_menu.position = Vector2(515, 180); escape_menu.custom_minimum_size = Vector2(420, 330); layer.add_child(escape_menu)
+	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 12); escape_menu.add_child(box)
+	var title := Label.new(); title.text = "METRALHOPOLE · MENU"; title.add_theme_font_size_override("font_size", 26); box.add_child(title)
+	var help := Label.new(); help.text = "Sala, jogadores e estado permanecem sincronizados.\nFechar o anfitrião encerra as salas deste computador."; help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(help)
+	var pause_button := Button.new(); pause_button.text = "Pausar / retomar partida"; pause_button.pressed.connect(func():
+		if not api.code.is_empty() and not game_state.is_empty(): await send_action("resume" if game_state.get("paused", false) else "pause")
+	); box.add_child(pause_button)
+	var leave_button := Button.new(); leave_button.text = "Sair da sala"; leave_button.pressed.connect(func():
+		if not api.code.is_empty(): await send_action("leave"); escape_menu.visible = false
+	); box.add_child(leave_button)
+	var close_button := Button.new(); close_button.text = "Voltar ao jogo"; close_button.pressed.connect(func(): escape_menu.visible = false); box.add_child(close_button)
+	var quit_button := Button.new(); quit_button.text = "Sair do jogo"; quit_button.pressed.connect(func(): get_tree().quit()); box.add_child(quit_button)
 
 func field(parent: Control, placeholder: String, initial: String) -> LineEdit:
 	var input := LineEdit.new(); input.placeholder_text = placeholder; input.text = initial; parent.add_child(input); return input

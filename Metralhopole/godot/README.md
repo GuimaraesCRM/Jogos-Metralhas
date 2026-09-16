@@ -3,9 +3,9 @@
 Cliente nativo da Metralhopole em Godot 4.7.2.
 
 - Tabuleiro de 60 casas em geometria 3D.
-- Personagem GLB dentro do mesmo mundo e movimento casa por casa (`M`).
+- Personagens GLB dentro do mesmo mundo e movimento sincronizado casa por casa.
 - Câmera orbital por arraste e zoom pela roda.
-- Dois dados `RigidBody3D` com gravidade, impulso e colisão (`Espaço`).
+- Dois dados `RigidBody3D` com gravidade, impulso, colisão e resultado autoritativo do servidor.
 - Iluminação, sombras e profundidade compartilhadas.
 - Criação, entrada e reconexão de salas pelo servidor autoritativo existente.
 - Jogadores e personagens exclusivos sincronizados online.

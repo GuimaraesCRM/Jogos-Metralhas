@@ -135,19 +135,81 @@ dura vinte minutos e não precisa sobreviver a um reinício.
 
 ### Subir o servidor
 
-Local, para testar:
+Na sua máquina, para testar:
 
 ```bash
-npm run server        # http://localhost:8787  — estado em /saude
+npm run server        # http://localhost:8787 — estado em /saude
 ```
 
-Publicado, para jogar com quem está longe — duas opções:
+#### Num servidor Linux
 
-**Render (gratuito, para uso contínuo).** O `render.yaml` desta pasta traz a
-configuração pronta. Como o Render lê o arquivo na raiz do repositório, e as
-regras do bundle não permitem criar arquivos fora da pasta do jogo, faça de um
-destes jeitos: copie o `render.yaml` para a raiz do seu fork, ou crie o serviço
-pelo painel usando os mesmos valores (*Root Directory* `Codenames`, Dockerfile
+É o caminho recomendado para o grupo: o servidor fica de pé o tempo todo e todo
+mundo conecta de onde estiver. Precisa de **Node 20 ou superior** (ou Docker) e
+de uma porta liberada. Escolha uma das duas formas.
+
+**A. Docker**
+
+Copie a pasta `Codenames/` para o servidor e rode, de dentro dela:
+
+```bash
+docker build -f server/Dockerfile -t palavras-secretas-servidor .
+docker run -d --name palavras-secretas --restart unless-stopped   -p 8787:8787 palavras-secretas-servidor
+```
+
+A imagem leva só o Node, o `ws`, `server/` e `shared/` — nada do Electron nem da
+interface, que vivem no `.exe` de cada jogador.
+
+**B. Node direto, com systemd**
+
+```bash
+sudo mkdir -p /opt/palavras-secretas
+# copie a pasta Codenames/ para /opt/palavras-secretas (rsync, scp ou git clone)
+cd /opt/palavras-secretas
+npm install --omit=dev          # instala apenas o ws
+
+sudo useradd --system --no-create-home palavras
+sudo chown -R palavras: /opt/palavras-secretas
+sudo cp server/palavras-secretas.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now palavras-secretas
+```
+
+O arquivo `server/palavras-secretas.service` é um modelo pronto; ajuste `User`,
+`WorkingDirectory` e `PORT` se o seu caminho for outro.
+
+**Conferindo e liberando a porta**
+
+```bash
+curl http://localhost:8787/saude     # {"servico":"palavras-secretas",...}
+sudo ufw allow 8787/tcp              # se usar ufw
+```
+
+Os jogadores apontam o app para `ws://SEU.IP.OU.DOMINIO:8787`. Isso já basta
+para jogar — o app aceita `ws://` para qualquer endereço, não só localhost.
+
+**TLS, se quiser (recomendado, não obrigatório)**
+
+Sem TLS o tráfego da partida anda em texto puro. Com um domínio apontando para o
+servidor, o [Caddy](https://caddyserver.com) resolve certificado e *upgrade* de
+WebSocket sozinho:
+
+```caddyfile
+jogo.seudominio.com {
+    reverse_proxy localhost:8787
+}
+```
+
+O endereço passa a ser `wss://jogo.seudominio.com`, sem porta. Com nginx,
+lembre-se dos cabeçalhos `Upgrade` e `Connection` no `location` do proxy — sem
+eles o WebSocket não sobe.
+
+#### Alternativas sem servidor próprio
+
+**Render (plano gratuito).** O `render.yaml` desta pasta traz a configuração
+pronta. Como o Render lê o arquivo na raiz do repositório, e as regras do bundle
+não permitem criar arquivos fora da pasta do jogo, faça de um destes jeitos:
+copie o `render.yaml` para a raiz do seu fork, ou crie o serviço pelo painel
+usando os mesmos valores (*Root Directory* `Codenames`, Dockerfile
 `server/Dockerfile`, health check `/saude`). O plano gratuito dorme depois de 15
 minutos parado e leva uns 30 segundos para acordar — a tela inicial mostra
 "conectando..." nesse intervalo.
@@ -159,10 +221,14 @@ comando devolve uma URL pública que vale enquanto ele estiver aberto.
 ### Apontar o app para o servidor
 
 O endereço padrão é `ws://localhost:8787`, definido em
-`renderer/js/config.js`. Cada jogador pode trocá-lo em **Configurar servidor**,
-na tela inicial, e a escolha fica guardada na máquina dele — dá para começar num
-túnel e migrar para o Render sem gerar um `.exe` novo. Use `ws://` para servidor
-local e `wss://` para servidor publicado.
+`renderer/js/config.js`. Cada jogador troca o endereço em **Configurar
+servidor**, na tela inicial, e a escolha fica guardada na máquina dele — dá para
+começar num túnel e migrar para um servidor próprio sem gerar `.exe` novo.
+
+Use `ws://` para servidor sem TLS (inclusive um IP público) e `wss://` quando
+houver certificado. Se o grupo for fixo, vale trocar o `SERVIDOR_PADRAO` em
+`renderer/js/config.js` antes de gerar o `.exe`: aí ninguém precisa configurar
+nada, é só abrir e jogar.
 
 ### Salas e reconexão
 
@@ -203,8 +269,9 @@ não implementado.
 - O `.exe` não é assinado digitalmente: o SmartScreen do Windows avisa na
   primeira execução.
 - Sem áudio e sem placar histórico entre partidas.
-- O servidor não tem limite de criação de salas; para uso em grupo fechado está
-  de bom tamanho, mas não é um serviço público endurecido.
+- O servidor tem teto de salas simultâneas e limite de tamanho de mensagem, mas
+  não tem autenticação nem limite por IP: é feito para um grupo fechado, não
+  para ser um serviço público aberto.
 
 ## Estrutura
 

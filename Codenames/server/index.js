@@ -20,6 +20,13 @@ const PORTA = Number(process.env.PORT) || 8787;
 
 /** Sala sem ninguém conectado vira lixo depois disso — dá tempo de reconectar. */
 const TEMPO_DE_VIDA_VAZIA = 5 * 60 * 1000;
+
+/**
+ * Teto de salas simultâneas. O servidor é pensado para um grupo de amigos, mas
+ * fica exposto na internet: sem um limite, um laço bobo criando salas derrubaria
+ * a partida de quem está jogando. Trezentas salas é folga larga para o uso real.
+ */
+const LIMITE_DE_SALAS = 300;
 const INTERVALO_MANUTENCAO = 1000;
 const INTERVALO_PULSO = 30000;
 
@@ -45,7 +52,9 @@ const servidorHttp = http.createServer((req, res) => {
   res.end();
 });
 
-const wss = new WebSocketServer({ server: servidorHttp });
+// As mensagens do jogo têm algumas centenas de bytes. O teto de 16 KB corta
+// pela raiz o envio de payloads gigantes para consumir memória do servidor.
+const wss = new WebSocketServer({ server: servidorHttp, maxPayload: 16 * 1024 });
 
 // ------------------------------------------------------------------ envio
 
@@ -93,6 +102,12 @@ function tratar(ws, sessao, msg) {
   // --- entrada na sala -----------------------------------------------------
 
   if (tipo === DO_CLIENTE.CRIAR_SALA) {
+    if (salas.size >= LIMITE_DE_SALAS) {
+      return enviar(ws, DO_SERVIDOR.ERRO, {
+        mensagem: 'O servidor está cheio de salas agora. Tente de novo em alguns minutos.'
+      });
+    }
+
     const sala = new Sala(codigoInedito());
     salas.set(sala.codigo, sala);
 

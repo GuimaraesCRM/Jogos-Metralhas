@@ -4,10 +4,10 @@ const palette = ['#c6f185', '#7bc6f1', '#ee98b3', '#eac776', '#bca1ef', '#76d9c2
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session;
 try { session = JSON.parse(localStorage.getItem('session') || 'null'); } catch { localStorage.removeItem('session'); }
-let state, busy = false, polling = false, connected = false, animating = false, noticeTimer, hostAddresses = [], boardStamp;
+let state, busy = false, polling = false, connected = false, animating = false, noticeTimer, hostAddresses = [], boardStamp, lastDiceStamp;
 const displayedPositions = new Map();
 let lastAnimatedMove = 0;
-const camera = {tilt:28, rotation:-23, zoom:.7};
+const camera = {tilt:28, rotation:-23, zoom:.82};
 let cameraDrag, suppressCameraClick = false;
 function applyCamera() {
   const boardElement = $('board');
@@ -35,11 +35,26 @@ async function perform(fn) {
   finally { busy = false; if (state) render(); }
 }
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function throwDice(values) {
+  if (!values?.length) return;
+  const dice = [$('die-one'), $('die-two')];
+  for (const die of dice) { die.classList.remove('rolling'); void die.offsetWidth; die.classList.add('rolling'); }
+  await delay(920);
+  dice.forEach((die, index) => {
+    die.className = `die3d value-${values[index]}`;
+    die.setAttribute('aria-label', `Dado ${index + 1}: ${values[index]}`);
+  });
+}
 async function acceptState(latest) {
   const movement = latest.lastMove;
   const shouldAnimate = movement && movement.sequence > lastAnimatedMove && displayedPositions.has(movement.player);
+  const diceStamp = latest.dice?.length ? `${latest.round}:${latest.turn}:${latest.stage}:${latest.dice.join('-')}:${movement?.sequence || 0}` : '';
+  const shouldThrow = diceStamp && diceStamp !== lastDiceStamp;
+  if (diceStamp) lastDiceStamp = diceStamp;
   state = latest;
   for (const player of state.players) if (!displayedPositions.has(player.id)) displayedPositions.set(player.id, player.position);
+  render();
+  if (shouldThrow) await throwDice(latest.dice);
   if (!shouldAnimate) {
     for (const player of state.players) displayedPositions.set(player.id, player.position);
     if (movement) lastAnimatedMove = movement.sequence;
@@ -112,6 +127,8 @@ function renderBoard() {
 function render() {
   $('setup').hidden = !!session; $('room-panel').hidden = !session;
   renderBoard();
+  document.body.classList.toggle('game-active', !!(state && state.phase !== 'lobby'));
+  $('game-hud').hidden = !(state && state.phase !== 'lobby');
   if (!state || !session) return;
   const me = state.players.find(p => p.id === session.id);
   const current = state.players[state.turn];
@@ -124,6 +141,10 @@ function render() {
   $('host-address').textContent = hostAddresses.length ? `Endereços desta máquina: ${hostAddresses.join(' ou ')}. Compartilhe o endereço acessível aos amigos e o código.` : `Servidor: ${session.endpoint}`;
   $('player-count').textContent = `${state.players.length}/8`;
   $('players').innerHTML = state.players.map((p,i) => `<div class="player ${p.id === current?.id && state.phase === 'playing' ? 'current' : ''} ${p.bankrupt ? 'out' : ''}"><div class="avatar" style="--player:${palette[i]}">${i + 1}</div><div class="player-name">${esc(p.name)}${p.id === session.id ? ' (você)' : ''}<small>${p.bankrupt ? 'Faliu' : `${p.jailed ? `Preso ${p.jailTurns}/3 · ` : ''}${INDUSTRIES.filter(id => state.properties[id]?.owner === p.id).length}/4 indústrias · ${p.jailCards} carta(s)`}</small><small>Patrimônio ${money(p.wealth)}</small></div><div class="player-money">${money(p.money)}</div></div>`).join('');
+  $('hud-avatar').style.setProperty('--player', palette[state.players.findIndex(p => p.id === session.id)]);
+  $('hud-turn').textContent = mine ? 'SUA VEZ' : `VEZ DE ${current?.name || ''}`;
+  $('hud-name').textContent = me?.name || '';
+  $('hud-money').textContent = me ? money(me.money) : '';
   $('start').hidden = state.phase !== 'lobby' || state.players[0]?.id !== session.id;
   $('start').disabled = busy || state.players.length < 2;
   $('lobby-note').textContent = state.phase === 'lobby' ? 'Compartilhe o código e o endereço. O anfitrião inicia com 2 a 8 jogadores.' : 'Sair durante a partida conta como desistência. Você pode fechar e reabrir o aplicativo para reconectar, se não for o anfitrião.';
@@ -140,7 +161,11 @@ function render() {
   $('asset-count').textContent = assets.length;
   $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2), set = completeGroup(tile, lot); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `${esc(tile.city)} · nível ${lot.level} · aluguel ${money(displayedRent(tile, lot))}${set && lot.level === 0 ? ' · grupo completo 2×' : ''}`}</small></div>${tile.type === 'property' ? `<button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button>` : '<span class="hint">⚙</span>'}</div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
   $('feed').innerHTML = state.logs.map(text => `<div class="feed-item">${esc(text)}</div>`).join('') || '<p class="hint">Os acontecimentos da partida aparecem aqui.</p>';
-  if (state.dice.length) { $('die-one').textContent = String.fromCodePoint(0x267f + state.dice[0]); $('die-two').textContent = String.fromCodePoint(0x267f + state.dice[1]); }
+  $('menu-room').innerHTML = `<span>Sala <strong>${esc(state.code)}</strong></span><span>Servidor <strong>${esc(session.endpoint)}</strong></span><span>Rodada <strong>${state.round}</strong></span><span>Conexão <strong>${connected ? 'online' : 'interrompida'}</strong></span>`;
+  $('menu-players').innerHTML = $('players').innerHTML;
+  $('menu-assets').innerHTML = $('assets').innerHTML;
+  $('menu-feed').innerHTML = $('feed').innerHTML;
+  $('menu-pause').textContent = state.paused ? 'Retomar partida' : 'Pausar partida';
 }
 function renderTrade(mine) {
   const offer = state.trade;
@@ -207,11 +232,11 @@ $('confirm-leave').onclick = () => perform(async () => {
   document.querySelector('.right-panel').innerHTML = initialRightPanel;
   $('connection').textContent = 'EDIÇÃO DESKTOP'; $('table-title').textContent = 'Construa sua sorte.';
   $('round').textContent = '60 casas · 44 propriedades'; $('pause').hidden = true; $('pause-banner').hidden = true;
-  $('die-one').textContent = '⚄'; $('die-two').textContent = '⚂'; render();
+  $('die-one').className = 'die3d value-5'; $('die-two').className = 'die3d value-3'; render();
 });
 $('copy-code').onclick = () => navigator.clipboard.writeText(session.code).then(() => notify('Código copiado! Envie também o endereço do servidor.')).catch(() => notify(`Código: ${session.code}`));
-$('view').onclick = () => $('board').classList.contains('top') ? setCamera({tilt:28, rotation:-23, zoom:.7}) : setCamera({tilt:0, rotation:0, zoom:.78}, true);
-$('reset-view').onclick = () => setCamera({tilt:28, rotation:-23, zoom:.7});
+$('view').onclick = () => $('board').classList.contains('top') ? setCamera({tilt:28, rotation:-23, zoom:.82}) : setCamera({tilt:0, rotation:0, zoom:.9}, true);
+$('reset-view').onclick = () => setCamera({tilt:28, rotation:-23, zoom:.82});
 $('zoom-in').onclick = () => setCamera({zoom:clamp(camera.zoom + .08, .4, 1.2)});
 $('zoom-out').onclick = () => setCamera({zoom:clamp(camera.zoom - .08, .4, 1.2)});
 $('rotate-left').onclick = () => setCamera({rotation:camera.rotation - 15});
@@ -247,6 +272,18 @@ document.querySelector('.board-scene').addEventListener('click', event => {
 $('rules-button').onclick = () => $('rules').showModal(); $('close-rules').onclick = () => $('rules').close();
 $('reconnect').onclick = () => { if (polling || busy) notify('Uma tentativa de conexão já está em andamento.'); else { $('connection').textContent = 'RECONECTANDO…'; poll(true); } };
 $('pause').onclick = () => perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:state.paused ? 'resume' : 'pause'})); });
+$('menu-button').onclick = () => { if (!$('game-menu').open) $('game-menu').showModal(); };
+$('close-menu').onclick = () => $('game-menu').close();
+$('menu-pause').onclick = () => { $('game-menu').close(); $('pause').click(); };
+$('menu-reconnect').onclick = () => { $('game-menu').close(); $('reconnect').click(); };
+$('menu-rules').onclick = () => { $('game-menu').close(); $('rules').showModal(); };
+$('menu-leave').onclick = () => { $('game-menu').close(); $('leave-dialog').showModal(); };
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || !document.body.classList.contains('game-active')) return;
+  if ($('game-menu').open) { event.preventDefault(); $('game-menu').close(); return; }
+  if ([...document.querySelectorAll('dialog[open]')].length) return;
+  event.preventDefault(); $('game-menu').showModal();
+});
 function showTile(id) {
   const tile = (state?.board || preview)[id], lot = state?.properties[id];
   $('tile-title').textContent = tile.name;

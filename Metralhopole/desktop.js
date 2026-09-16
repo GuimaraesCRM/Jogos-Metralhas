@@ -38,7 +38,7 @@ ipcMain.handle('request', async (event, {endpoint, path, token, body}) => {
   return result;
 });
 app.whenReady().then(async () => {
-  win = new BrowserWindow({width: 1440, height: 960, minWidth: 1100, minHeight: 760, show: process.env.METRALHOPOLE_SMOKE !== '1', backgroundColor: '#101827', title: 'Metralhopole', autoHideMenuBar: true,
+  win = new BrowserWindow({width: 1440, height: 960, minWidth: 1100, minHeight: 760, show: process.env.METRALHOPOLE_SMOKE !== '1', fullscreen: process.env.METRALHOPOLE_SMOKE !== '1', backgroundColor: '#101827', title: 'Metralhopole', autoHideMenuBar: true,
     webPreferences: {preload: fileURLToPath(new URL('./preload.cjs', import.meta.url)), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false}});
   win.webContents.setWindowOpenHandler(() => ({action: 'deny'}));
   win.webContents.on('will-navigate', event => event.preventDefault());

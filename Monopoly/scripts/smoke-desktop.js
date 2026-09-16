@@ -15,7 +15,9 @@ try {
   const page = await application.firstWindow();
   page.on('pageerror', error => errors.push(error.message));
   await page.locator('#host').waitFor();
-  await page.screenshot({path:'test-results/desktop-menu.png'});
+  // O Chromium empacotado pode não disponibilizar uma superfície de captura
+  // para janelas ocultas. Capturas visuais são feitas no teste de desenvolvimento.
+  if (!process.env.MONOPOLY_TEST_EXE) await page.screenshot({path:'test-results/desktop-menu.png'});
   await page.locator('#name').fill('Guilherme');
   await page.locator('#host').click();
   await page.waitForFunction(() => /^[A-Z0-9]{6}$/.test(document.getElementById('room-code').textContent));
@@ -30,7 +32,7 @@ try {
   await page.locator('[data-action="end"]').waitFor();
   assert.equal(await page.locator('.tile').count(), 24);
   assert.equal(await page.locator('.token').count(), 8);
-  await page.screenshot({path:'test-results/desktop-game.png'});
+  if (!process.env.MONOPOLY_TEST_EXE) await page.screenshot({path:'test-results/desktop-game.png'});
   await page.locator('[data-action="end"]').click();
   await page.waitForFunction(() => document.getElementById('turn-title').textContent === 'Amigo 1');
   await page.locator('#rules-button').click();

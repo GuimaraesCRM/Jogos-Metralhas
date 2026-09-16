@@ -44,6 +44,10 @@ var portfolio_heading: Label
 var portfolio_toggle: Button
 var portfolio_open := false
 var trade_open := false
+var lobby_screen: Control
+var lobby_content: VBoxContainer
+var pause_banner: PanelContainer
+var trade_popup: PanelContainer
 var preview_index := 0
 var character_preview: SubViewport
 var character_preview_root: Node3D
@@ -230,10 +234,10 @@ func panel_style(color: Color, radius: int, border := Color.TRANSPARENT) -> Styl
 	return style
 
 func make_ui_theme() -> Theme:
-	var theme := Theme.new(); theme.default_font_size = 15
-	var normal := panel_style(Color("243640ee"), 10, Color("ffffff18")); normal.content_margin_top = 11; normal.content_margin_bottom = 11
-	var hover := panel_style(Color("38515ddd"), 10, Color("aeea74aa")); hover.content_margin_top = 11; hover.content_margin_bottom = 11
-	var pressed := panel_style(Color("9bd064ee"), 10); pressed.content_margin_top = 11; pressed.content_margin_bottom = 11
+	var theme := Theme.new(); theme.default_font_size = 12
+	var normal := panel_style(Color("243640ee"), 10, Color("ffffff18")); normal.content_margin_top = 8; normal.content_margin_bottom = 8
+	var hover := panel_style(Color("38515ddd"), 10, Color("aeea74aa")); hover.content_margin_top = 8; hover.content_margin_bottom = 8
+	var pressed := panel_style(Color("9bd064ee"), 10); pressed.content_margin_top = 8; pressed.content_margin_bottom = 8
 	theme.set_stylebox("normal", "Button", normal); theme.set_stylebox("hover", "Button", hover); theme.set_stylebox("pressed", "Button", pressed)
 	theme.set_color("font_color", "Button", Color("edf5f6")); theme.set_color("font_pressed_color", "Button", Color("142027"))
 	var input := panel_style(Color("101c24dd"), 9, Color("ffffff24")); input.content_margin_top = 10; input.content_margin_bottom = 10
@@ -251,6 +255,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		pitch = clamp(pitch + event.relative.y * 0.005, -1.25, -0.3)
 		update_camera()
 	elif event.is_action_pressed("ui_cancel") and escape_menu: escape_menu.visible = not escape_menu.visible
+	elif event.is_action_pressed("roll_dice") and (not event is InputEventKey or not event.echo): try_space_roll()
+
+func try_space_roll() -> void:
+	if game_state.is_empty() or game_state.get("phase", "") != "playing" or game_state.get("paused", false) or game_state.get("stage", "") != "roll": return
+	var players: Array = game_state.get("players", []); if players.is_empty(): return
+	if players[int(game_state.get("turn", 0))].id == api.player_id: await send_action("roll")
 
 func roll_dice() -> void:
 	for index in dice.size():
@@ -280,10 +290,10 @@ func make_online_ui() -> void:
 	online_panel.add_theme_stylebox_override("panel", panel_style(Color("172731e8"), 18, Color("ffffff22")))
 	ui_root.add_child(online_panel)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2.ZERO
+	scroll.custom_minimum_size = Vector2.ZERO; scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	online_panel.add_child(scroll)
 	var box := VBoxContainer.new()
-	box.custom_minimum_size = Vector2(300, 0); box.add_theme_constant_override("separation", 10)
+	box.custom_minimum_size = Vector2(230, 0); box.add_theme_constant_override("separation", 7)
 	scroll.add_child(box)
 	online_heading = Label.new(); online_heading.text = "JOGAR ONLINE"; online_heading.add_theme_font_size_override("font_size", 25); box.add_child(online_heading)
 	setup_box = VBoxContainer.new(); setup_box.add_theme_constant_override("separation", 9); box.add_child(setup_box)
@@ -299,16 +309,19 @@ func make_online_ui() -> void:
 	var timer := Timer.new(); timer.wait_time = 1.0; timer.autostart = true; timer.timeout.connect(poll_state); add_child(timer)
 	make_escape_menu(ui_root)
 	make_portfolio(ui_root)
+	make_trade_popup(ui_root)
+	make_lobby_screen(ui_root)
+	make_pause_banner(ui_root)
 	get_viewport().size_changed.connect(layout_ui); layout_ui()
 
 func layout_ui() -> void:
 	if not online_panel: return
 	var viewport := get_viewport().get_visible_rect().size
 	var in_game := str(game_state.get("phase", "lobby")) != "lobby" and not game_state.is_empty()
-	var width := 300.0 if in_game else clampf(viewport.x * 0.22, 360.0, 420.0)
+	var width := 270.0 if in_game else clampf(viewport.x * 0.22, 360.0, 420.0)
 	online_panel.position = Vector2(viewport.x - width - 18, 18)
 	if in_game:
-		online_panel.size = Vector2(width, minf(viewport.y - 36, 230.0))
+		online_panel.size = Vector2(width, minf(viewport.y - 36, 210.0))
 	else: online_panel.size = Vector2(width, minf(viewport.y - 36, 650.0))
 	if escape_menu: escape_menu.position = (viewport - escape_menu.custom_minimum_size) * 0.5
 	if portfolio_panel:
@@ -326,6 +339,79 @@ func make_portfolio(parent: Control) -> void:
 	portfolio_box = HBoxContainer.new(); portfolio_box.add_theme_constant_override("separation", 10); scroll.add_child(portfolio_box)
 	portfolio_toggle = Button.new(); portfolio_toggle.text = "▶"; portfolio_toggle.visible = false; portfolio_toggle.custom_minimum_size = Vector2(48, 68); parent.add_child(portfolio_toggle)
 	portfolio_toggle.pressed.connect(toggle_portfolio)
+
+func make_pause_banner(parent: Control) -> void:
+	pause_banner = PanelContainer.new(); pause_banner.visible = false; pause_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pause_banner.add_theme_stylebox_override("panel", panel_style(Color("b83b45f2"), 12)); parent.add_child(pause_banner)
+	var label := Label.new(); label.text = "⏸  PARTIDA PAUSADA"; label.add_theme_font_size_override("font_size", 18); pause_banner.add_child(label)
+
+func make_lobby_screen(parent: Control) -> void:
+	lobby_screen = ColorRect.new(); lobby_screen.visible = false; lobby_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); lobby_screen.color = Color("10232cf7"); parent.add_child(lobby_screen)
+	var center := CenterContainer.new(); center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); lobby_screen.add_child(center)
+	var panel := PanelContainer.new(); panel.custom_minimum_size = Vector2(920, 650); panel.add_theme_stylebox_override("panel", panel_style(Color("1b303af4"), 24, Color("ffffff22"))); center.add_child(panel)
+	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; panel.add_child(scroll)
+	lobby_content = VBoxContainer.new(); lobby_content.custom_minimum_size.x = 850; lobby_content.add_theme_constant_override("separation", 14); scroll.add_child(lobby_content)
+
+func make_player_lobby_card(player: Dictionary) -> Control:
+	var card := PanelContainer.new(); card.custom_minimum_size = Vector2(190, 145); card.add_theme_stylebox_override("panel", panel_style(Color("263e49dd"), 14, Color("ffffff20")))
+	var box := VBoxContainer.new(); card.add_child(box)
+	var preview := SubViewportContainer.new(); preview.custom_minimum_size = Vector2(150, 86); preview.stretch = true; box.add_child(preview)
+	var viewport := SubViewport.new(); viewport.size = Vector2i(300, 172); viewport.transparent_bg = true; viewport.own_world_3d = true; viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS; preview.add_child(viewport)
+	var scene: PackedScene = load("res://assets/models/%s.glb" % player.character); var model := scene.instantiate(); model.scale = Vector3.ONE * 0.72; viewport.add_child(model)
+	var camera := Camera3D.new(); camera.position = Vector3(0, 1.05, 2.8); camera.look_at_from_position(camera.position, Vector3(0, 0.85, 0)); viewport.add_child(camera)
+	var light := DirectionalLight3D.new(); light.rotation_degrees = Vector3(-45, -30, 0); light.light_energy = 2.0; viewport.add_child(light)
+	var name := Label.new(); name.text = player.name; name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; name.add_theme_font_size_override("font_size", 16); box.add_child(name)
+	return card
+
+func render_lobby(me: Dictionary, players: Array) -> void:
+	lobby_screen.visible = true; online_panel.visible = false
+	for child in lobby_content.get_children(): child.queue_free()
+	var title := Label.new(); title.text = "LOBBY · METRALHOPOLE"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 28); lobby_content.add_child(title)
+	var code_row := HBoxContainer.new(); code_row.alignment = BoxContainer.ALIGNMENT_CENTER; lobby_content.add_child(code_row)
+	var code := Label.new(); code.text = "CÓDIGO DA SALA:  %s" % api.code; code.add_theme_font_size_override("font_size", 20); code_row.add_child(code)
+	var copy := Button.new(); copy.text = "COPIAR"; copy.pressed.connect(func(): DisplayServer.clipboard_set(api.code); copy.text = "COPIADO!"); code_row.add_child(copy)
+	var roster := HFlowContainer.new(); roster.alignment = FlowContainer.ALIGNMENT_CENTER; roster.add_theme_constant_override("h_separation", 10); lobby_content.add_child(roster)
+	for player in players: roster.add_child(make_player_lobby_card(player))
+	add_character_selector(me, players, lobby_content)
+	if players[0].id == api.player_id:
+		var start := Button.new(); start.text = "INICIAR PARTIDA"; start.pressed.connect(func(): await send_action("start")); lobby_content.add_child(start)
+	else:
+		var waiting := Label.new(); waiting.text = "Aguardando o anfitrião iniciar a partida…"; waiting.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; lobby_content.add_child(waiting)
+
+func make_trade_popup(parent: Control) -> void:
+	trade_popup = PanelContainer.new(); trade_popup.visible = false; trade_popup.custom_minimum_size = Vector2(520, 280); trade_popup.add_theme_stylebox_override("panel", panel_style(Color("10212af8"), 20, Color("9bd06488"))); parent.add_child(trade_popup)
+
+func open_trade_popup(me: Dictionary) -> void:
+	for child in trade_popup.get_children(): child.queue_free()
+	trade_popup.visible = true; var viewport := get_viewport().get_visible_rect().size; trade_popup.position = (viewport - trade_popup.custom_minimum_size) * 0.5
+	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 10); trade_popup.add_child(box)
+	var title := Label.new(); title.text = "NEGOCIAR PROPRIEDADE"; title.add_theme_font_size_override("font_size", 22); box.add_child(title)
+	var destination := OptionButton.new(); destination.add_item("Vender para o banco (75%)", 0); destination.add_item("Vender para outro jogador", 1); box.add_child(destination)
+	var property := OptionButton.new(); box.add_child(property)
+	for raw_id in game_state.properties:
+		if game_state.properties[raw_id].owner == api.player_id: property.add_item(game_state.board[int(raw_id)].name); property.set_item_metadata(property.item_count - 1, int(raw_id))
+	var target := OptionButton.new(); target.visible = false
+	for player in game_state.players:
+		if player.id != api.player_id and not player.get("bankrupt", false): target.add_item(player.name); target.set_item_metadata(target.item_count - 1, player.id)
+	box.add_child(target)
+	var price := LineEdit.new(); price.placeholder_text = "Valor escolhido para outro jogador"; price.visible = false; box.add_child(price)
+	var bank_info := Label.new(); bank_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(bank_info)
+	var update_bank_value := func(_index = 0):
+		if property.item_count == 0: bank_info.text = "Você não possui propriedades para vender."; return
+		var id := int(property.get_item_metadata(property.selected)); var tile: Dictionary = game_state.board[id]; var lot: Dictionary = game_state.properties[str(id)]
+		var invested := int(tile.price)
+		for level in range(1, int(lot.get("level", 0)) + 1): invested += roundi(float(tile.price) * (0.6 if level == 4 else 0.35))
+		bank_info.text = "Oferta do banco: R$ %s (75%% de R$ %s investidos)." % [format_money(floori(invested * 0.75)), format_money(invested)]
+	destination.item_selected.connect(func(index): target.visible = index == 1; price.visible = index == 1; bank_info.visible = index == 0)
+	property.item_selected.connect(update_bank_value); update_bank_value.call()
+	var confirm := Button.new(); confirm.text = "CONFIRMAR VENDA"; confirm.pressed.connect(func():
+		if property.item_count == 0: return
+		var id = property.get_item_metadata(property.selected)
+		if destination.selected == 0: await send_action("sell-bank", id)
+		elif target.item_count > 0 and int(price.text) > 0: await send_action("trade-offer", {"type":"sell", "target":target.get_item_metadata(target.selected), "property":id, "price":int(price.text)})
+		trade_popup.visible = false
+	); box.add_child(confirm)
+	var cancel := Button.new(); cancel.text = "CANCELAR"; cancel.pressed.connect(func(): trade_popup.visible = false); box.add_child(cancel)
 
 func toggle_portfolio() -> void:
 	portfolio_open = not portfolio_open; portfolio_toggle.text = "◀" if portfolio_open else "▶"
@@ -351,17 +437,17 @@ func make_property_card(tile: Dictionary, lot: Dictionary) -> Control:
 	var info := RichTextLabel.new(); info.bbcode_enabled = true; info.fit_content = true; info.add_theme_font_size_override("normal_font_size", 12); info.text = "[b]%s[/b]\n[color=#aebfc7]%s[/color]\n%s" % [tile.name, tile.get("city", "Indústria"), "HOTEL" if level == 4 else "%d CASA(S)" % level if level > 0 else "SEM MELHORIA"]; info.custom_minimum_size.x = 74; row.add_child(info)
 	return card
 
-func add_character_selector(me: Dictionary, players: Array) -> void:
-	var title := Label.new(); title.text = "ESCOLHA SEU PERSONAGEM"; title.add_theme_font_size_override("font_size", 19); actions_box.add_child(title)
+func add_character_selector(me: Dictionary, players: Array, target_box: VBoxContainer) -> void:
+	var title := Label.new(); title.text = "ESCOLHA SEU PERSONAGEM"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 19); target_box.add_child(title)
 	if not preview_initialized: preview_index = maxi(0, CHARACTERS.find(str(me.character))); preview_initialized = true
-	var preview_box := SubViewportContainer.new(); preview_box.custom_minimum_size = Vector2(350, 215); preview_box.stretch = true; actions_box.add_child(preview_box)
+	var preview_box := SubViewportContainer.new(); preview_box.custom_minimum_size = Vector2(350, 190); preview_box.stretch = true; target_box.add_child(preview_box)
 	character_preview = SubViewport.new(); character_preview.size = Vector2i(700, 430); character_preview.transparent_bg = true; character_preview.own_world_3d = true; character_preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS; preview_box.add_child(character_preview)
 	character_preview_root = Node3D.new(); character_preview.add_child(character_preview_root)
 	character_preview.add_child(cube(Vector3(1.75, 0.12, 1.75), Color("36505b"), Vector3(0, -0.05, 0)))
 	var camera := Camera3D.new(); camera.current = true; camera.position = Vector3(0, 1.05, 2.45); camera.look_at_from_position(camera.position, Vector3(0, 0.88, 0)); character_preview.add_child(camera)
 	var key := DirectionalLight3D.new(); key.rotation_degrees = Vector3(-35, -30, 0); key.light_energy = 2.0; character_preview.add_child(key)
 	var fill := OmniLight3D.new(); fill.position = Vector3(-2, 2, 2); fill.light_energy = 5.0; fill.omni_range = 6; character_preview.add_child(fill)
-	var controls := HBoxContainer.new(); controls.add_theme_constant_override("separation", 8); actions_box.add_child(controls)
+	var controls := HBoxContainer.new(); controls.add_theme_constant_override("separation", 8); target_box.add_child(controls)
 	var previous := Button.new(); previous.text = "◀"; previous.custom_minimum_size.x = 54; controls.add_child(previous)
 	var choose := Button.new(); choose.name = "ChooseCharacter"; choose.size_flags_horizontal = Control.SIZE_EXPAND_FILL; controls.add_child(choose)
 	var next := Button.new(); next.text = "▶"; next.custom_minimum_size.x = 54; controls.add_child(next)
@@ -390,6 +476,7 @@ func make_escape_menu(layer: Control) -> void:
 	var leave_button := Button.new(); leave_button.text = "Sair da sala"; leave_button.pressed.connect(func():
 		if not api.code.is_empty(): await send_action("leave"); escape_menu.visible = false
 	); box.add_child(leave_button)
+	var copy_button := Button.new(); copy_button.text = "COPIAR CÓDIGO DA SALA"; copy_button.pressed.connect(func(): DisplayServer.clipboard_set(api.code); copy_button.text = "CÓDIGO COPIADO!"); box.add_child(copy_button)
 	var close_button := Button.new(); close_button.text = "VOLTAR AO JOGO"; close_button.pressed.connect(func(): escape_menu.visible = false); box.add_child(close_button)
 	var quit_button := Button.new(); quit_button.text = "SAIR DO JOGO"; quit_button.pressed.connect(func(): get_tree().quit()); box.add_child(quit_button)
 
@@ -534,8 +621,11 @@ func render_actions() -> void:
 	if me.is_empty(): return
 	var phase := str(game_state.get("phase", "lobby")); var stage := str(game_state.get("stage", "roll"))
 	setup_box.visible = false
+	pause_banner.visible = phase == "playing" and bool(game_state.get("paused", false))
+	if pause_banner.visible:
+		var viewport := get_viewport().get_visible_rect().size; pause_banner.position = Vector2((viewport.x - pause_banner.size.x) * 0.5, 18)
 	online_heading.text = "LOBBY DA SALA" if phase == "lobby" else "CENTRAL DA PARTIDA"
-	online_heading.add_theme_font_size_override("font_size", 25 if phase == "lobby" else 18)
+	online_heading.add_theme_font_size_override("font_size", 25 if phase == "lobby" else 15)
 	set_online_status("Sala %s · %d/%d jogadores\n%s · R$ %s" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), me.name, format_money(int(me.money))] if phase == "lobby" else "%s  ·  R$ %s" % [me.name, format_money(int(me.money))])
 	if escape_info:
 		var names: Array[String] = []
@@ -544,16 +634,13 @@ func render_actions() -> void:
 	update_portfolio(me)
 	layout_ui()
 	if phase == "lobby":
-		var roster_title := Label.new(); roster_title.text = "JOGADORES  ·  %d/%d" % [players.size(), int(game_state.get("maxPlayers", 8))]; roster_title.add_theme_font_size_override("font_size", 18); actions_box.add_child(roster_title)
-		var roster := HFlowContainer.new(); roster.add_theme_constant_override("h_separation", 6); roster.add_theme_constant_override("v_separation", 6); actions_box.add_child(roster)
-		for player in players:
-			var chip := Label.new(); chip.text = "  %s  " % player.name; chip.add_theme_stylebox_override("normal", panel_style(Color("304752cc"), 9, Color("ffffff1f"))); roster.add_child(chip)
-		add_character_selector(me, players)
-		if players[0].id == api.player_id: action_button("Iniciar partida", "start")
-		action_button("Sair da sala", "leave")
+		render_lobby(me, players)
 		return
+	lobby_screen.visible = false; online_panel.visible = true
 	var current: Dictionary = players[int(game_state.get("turn", 0))]
-	var current_label := Label.new(); current_label.text = "TURNO DE %s" % current.name.to_upper(); current_label.add_theme_font_size_override("font_size", 17); actions_box.add_child(current_label)
+	var current_label := Label.new(); current_label.text = "TURNO DE %s" % current.name.to_upper(); current_label.add_theme_font_size_override("font_size", 14); actions_box.add_child(current_label)
+	if game_state.get("paused", false):
+		var paused_help := Label.new(); paused_help.text = "Use ESC para retomar"; paused_help.add_theme_color_override("font_color", Color("ffc1c5")); actions_box.add_child(paused_help); return
 	var offer: Dictionary = game_state.get("trade", {}) if game_state.get("trade") != null else {}
 	if not offer.is_empty():
 		if offer.get("to", "") == api.player_id:
@@ -561,18 +648,16 @@ func render_actions() -> void:
 		elif offer.get("from", "") == api.player_id: action_button("Cancelar oferta", "trade-cancel", offer.id)
 	if current.id != api.player_id: return
 	if stage == "roll":
-		action_button("Lançar dados", "roll")
+		var roll_hint := Label.new(); roll_hint.text = "[ ESPAÇO ]  LANÇAR DADOS"; roll_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; roll_hint.add_theme_color_override("font_color", Color("b9e87d")); actions_box.add_child(roll_hint)
 		if me.get("jailed", false):
 			action_button("Cumprir rodada na prisão", "jail-wait")
 			if int(me.get("jailCards", 0)) > 0: action_button("Usar carta de saída", "jail-card")
 	elif stage == "buy": action_button("Comprar propriedade", "buy")
 	elif stage == "upgrade":
 		var property := int(me.position); var lot: Dictionary = game_state.properties.get(str(property), {}); var maximum := 4 if int(lot.get("visits", 0)) >= 3 else 3
-		for level in range(int(lot.get("level", 0)) + 1, maximum + 1): action_button("Construir nível %d" % level, "upgrade", {"property": property, "level": level})
+		for level in range(int(lot.get("level", 0)) + 1, maximum + 1): action_button("Construir HOTEL" if level == 4 else "Construir %d casa(s)" % level, "upgrade", {"property": property, "level": level})
 	elif stage == "rent":
 		action_button("Confirmar aluguel", "rent-confirm"); action_button("Venda automática ao banco", "sell-bank-auto")
-		for raw_id in game_state.get("properties", {}):
-			if game_state.properties[raw_id].owner == api.player_id: action_button("Vender %s ao banco" % game_state.board[int(raw_id)].name, "sell-bank", int(raw_id))
 		action_button("Declarar falência", "declare-bankruptcy")
 	elif stage == "choice":
 		var choice: Dictionary = game_state.get("pendingChoice", {})
@@ -584,9 +669,7 @@ func render_actions() -> void:
 			if eligible: action_button("Escolher %s" % tile.name, "card-choice", tile.id)
 	if stage != "roll" and stage != "rent" and stage != "choice": action_button("Encerrar turno", "end")
 	if offer.is_empty():
-		if trade_open: add_trade_controls(me)
-		else:
-			var trade_button := Button.new(); trade_button.text = "NEGOCIAR"; trade_button.pressed.connect(func(): trade_open = true; render_actions()); actions_box.add_child(trade_button)
+		var trade_button := Button.new(); trade_button.text = "NEGOCIAR"; trade_button.pressed.connect(func(): open_trade_popup(me)); actions_box.add_child(trade_button)
 
 func add_trade_controls(me: Dictionary) -> void:
 	var targets: Array = game_state.players.filter(func(player): return player.id != api.player_id and not player.get("bankrupt", false))

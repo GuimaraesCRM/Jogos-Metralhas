@@ -79,7 +79,7 @@ export function tick(r) {
     const current = r.players[r.turn];
     if(r.pendingPayment?.payer===current.id){
       for(const [id,lot] of Object.entries(r.properties).filter(([,lot])=>lot.owner===current.id).sort((a,b)=>r.board[a[0]].price-r.board[b[0]].price)){
-        if(current.money>=r.pendingPayment.amount)break; const tile=r.board[id],value=Math.floor((tile.price+Array.from({length:lot.level},(_,i)=>improvementCost(tile,i+1)).reduce((a,b)=>a+b,0))*.5); current.money+=value; delete r.properties[id]; log(r,`${current.name} vendeu ${tile.name} automaticamente ao banco por ${money(value)}.`);
+        if(current.money>=r.pendingPayment.amount)break; const tile=r.board[id],value=Math.floor((tile.price+Array.from({length:lot.level},(_,i)=>improvementCost(tile,i+1)).reduce((a,b)=>a+b,0))*.75); current.money+=value; delete r.properties[id]; log(r,`${current.name} vendeu ${tile.name} automaticamente ao banco por ${money(value)}.`);
       }
       const owner=r.players.find(p=>p.id===r.pendingPayment.owner),amount=r.pendingPayment.amount; charge(r,current,amount,owner); r.pendingPayment=null; log(r,`${current.name} teve o aluguel de ${money(amount)} resolvido ao fim do tempo.`);
     }
@@ -249,9 +249,11 @@ export function act(r, token, action, value, dice = () => randomInt(1, 7)) {
   }
   if (r.paused) throw Error('A partida está pausada. Retome para continuar.');
   if (action === 'sell-bank' || action === 'sell-bank-auto') {
-    if (!r.pendingPayment || r.pendingPayment.payer!==p.id) throw Error('Não há cobrança pendente para liquidar.');
+    if (r.phase !== 'playing' || p.bankrupt) throw Error('A venda ao banco não está disponível.');
+    if (action === 'sell-bank-auto' && (!r.pendingPayment || r.pendingPayment.payer!==p.id)) throw Error('Não há cobrança pendente para liquidar.');
+    if (action === 'sell-bank' && r.players[r.turn] !== p) throw Error('Venda propriedades somente durante seu turno.');
     const owned=Object.entries(r.properties).filter(([,lot])=>lot.owner===p.id);
-    const sell=id=>{ const lot=r.properties[id],tile=r.board[id]; if(!lot||lot.owner!==p.id) throw Error('Esse imóvel não é seu.'); const value=Math.floor((tile.price+Array.from({length:lot.level},(_,i)=>improvementCost(tile,i+1)).reduce((a,b)=>a+b,0))*.5); p.money+=value; delete r.properties[id]; log(r,`${p.name} vendeu ${tile.name} ao banco por ${money(value)}.`); };
+    const sell=id=>{ const lot=r.properties[id],tile=r.board[id]; if(!lot||lot.owner!==p.id) throw Error('Esse imóvel não é seu.'); const value=Math.floor((tile.price+Array.from({length:lot.level},(_,i)=>improvementCost(tile,i+1)).reduce((a,b)=>a+b,0))*.75); p.money+=value; delete r.properties[id]; log(r,`${p.name} vendeu ${tile.name} ao banco por ${money(value)} (75% do patrimônio investido).`); };
     if(action==='sell-bank') sell(String(value)); else for(const [id] of owned.sort((a,b)=>r.board[a[0]].price-r.board[b[0]].price)){ if(p.money>=r.pendingPayment.amount) break; sell(id); }
     return;
   }

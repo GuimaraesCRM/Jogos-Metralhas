@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRoom, join, act} from '../game.js';
+import {improvementCost} from '../public/board.js';
 
 const dice = (a,b) => { let i=0; return () => [a,b][i++]; };
 function game(options={}) { const r=createRoom('NEW123','Ana',options); join(r,'Beto'); act(r,r.players[0].token,'start'); return r; }
@@ -39,6 +40,14 @@ test('aluguel aguarda confirmação e permite vender imóvel ao banco antes do p
   assert.equal(r.stage,'rent'); assert.equal(a.money,1);
   act(r,a.token,'sell-bank',1); assert.ok(a.money>1);
   act(r,a.token,'rent-confirm'); assert.equal(r.pendingPayment,null); assert.equal(b.money,503000);
+});
+
+test('banco paga 75% do terreno somado às melhorias', () => {
+  const r=game(),p=r.players[0],tile=r.board[1];
+  r.properties[1]={owner:p.id,level:2,visits:2};
+  const before=p.money, expected=Math.floor((tile.price+improvementCost(tile,1)+improvementCost(tile,2))*.75);
+  act(r,p.token,'sell-bank',1);
+  assert.equal(p.money,before+expected); assert.equal(r.properties[1],undefined);
 });
 
 test('segunda visita libera três casas e terceira visita libera hotel', () => {

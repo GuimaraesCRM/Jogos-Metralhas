@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
-import {board, RULES, JAIL, INDUSTRIES, buyable, rentFor, money} from './public/board.js';
+import {board, RULES, JAIL, INDUSTRIES, buyable, ownsGroup, rentFor, money} from './public/board.js';
 export {board, RULES, JAIL, INDUSTRIES};
 function shuffle(cards) {
   const result = [...cards];
@@ -159,9 +159,10 @@ function move(r, p, total) {
     const lot = r.properties[tile.id];
     if (!lot) r.stage = 'buy';
     else if (lot.owner !== p.id) {
-      const rent = rentFor(tile, lot, total);
+      const completeGroup = tile.type === 'property' && ownsGroup(board, r.properties, lot.owner, tile.group);
+      const rent = rentFor(tile, lot, total, completeGroup);
       charge(r, p, rent, r.players.find(other => other.id === lot.owner));
-      log(r, `${p.name} pagou aluguel de até ${money(rent)}${tile.type === 'industry' ? ` (${money(tile.price)} × ${total} nos dados)` : ''}.`);
+      log(r, `${p.name} pagou aluguel de até ${money(rent)}${tile.type === 'industry' ? ` (${money(tile.price)} × ${total} nos dados)` : completeGroup && lot.level === 0 ? ' (grupo de cor completo: aluguel dobrado)' : ''}.`);
     }
   } else if (tile.type === 'tax') { charge(r, p, RULES.tax); log(r, `${p.name} recebeu uma cobrança de ${money(RULES.tax)} de imposto.`); }
   else if (tile.type === 'event') drawCard(r, p);

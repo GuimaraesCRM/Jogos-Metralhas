@@ -4,17 +4,17 @@ export const money = value => new Intl.NumberFormat('pt-BR', {style:'currency', 
 export const SIDE = 15;
 export const JAIL = SIDE;
 export const INDUSTRIES = [7, 22, 37, 52];
-const names = [
-  'Vila Aurora', 'Rua das Flores', 'Praça Solar', 'Bairro Estrela',
-  'Porto Azul', 'Marina', 'Ilha Coral', 'Cais do Sol',
-  'Alameda Verde', 'Jardim Real', 'Parque Central', 'Bosque Vivo',
-  'Avenida Neon', 'Distrito Tech', 'Torre Digital', 'Vale do Silício',
-  'Praia Dourada', 'Costa Bela', 'Mirante', 'Vila das Ondas',
-  'Boulevard', 'Palácio', 'Skyline', 'Praça Imperial',
-  'Vila Serena', 'Lago Cristal', 'Ponte Nova', 'Jardim das Águas',
-  'Mercado Central', 'Rua do Comércio', 'Galeria Real', 'Avenida Capital',
-  'Colina Nobre', 'Solar dos Ventos', 'Vista Alta', 'Monte Belo',
-  'Avenida Metralha', 'Praça dos Amigos', 'Distrito Diamante', 'Torre Metralhopole'
+const places = [
+  ['Avenida Ipiranga', 'São Paulo'], ['Avenida São João', 'São Paulo'], ['Rua Augusta', 'São Paulo'], ['Avenida Paulista', 'São Paulo'],
+  ['Avenida Atlântica', 'Rio de Janeiro'], ['Rua Visconde de Pirajá', 'Rio de Janeiro'], ['Avenida Vieira Souto', 'Rio de Janeiro'], ['Avenida Rio Branco', 'Rio de Janeiro'],
+  ['Avenida Afonso Pena', 'Belo Horizonte'], ['Rua da Bahia', 'Belo Horizonte'], ['Avenida do Contorno', 'Belo Horizonte'], ['Praça da Liberdade', 'Belo Horizonte'],
+  ['Eixo Monumental', 'Brasília'], ['W3 Sul', 'Brasília'], ['L2 Norte', 'Brasília'], ['Esplanada dos Ministérios', 'Brasília'],
+  ['Avenida Sete de Setembro', 'Salvador'], ['Avenida Oceânica', 'Salvador'], ['Rua Chile', 'Salvador'], ['Largo do Pelourinho', 'Salvador'],
+  ['Avenida Boa Viagem', 'Recife'], ['Rua da Aurora', 'Recife'], ['Avenida Conde da Boa Vista', 'Recife'], ['Praça do Marco Zero', 'Recife'],
+  ['Rua XV de Novembro', 'Curitiba'], ['Avenida do Batel', 'Curitiba'], ['Avenida Cândido de Abreu', 'Curitiba'], ['Praça Tiradentes', 'Curitiba'],
+  ['Avenida Borges de Medeiros', 'Porto Alegre'], ['Rua dos Andradas', 'Porto Alegre'], ['Avenida Carlos Gomes', 'Porto Alegre'], ['Praça da Alfândega', 'Porto Alegre'],
+  ['Avenida Beira-Mar', 'Fortaleza'], ['Avenida Monsenhor Tabosa', 'Fortaleza'], ['Avenida Eduardo Ribeiro', 'Manaus'], ['Largo de São Sebastião', 'Manaus'],
+  ['Avenida Nazaré', 'Belém'], ['Rua das Pedras', 'Búzios'], ['Avenida das Cataratas', 'Foz do Iguaçu'], ['Avenida Beira-Mar Norte', 'Florianópolis']
 ];
 const colors = ['#ed9e64', '#50bdd4', '#79bd8a', '#a389dc', '#efcb62', '#ef829a', '#8bcac0', '#bdb8ed', '#cfad7b', '#d5e77d'];
 const special = new Map([
@@ -29,7 +29,12 @@ export const board = Array.from({length: SIDE * 4}, (_, id) => {
   if (special.has(id)) return {id, type:special.get(id)[0], name:special.get(id)[1]};
   if (INDUSTRIES.includes(id)) return {id, type:'industry', name:factories[INDUSTRIES.indexOf(id)], color:'#77b4cf', price:RULES.industryPrice};
   const n = property++, group = Math.floor(n / 4);
-  return {id, type:'property', name:names[n], group, color:colors[group], price:40000 + group * 12000, rent:3000 + group * 1200};
+  return {id, type:'property', name:places[n][0], city:places[n][1], group, color:colors[group], price:40000 + group * 12000, rent:3000 + group * 1200};
 });
 export const buyable = tile => tile?.type === 'property' || tile?.type === 'industry';
-export const rentFor = (tile, lot, diceTotal) => tile.type === 'industry' ? tile.price * diceTotal : tile.rent * (lot.level + 1);
+export const ownsGroup = (gameBoard, properties, owner, group) => gameBoard
+  .filter(tile => tile.type === 'property' && tile.group === group)
+  .every(tile => properties[tile.id]?.owner === owner);
+export const rentFor = (tile, lot, diceTotal, completeGroup = false) => tile.type === 'industry'
+  ? tile.price * diceTotal
+  : tile.rent * (lot.level + 1) * (completeGroup && lot.level === 0 ? 2 : 1);

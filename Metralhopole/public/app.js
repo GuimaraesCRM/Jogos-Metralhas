@@ -1,4 +1,4 @@
-import {board as preview, SIDE, RULES, INDUSTRIES, buyable, money} from './board.js';
+import {board as preview, SIDE, RULES, INDUSTRIES, buyable, ownsGroup, rentFor, money} from './board.js';
 const $ = id => document.getElementById(id);
 const palette = ['#c6f185', '#7bc6f1', '#ee98b3', '#eac776', '#bca1ef', '#76d9c2', '#f2a477', '#d4dee8'];
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -7,6 +7,8 @@ try { session = JSON.parse(localStorage.getItem('session') || 'null'); } catch {
 let state, busy = false, polling = false, connected = false, animating = false, noticeTimer, hostAddresses = [], boardStamp;
 const displayedPositions = new Map();
 let lastAnimatedMove = 0;
+const completeGroup = (tile, lot) => !!(state && lot && tile.type === 'property' && ownsGroup(state.board, state.properties, lot.owner, tile.group));
+const displayedRent = (tile, lot) => rentFor(tile, lot, 0, completeGroup(tile, lot));
 const initialRightPanel = document.querySelector('.right-panel').innerHTML;
 function notify(message) { $('notice').textContent = message.replace(/^Error invoking remote method '[^']+': Error: /, ''); $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => $('notice').hidden = true, 6500); }
 async function request(path, body, endpoint = session?.endpoint || $('endpoint').value.trim()) {
@@ -87,7 +89,7 @@ function renderBoard() {
     const owner = lot ? state.players.findIndex(p => p.id === lot.owner) : -1;
     const tokens = (state?.players || []).map((p, i) => ({...p, index:i, visualPosition:displayedPositions.get(p.id) ?? p.position})).filter(p => !p.bankrupt && p.visualPosition === tile.id);
     el.style.setProperty('--color', tile.color || '#abc8a9'); el.style.setProperty('--owner', palette[owner] || '#344');
-    el.title = tile.name + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(tile.rent * (lot.level + 1))}` : '');
+    el.title = tile.name + (tile.city ? ` · ${tile.city}` : '') + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(displayedRent(tile, lot)) + (completeGroup(tile, lot) && lot.level === 0 ? ' (grupo completo)' : '')}` : '');
     el.setAttribute('aria-label', el.title + ' — ver detalhes');
     el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${lot ? `<span class="owner-mark">${owner + 1} ${'◆'.repeat(lot.level)}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}"><span>${p.index + 1}</span></span>`).join('')}</span>`;
     $('board').append(el);
@@ -122,7 +124,7 @@ function render() {
   renderTrade(mine);
   const assets = Object.entries(state.properties).filter(([,lot]) => lot.owner === session.id);
   $('asset-count').textContent = assets.length;
-  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `Nível ${lot.level} · aluguel ${money(tile.rent * (lot.level + 1))}`}</small></div>${tile.type === 'property' ? `<button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button>` : '<span class="hint">⚙</span>'}</div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
+  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2), set = completeGroup(tile, lot); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `${esc(tile.city)} · nível ${lot.level} · aluguel ${money(displayedRent(tile, lot))}${set && lot.level === 0 ? ' · grupo completo 2×' : ''}`}</small></div>${tile.type === 'property' ? `<button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button>` : '<span class="hint">⚙</span>'}</div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
   $('feed').innerHTML = state.logs.map(text => `<div class="feed-item">${esc(text)}</div>`).join('') || '<p class="hint">Os acontecimentos da partida aparecem aqui.</p>';
   if (state.dice.length) { $('die-one').textContent = String.fromCodePoint(0x267f + state.dice[0]); $('die-two').textContent = String.fromCodePoint(0x267f + state.dice[1]); }
 }
@@ -201,7 +203,7 @@ $('pause').onclick = () => perform(async () => { await acceptState(await request
 function showTile(id) {
   const tile = (state?.board || preview)[id], lot = state?.properties[id];
   $('tile-title').textContent = tile.name;
-  $('tile-detail').textContent = buyable(tile) ? `Preço original: ${money(tile.price)}. ${lot ? 'Proprietário: ' + state.players.find(p => p.id === lot.owner).name + '.' : 'Disponível no banco.'} ${tile.type === 'industry' ? `Aluguel: ${money(tile.price)} multiplicado pela soma dos dois dados. Conquiste as quatro indústrias para vencer. Não recebe melhorias.` : `Aluguel: ${money(tile.rent * ((lot?.level || 0) + 1))}. Nível ${lot?.level || 0} de 3.`}` : ({jail:'Cair aqui pelo movimento normal é apenas uma visita. Quem foi enviado à prisão precisa tirar uma dupla, cumprir três turnos ou usar a carta de saída.', 'go-to-jail':'Você é enviado à prisão no canto oposto, sem bônus de partida pelo deslocamento.', event:'Compre uma carta Sorte: bônus, reparos, ir à prisão ou guardar uma carta Sair da prisão.',start:`Cada volta completa rende ${money(RULES.lapBonus)}.`,rest:'Casa de descanso. Nenhuma cobrança.',tax:`Pague ${money(RULES.tax)} ao banco.`})[tile.type];
+  $('tile-detail').textContent = buyable(tile) ? `${tile.city ? tile.city + '. ' : ''}Preço original: ${money(tile.price)}. ${lot ? 'Proprietário: ' + state.players.find(p => p.id === lot.owner).name + '.' : 'Disponível no banco.'} ${tile.type === 'industry' ? `Aluguel: ${money(tile.price)} multiplicado pela soma dos dois dados. Conquiste as quatro indústrias para vencer. Não recebe melhorias.` : `Aluguel: ${money(lot ? displayedRent(tile, lot) : tile.rent)}. Nível ${lot?.level || 0} de 3.${lot && completeGroup(tile, lot) && lot.level === 0 ? ' O proprietário possui as quatro propriedades desta cor, então o aluguel base está dobrado.' : ''}`}` : ({jail:'Cair aqui pelo movimento normal é apenas uma visita. Quem foi enviado à prisão precisa tirar uma dupla, cumprir três turnos ou usar a carta de saída.', 'go-to-jail':'Você é enviado à prisão no canto oposto, sem bônus de partida pelo deslocamento.', event:'Compre uma carta Sorte: bônus, reparos, ir à prisão ou guardar uma carta Sair da prisão.',start:`Cada volta completa rende ${money(RULES.lapBonus)}.`,rest:'Casa de descanso. Nenhuma cobrança.',tax:`Pague ${money(RULES.tax)} ao banco.`})[tile.type];
   $('tile-dialog').showModal();
 }
 $('close-tile').onclick = () => $('tile-dialog').close();

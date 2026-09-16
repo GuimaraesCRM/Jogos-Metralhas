@@ -1,6 +1,6 @@
 {
   "name": "metralhopole",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "Jogo desktop de propriedades para 2 a 8 amigos",

@@ -58,9 +58,11 @@
       "artifactName": "Palavras Secretas ${version} (instalador).exe"
     }
   },
+  "dependencies": {
+    "ws": "^8.21.3"
+  },
   "devDependencies": {
     "electron": "^44.4.1",
-    "electron-builder": "^26.15.3",
-    "ws": "^8.21.3"
+    "electron-builder": "^26.15.3"
   }
 }

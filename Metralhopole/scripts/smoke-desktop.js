@@ -31,7 +31,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('#players .player').length === 8);
   await page.locator('#start').click();
   await page.waitForFunction(() => document.body.classList.contains('game-active'));
-  assert.equal(await page.locator('.dice-arena model-3d').count(), 2);
+  assert.equal(await page.locator('.dice-arena model-3d').count(), 1);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#game-menu').isVisible(), true);
   assert.match(await page.locator('#menu-room').textContent(), /Sala/);
@@ -50,7 +50,7 @@ try {
   await page.locator('[data-action="roll"]').click();
   await page.waitForFunction(() => window.movementSteps.length >= 3);
   await page.waitForFunction(() => !document.querySelector('[data-action="roll"]'));
-  assert.match(await page.locator('#die-one').getAttribute('class'), /value-[1-6]/);
+  assert.match(await page.locator('#dice-pair').getAttribute('data-values'), /^[1-6] · [1-6]$/);
   if (await page.locator('[data-action="buy"]').count()) {
     await page.locator('[data-action="buy"]').click();
   }

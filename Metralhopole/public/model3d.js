@@ -23,7 +23,7 @@ class Model3D extends HTMLElement {
   async load(){
     const src=this.getAttribute('src'); if(!src||this.loaded===src)return; this.loaded=src;
     this.replaceChildren(); const canvas=document.createElement('canvas'); this.append(canvas);
-    const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:false}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.outputColorSpace=THREE.SRGBColorSpace;
+    const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,preserveDrawingBuffer:true}); renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.outputColorSpace=THREE.SRGBColorSpace;
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(28,1,.01,100);
     scene.add(new THREE.HemisphereLight(0xffffff,0x304050,2.5)); const key=new THREE.DirectionalLight(0xffffff,4); key.position.set(3,5,4); scene.add(key);
     try{
@@ -32,16 +32,18 @@ class Model3D extends HTMLElement {
       const largest=Math.max(size.x,size.y,size.z)||1; camera.position.set(largest*1.7,largest*1.25,largest*2.6); camera.lookAt(0,0,0); camera.near=largest/100; camera.far=largest*20; camera.updateProjectionMatrix();
       const file=decodeURIComponent(src).toLowerCase(),characterIndex=['female-a','female-b','female-c','female-d','female-e','female-f','male-a','male-b','male-c','male-d','male-e','male-f'].findIndex(name=>file.includes(`character-${name}`));
       const tint=characterIndex>=0?[0xe78aa6,0x72bce5,0xe6bc58,0x9b85db,0x52c5ac,0xed8d62,0x477ee5,0x37a082,0xd56848,0x7656bb,0xc99c38,0x516878][characterIndex]:file.includes('hotel')?0xc94f59:file.includes('casa')?0x4caf68:null;
-      model.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;if(tint!==null){node.material=Array.isArray(node.material)?node.material.map(material=>material.clone()):node.material.clone();for(const material of Array.isArray(node.material)?node.material:[node.material])material.color?.setHex(tint);}}}); this.model=model; this.basePosition=model.position.clone(); this.renderer=renderer; this.scene=scene; this.camera=camera;
+      model.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;if(tint!==null){node.material=Array.isArray(node.material)?node.material.map(material=>material.clone()):node.material.clone();for(const material of Array.isArray(node.material)?node.material:[node.material])material.color?.setHex(tint);}}}); this.model=model; this.basePosition=model.position.clone(); this.homeRotation=model.rotation.clone(); this.renderer=renderer; this.scene=scene; this.camera=camera;
       this.resize=()=>{const w=Math.max(1,this.clientWidth),h=Math.max(1,this.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.render(scene,camera);};
-      this.observer=new ResizeObserver(this.resize);this.observer.observe(this);this.resize(); this.dispatchEvent(new CustomEvent('model-ready')); if(this.pendingThrow){const value=this.pendingThrow;this.pendingThrow=null;this.animateThrow(value);}
+      this.observer=new ResizeObserver(this.resize);this.observer.observe(this);this.resize();
+      if(this.hasAttribute('snapshot')){const imageElement=document.createElement('img');imageElement.alt=this.getAttribute('aria-label')||'';imageElement.src=canvas.toDataURL('image/png');this.observer.disconnect();this.replaceChildren(imageElement);renderer.dispose();}
+      this.dispatchEvent(new CustomEvent('model-ready')); if(this.pendingThrow){const value=this.pendingThrow;this.pendingThrow=null;this.animateThrow(value);}
     }catch(error){this.dataset.error='true';console.error('Falha ao carregar modelo 3D',src,error);}
   }
   disconnectedCallback(){this.observer?.disconnect();this.renderer?.dispose();}
   animateThrow(seed=1){
-    if(!this.model){this.pendingThrow=seed;return;} const start=performance.now(),duration=1150,base=this.model.rotation.clone(),origin=this.basePosition.clone();
+    if(!this.model){this.pendingThrow=seed;return;} const start=performance.now(),duration=900,fixedPair=/Dices\.glb$/i.test(this.getAttribute('src')||''),base=(fixedPair?this.homeRotation:this.model.rotation).clone(),origin=this.basePosition.clone(),animation=Symbol();this.animation=animation;this.model.rotation.copy(base);this.model.position.copy(origin);
     const land=[[0,0,0],[0,0,-Math.PI/2],[Math.PI/2,0,0],[-Math.PI/2,0,0],[0,0,Math.PI/2],[Math.PI,0,0]][Math.max(1,Math.min(6,seed))-1];
-    const frame=now=>{const t=Math.min(1,(now-start)/duration),arc=Math.sin(Math.PI*t);this.model.rotation.set(base.x+(10+seed)*Math.PI*2*t,base.y+(8+seed)*Math.PI*2*t,base.z+6*Math.PI*t);this.model.position.copy(origin).add(new THREE.Vector3(Math.sin(t*Math.PI*2)*2.5*(1-t),-1.2*arc+Math.sin(t*Math.PI*4)*.25,arc*2));this.renderer.render(this.scene,this.camera);if(t<1)requestAnimationFrame(frame);else{this.model.position.copy(origin);this.model.rotation.set(...land);this.renderer.render(this.scene,this.camera);}};requestAnimationFrame(frame);
+    const frame=now=>{if(this.animation!==animation)return;const t=Math.min(1,(now-start)/duration),arc=Math.sin(Math.PI*t),spread=fixedPair ? .55 : 2.5,lift=fixedPair ? .35 : 2;this.model.rotation.set(base.x+(10+seed)*Math.PI*2*t,base.y+(8+seed)*Math.PI*2*t,base.z+6*Math.PI*t);this.model.position.copy(origin).add(new THREE.Vector3(Math.sin(t*Math.PI*2)*spread*(1-t),fixedPair?Math.sin(t*Math.PI*4)*.12:-1.2*arc+Math.sin(t*Math.PI*4)*.25,arc*lift));this.renderer.render(this.scene,this.camera);if(t<1)requestAnimationFrame(frame);else{this.model.position.copy(origin);fixedPair?this.model.rotation.copy(this.homeRotation):this.model.rotation.set(...land);this.renderer.render(this.scene,this.camera);}};requestAnimationFrame(frame);
   }
 }
 customElements.define('model-3d',Model3D);

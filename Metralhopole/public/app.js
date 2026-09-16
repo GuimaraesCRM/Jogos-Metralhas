@@ -40,14 +40,12 @@ async function perform(fn) {
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function throwDice(values) {
   if (!values?.length) return;
-  const dice = [$('die-one'), $('die-two')];
-  for (const [index,die] of dice.entries()) die.querySelector('model-3d')?.animateThrow(values[index]);
+  const pair=$('dice-pair');
+  pair.classList.remove('rolling');void pair.offsetWidth;pair.classList.add('rolling');
   await delay(1180);
-  dice.forEach((die, index) => {
-    die.className = `die3d value-${values[index]}`;
-    die.dataset.value=values[index];
-    die.setAttribute('aria-label', `Dado ${index + 1}: ${values[index]}`);
-  });
+  pair.classList.remove('rolling');
+  pair.dataset.values=`${values[0]} · ${values[1]}`;
+  pair.setAttribute('aria-label', `Dados: ${values[0]} e ${values[1]}`);
 }
 async function acceptState(latest) {
   const movement = latest.lastMove;
@@ -243,7 +241,7 @@ $('confirm-leave').onclick = () => perform(async () => {
   document.querySelector('.right-panel').innerHTML = initialRightPanel;
   $('connection').textContent = 'EDIÇÃO DESKTOP'; $('table-title').textContent = 'Construa sua sorte.';
   $('round').textContent = '60 casas · 44 propriedades'; $('pause').hidden = true; $('pause-banner').hidden = true;
-  $('die-one').className = 'die3d value-5'; $('die-two').className = 'die3d value-3'; render();
+  $('dice-pair').dataset.values='5 · 3'; render();
 });
 $('copy-code').onclick = () => navigator.clipboard.writeText(session.code).then(() => notify('Código copiado! Envie também o endereço do servidor.')).catch(() => notify(`Código: ${session.code}`));
 document.querySelector('.board-scene').addEventListener('wheel', event => {
@@ -297,5 +295,5 @@ function showTile(id) {
 $('close-tile').onclick = () => $('tile-dialog').close();
 $('character-picker').innerHTML=characters.map((character,index)=>`<button type="button" data-character="${character}" class="${character===$('character').value?'selected':''}" title="Personagem ${index+1}"><model-3d src="${modelUrl(character)}"></model-3d><span>${index+1}</span></button>`).join('');
 $('character-picker').onclick=event=>{const button=event.target.closest('[data-character]');if(!button)return;$('character').value=button.dataset.character;$('character-picker').querySelectorAll('button').forEach(item=>item.classList.toggle('selected',item===button));};
-for(const die of [$('die-one'),$('die-two')]) die.innerHTML='<model-3d src="procedural:dice"></model-3d>';
+$('board').querySelector('.dice-arena').innerHTML='<div id="dice-pair" class="dice-pair3d" data-values="5 · 3" aria-label="Dados: 5 e 3"><model-3d snapshot aria-label="Par de dados 3D" src="./models/Dices.glb"></model-3d></div>';
 applyCamera(); renderBoard(); if (session) poll(); setInterval(poll, 1200); setInterval(updateTimer, 250);

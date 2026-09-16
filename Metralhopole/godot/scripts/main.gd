@@ -262,7 +262,10 @@ func create_online_room() -> void:
 	if not result.ok: set_online_status(result.error); return
 	code_input.text = api.code
 	save_session()
-	set_online_status("Sala %s criada. Compartilhe o endereço e o código." % api.code)
+	var addresses: Array[String] = []
+	for address in IP.get_local_addresses():
+		if address.contains(".") and not address.begins_with("127."): addresses.append("http://%s:3000" % address)
+	set_online_status("Sala %s criada. Compartilhe o código e um endereço:\n%s" % [api.code, "\n".join(addresses)])
 	await poll_state()
 
 func join_online_room() -> void:

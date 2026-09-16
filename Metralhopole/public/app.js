@@ -7,6 +7,20 @@ try { session = JSON.parse(localStorage.getItem('session') || 'null'); } catch {
 let state, busy = false, polling = false, connected = false, animating = false, noticeTimer, hostAddresses = [], boardStamp;
 const displayedPositions = new Map();
 let lastAnimatedMove = 0;
+const camera = {tilt:28, rotation:-23, zoom:.7};
+let cameraDrag, suppressCameraClick = false;
+function applyCamera() {
+  const boardElement = $('board');
+  boardElement.style.setProperty('--camera-tilt', `${camera.tilt}deg`);
+  boardElement.style.setProperty('--camera-rotation', `${camera.rotation}deg`);
+  boardElement.style.setProperty('--camera-zoom', camera.zoom);
+}
+function setCamera(next, top = false) {
+  if (next.zoom !== undefined) next.zoom = Math.round(next.zoom * 100) / 100;
+  Object.assign(camera, next); $('board').classList.toggle('top', top); applyCamera();
+  $('view').textContent = top ? 'Vista 3D' : 'Vista de cima';
+}
+const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 const completeGroup = (tile, lot) => !!(state && lot && tile.type === 'property' && ownsGroup(state.board, state.properties, lot.owner, tile.group));
 const displayedRent = (tile, lot) => rentFor(tile, lot, 0, completeGroup(tile, lot));
 const initialRightPanel = document.querySelector('.right-panel').innerHTML;
@@ -196,7 +210,40 @@ $('confirm-leave').onclick = () => perform(async () => {
   $('die-one').textContent = '⚄'; $('die-two').textContent = '⚂'; render();
 });
 $('copy-code').onclick = () => navigator.clipboard.writeText(session.code).then(() => notify('Código copiado! Envie também o endereço do servidor.')).catch(() => notify(`Código: ${session.code}`));
-$('view').onclick = () => { const top = $('board').classList.toggle('top'); $('view').textContent = top ? 'Vista 3D' : 'Vista de cima'; };
+$('view').onclick = () => $('board').classList.contains('top') ? setCamera({tilt:28, rotation:-23, zoom:.7}) : setCamera({tilt:0, rotation:0, zoom:.78}, true);
+$('reset-view').onclick = () => setCamera({tilt:28, rotation:-23, zoom:.7});
+$('zoom-in').onclick = () => setCamera({zoom:clamp(camera.zoom + .08, .4, 1.2)});
+$('zoom-out').onclick = () => setCamera({zoom:clamp(camera.zoom - .08, .4, 1.2)});
+$('rotate-left').onclick = () => setCamera({rotation:camera.rotation - 15});
+$('rotate-right').onclick = () => setCamera({rotation:camera.rotation + 15});
+$('tilt-up').onclick = () => setCamera({tilt:clamp(camera.tilt - 8, 0, 65)});
+$('tilt-down').onclick = () => setCamera({tilt:clamp(camera.tilt + 8, 0, 65)});
+document.querySelector('.board-scene').addEventListener('wheel', event => {
+  event.preventDefault(); setCamera({zoom:clamp(camera.zoom + (event.deltaY < 0 ? .07 : -.07), .4, 1.2)});
+}, {passive:false});
+document.querySelector('.board-scene').addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+  cameraDrag = {x:event.clientX, y:event.clientY, rotation:camera.rotation, tilt:camera.tilt, moved:false};
+  event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.classList.add('dragging'); $('board').classList.add('camera-dragging');
+});
+document.querySelector('.board-scene').addEventListener('pointermove', event => {
+  if (!cameraDrag) return;
+  const dx = event.clientX - cameraDrag.x, dy = event.clientY - cameraDrag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 5) cameraDrag.moved = true;
+  if (cameraDrag.moved) setCamera({rotation:cameraDrag.rotation + dx * .35, tilt:clamp(cameraDrag.tilt - dy * .25, 0, 65)});
+});
+document.querySelector('.board-scene').addEventListener('pointerup', event => {
+  if (!cameraDrag) return;
+  const moved = cameraDrag.moved; cameraDrag = null; event.currentTarget.classList.remove('dragging'); $('board').classList.remove('camera-dragging');
+  if (moved) suppressCameraClick = true;
+});
+document.querySelector('.board-scene').addEventListener('pointercancel', event => {
+  cameraDrag = null; event.currentTarget.classList.remove('dragging'); $('board').classList.remove('camera-dragging');
+});
+document.querySelector('.board-scene').addEventListener('click', event => {
+  if (!suppressCameraClick) return;
+  suppressCameraClick = false; event.preventDefault(); event.stopPropagation();
+}, true);
 $('rules-button').onclick = () => $('rules').showModal(); $('close-rules').onclick = () => $('rules').close();
 $('reconnect').onclick = () => { if (polling || busy) notify('Uma tentativa de conexão já está em andamento.'); else { $('connection').textContent = 'RECONECTANDO…'; poll(true); } };
 $('pause').onclick = () => perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:state.paused ? 'resume' : 'pause'})); });
@@ -207,4 +254,4 @@ function showTile(id) {
   $('tile-dialog').showModal();
 }
 $('close-tile').onclick = () => $('tile-dialog').close();
-renderBoard(); if (session) poll(); setInterval(poll, 1200); setInterval(updateTimer, 250);
+applyCamera(); renderBoard(); if (session) poll(); setInterval(poll, 1200); setInterval(updateTimer, 250);

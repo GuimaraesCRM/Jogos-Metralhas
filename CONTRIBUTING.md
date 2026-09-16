@@ -23,7 +23,7 @@ Inclua também um `AGENTS.md` local identificando responsável, pasta permitida 
 4. Desenvolva e valide somente dentro da pasta autorizada. Revise `git diff` e `git status --short`.
 5. Adicione apenas caminhos específicos do seu jogo, por exemplo `git add -- Codenames/`. Revise `git diff --cached --name-only` e `git diff --cached` para garantir que nada indevido entrou.
 6. Faça um commit descritivo e publique com `git push -u origin NOME-DA-BRANCH`. Sem permissão no repositório principal, publique no seu fork.
-7. Abra um pull request para `main`, descrevendo jogo, alterações e validação. Guilherme revisa o escopo antes da integração.
+7. Abra um pull request para `main`, descrevendo jogo, alterações e validação. Todos podem abrir pull requests, inclusive por forks. Aguarde a aprovação explícita de Guilherme (`@GuimaraesCRM`) antes da integração; a aprovação de outra pessoa não a substitui. Se novos commits alterarem o diff, será necessária nova aprovação.
 
 Repita a sincronização a cada entrega concluída. Não deixe trabalho finalizado apenas no computador sem informar o motivo. Nunca faça force push ou commit de credenciais. Não resolva conflitos em outros jogos ou arquivos compartilhados: encaminhe a Guilherme.
 
@@ -31,4 +31,8 @@ Repita a sincronização a cada entrega concluída. Não deixe trabalho finaliza
 
 Verifique o autor, sua atribuição e todos os caminhos alterados, inclusive exclusões e renomeações. Recuse alterações fora do jogo do colaborador. Mudanças compartilhadas devem ser feitas por Guilherme em tarefa própria.
 
-Guilherme pode configurar proteção de `main`, revisão obrigatória e restrições de escrita no GitHub. A documentação sozinha não aplica controle de acesso por pasta. Até essas configurações serem feitas, não há bloqueio técnico instalado.
+A branch `main` exige pull request, pelo menos uma aprovação e revisão do responsável definido em `.github/CODEOWNERS`: `@GuimaraesCRM` para todos os arquivos. Aprovações antigas são descartadas quando o diff muda. Force push e exclusão da branch estão desabilitados.
+
+Guilherme mantém sua exceção administrativa para manutenção do próprio repositório; colaboradores não devem receber acesso administrativo. A IA não pode usar essa exceção para integrar um pull request sem pedido explícito dele. O GitHub não permite que o autor aprove o próprio pull request: PRs abertos pela conta de Guilherme precisam de uma decisão explícita dele para integração administrativa.
+
+A revisão obrigatória controla a entrada em `main`, mas não impede edições locais em outras pastas. A atribuição dos jogos e a revisão dos caminhos continuam obrigatórias.

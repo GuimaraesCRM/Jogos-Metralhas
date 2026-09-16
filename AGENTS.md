@@ -35,7 +35,8 @@ Guilherme (GitHub: `GuimaraesCRM`) é o único mantenedor com autoridade sobre q
 
 - Siga `CONTRIBUTING.md`: verifique o estado local, busque atualizações, trabalhe em branch própria e preserve alterações existentes.
 - Execute as verificações pertinentes dentro do jogo; confira o diff completo e os caminhos antes do commit.
-- Ao concluir uma entrega solicitada, faça commit apenas dos arquivos autorizados e publique a branch no GitHub quando houver acesso. Use pull request para integração na branch principal; não faça merge nem push direto em `main` sem autorização de Guilherme.
+- Ao concluir uma entrega solicitada, faça commit apenas dos arquivos autorizados e publique a branch no GitHub quando houver acesso. Todos podem abrir pull requests, inclusive por forks, mas a integração em `main` exige aprovação explícita de Guilherme (`@GuimaraesCRM`). Aprovação de outro colaborador não substitui a dele. Novos commits que alterem o diff exigem nova aprovação.
+- Não aprove pull requests em nome de Guilherme, não faça merge nem use privilégios administrativos para contornar a revisão sem pedido explícito dele para aquela ação. O acesso autenticado à conta dele não constitui aprovação de um pull request.
 - Não use force push, não reescreva histórico compartilhado e não publique credenciais, `.env`, dependências instaladas ou builds gerados.
 - Se autenticação, conexão, conflitos ou permissões impedirem a publicação, preserve o trabalho e informe exatamente o que ficou pendente. Não diga que o GitHub está atualizado sem confirmação.
 - Informe o que mudou, a validação realizada e a situação da publicação. Manter atualizado significa sincronizar as entregas; não prometer atividade automática fora da sessão.

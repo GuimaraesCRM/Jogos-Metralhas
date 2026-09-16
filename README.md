@@ -40,4 +40,8 @@ O GitHub deve receber cada entrega concluída e validada. O procedimento de sinc
 
 `AGENTS.md` é a fonte principal. Há arquivos de encaminhamento para outras ferramentas, mas a leitura automática depende da IA utilizada. Se necessário, peça explicitamente que ela leia as regras.
 
-Instruções em texto não são uma barreira de permissões. Para controlar o que entra na branch principal, Guilherme deve configurar proteção da branch e revisão obrigatória no GitHub. Essas proteções ainda não estão configuradas. Colaboradores sem permissão de escrita podem contribuir por forks e pull requests; a revisão deve rejeitar alterações fora da pasta atribuída.
+Todos podem abrir pull requests, inclusive por forks. Para integrar uma contribuição em `main`, é obrigatória a aprovação de Guilherme (`@GuimaraesCRM`), definido como responsável por todos os arquivos em `.github/CODEOWNERS`. Novos commits que alterem o diff invalidam a aprovação anterior.
+
+A proteção de `main` exige revisão do responsável e bloqueia force push e exclusão da branch. Guilherme mantém a exceção administrativa para manutenção própria; a IA não pode usá-la para integrar PRs sem um pedido explícito dele. Colaboradores não devem receber acesso administrativo.
+
+Instruções em texto não impedem edições locais em outras pastas. A revisão deve rejeitar alterações fora da pasta atribuída, mesmo quando enviadas por pull request.

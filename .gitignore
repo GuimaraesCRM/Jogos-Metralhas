@@ -1,0 +1,14 @@
+# Credenciais locais
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Cada jogo deve definir os próprios ignores para dependências e builds.

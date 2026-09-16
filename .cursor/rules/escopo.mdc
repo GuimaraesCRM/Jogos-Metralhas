@@ -1,0 +1,8 @@
+---
+description: Regras de escopo e responsabilidade dos jogos
+alwaysApply: true
+---
+
+Leia e siga `AGENTS.md`, `RESPONSAVEIS.md` e `CONTRIBUTING.md` na raiz e as instruções locais do jogo autorizado antes de editar.
+
+Altere somente a pasta do jogo atribuído ao colaborador. Não altere outros jogos, arquivos compartilhados, regras ou responsáveis. Apenas pedido explícito de Guilherme pode autorizar trabalho fora desse escopo. Esclareça identidade ou atribuição ausente antes de editar.

@@ -1,0 +1,427 @@
+/*
+ * Reset enxuto e os componentes que aparecem em mais de uma tela:
+ * botões, campos, etiquetas, avisos.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--fonte-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--texto);
+  /* Um brilho quente no alto dá profundidade de mesa iluminada por cima. */
+  background:
+    radial-gradient(1200px 620px at 50% -12%, #2a211c 0%, transparent 62%),
+    var(--fundo-0);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* A barra de título fica fora de #raiz, então o body organiza as duas faixas. */
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#raiz {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --------------------------------------------------------- barra de titulo */
+
+.barra {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding-left: 12px;
+  border-bottom: 1px solid var(--borda);
+  background: rgba(0, 0, 0, 0.28);
+  /* A faixa inteira arrasta a janela; os botões se excluem mais abaixo. */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.barra__marca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.barra__selo {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 5px;
+  background: linear-gradient(160deg, var(--ouro-claro), #a5811a);
+  color: #1d1710;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.barra__nome {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.barra__controles {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.barra__botao {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: background var(--suave), color var(--suave);
+}
+
+.barra__botao svg {
+  width: 13px;
+  height: 13px;
+}
+
+.barra__botao:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--texto);
+}
+
+.barra__botao--fechar:hover {
+  background: #a02532;
+  color: #fff;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--ouro);
+  color: #1a1512;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ouro-claro);
+  outline-offset: 3px;
+}
+
+/* Scrollbar discreta, no tom da mesa. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda-forte) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--borda-forte);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* ------------------------------------------------------------------ botões */
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-m);
+  background: var(--fundo-3);
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform var(--suave), background var(--suave), border-color var(--suave),
+    box-shadow var(--suave), opacity var(--suave);
+}
+
+/* SVG sem largura definida vira um bloco de 300x150 no Chromium. */
+.botao svg,
+.etiqueta svg,
+.relogio svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  opacity: 0.8;
+}
+
+.botao:hover:not(:disabled) {
+  background: #372c26;
+  border-color: #5c4b40;
+  transform: translateY(-1px);
+}
+
+.botao:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.botao:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.botao--principal {
+  background: linear-gradient(180deg, var(--ouro-claro), var(--ouro));
+  border-color: #a8851d;
+  color: #201a10;
+  box-shadow: 0 6px 18px rgba(201, 162, 39, 0.22);
+}
+
+.botao--principal:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f0cd5d, #d5ae2e);
+  border-color: #c09a24;
+}
+
+.botao--fantasma {
+  background: transparent;
+  border-color: var(--borda);
+  color: var(--texto-suave);
+}
+
+.botao--fantasma:hover:not(:disabled) {
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.botao--vermelho {
+  background: linear-gradient(180deg, var(--vermelho-claro), var(--vermelho));
+  border-color: #6f2029;
+  color: #fdf3f0;
+}
+
+.botao--azul {
+  background: linear-gradient(180deg, var(--azul-claro), var(--azul));
+  border-color: #174654;
+  color: #eff9fb;
+}
+
+.botao--pequeno {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: var(--raio-p);
+}
+
+.botao--largo {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ campos */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.campo__rotulo {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.entrada {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+  background: rgba(0, 0, 0, 0.26);
+  color: var(--texto);
+  transition: border-color var(--suave), box-shadow var(--suave), background var(--suave);
+}
+
+.entrada::placeholder {
+  color: var(--texto-fraco);
+}
+
+.entrada:focus {
+  outline: none;
+  border-color: var(--ouro);
+  background: rgba(0, 0, 0, 0.34);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.16);
+}
+
+.entrada--codigo {
+  font-family: var(--fonte-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-align: center;
+  text-transform: uppercase;
+  padding-left: 0.34em; /* compensa o espaçamento à direita da última letra */
+}
+
+/* Grupo de opções em forma de pílulas — usado no timer e no modo de revelação. */
+.opcoes {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+}
+
+.opcoes__item {
+  flex: 1;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--raio-p);
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--suave), color var(--suave);
+}
+
+.opcoes__item:hover:not(:disabled) {
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.opcoes__item[aria-pressed='true'] {
+  background: var(--fundo-3);
+  color: var(--texto);
+  box-shadow: inset 0 0 0 1px var(--borda-forte);
+}
+
+.opcoes__item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- etiquetas */
+
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto-suave);
+}
+
+.etiqueta--mestre {
+  background: rgba(201, 162, 39, 0.16);
+  color: var(--ouro-claro);
+}
+
+.etiqueta--anfitriao {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--texto-suave);
+}
+
+/* ------------------------------------------------------------------ avisos */
+
+#avisos {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.aviso {
+  padding: 11px 18px;
+  border-radius: var(--raio-m);
+  background: #3a2a2a;
+  border: 1px solid #5d3c3c;
+  color: #ffe4e0;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: var(--sombra-painel);
+  animation: aviso-entra 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.aviso--info {
+  background: var(--fundo-3);
+  border-color: var(--borda-forte);
+  color: var(--texto);
+}
+
+.aviso--saindo {
+  animation: aviso-sai 200ms forwards;
+}
+
+@keyframes aviso-entra {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+@keyframes aviso-sai {
+  to {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+/* ------------------------------------------------------------------ apoio */
+
+.oculto {
+  display: none !important;
+}
+
+.so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

@@ -1,0 +1,95 @@
+/*
+ * Fundamentos visuais do jogo.
+ *
+ * A ideia da paleta: mesa escura e quente, como uma sala à meia-luz, e as
+ * cartas em papel creme por cima — o contraste entre o fundo grafite e o creme
+ * é o que dá a sensação de jogo de tabuleiro em vez de planilha. As cores dos
+ * times são terrosas de propósito (vinho e petróleo), não os vermelho/azul
+ * saturados de aviso de erro.
+ */
+
+:root {
+  /* Superfícies, do fundo da mesa para cima */
+  --fundo-0: #14100e;
+  --fundo-1: #1c1714;
+  --fundo-2: #241d19;
+  --fundo-3: #2e2521;
+  --borda: #3a2f28;
+  --borda-forte: #4d3f36;
+
+  /* Texto */
+  --texto: #f4ece0;
+  --texto-suave: #b8a797;
+  --texto-fraco: #8a7a6c;
+
+  /* Times */
+  --vermelho: #8e2f3b;
+  --vermelho-claro: #b8434f;
+  --vermelho-vivo: #d4626d;
+  --azul: #1e5b6c;
+  --azul-claro: #2c7e92;
+  --azul-vivo: #4aa3b8;
+
+  /* Cartas */
+  --papel: #e9dfce;
+  --papel-sombra: #d4c7b0;
+  --papel-texto: #3b322a;
+  --neutra: #c9bba1;
+  --neutra-escura: #a3947c;
+  --assassino: #100e0d;
+  --assassino-borda: #443b36;
+
+  /* Acento */
+  --ouro: #c9a227;
+  --ouro-claro: #e4be4a;
+
+  /* Tipografia */
+  --fonte-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --fonte-ui: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Raios e sombras */
+  --raio-p: 8px;
+  --raio-m: 12px;
+  --raio-g: 18px;
+  --raio-xg: 26px;
+
+  --sombra-carta: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.28);
+  --sombra-carta-alta: 0 6px 14px rgba(0, 0, 0, 0.36), 0 14px 32px rgba(0, 0, 0, 0.34);
+  --sombra-painel: 0 18px 48px rgba(0, 0, 0, 0.45);
+
+  /* Movimento */
+  --suave: 180ms cubic-bezier(0.32, 0.72, 0.36, 1);
+  --virada: 520ms cubic-bezier(0.46, 0.03, 0.2, 1);
+
+  --largura-max: 1220px;
+}
+
+/* Variáveis que mudam conforme o time da vez: a interface inteira se tinge
+   com a cor de quem está jogando, sem precisar de classes espalhadas. */
+[data-vez='vermelho'] {
+  --cor-vez: var(--vermelho-claro);
+  --cor-vez-viva: var(--vermelho-vivo);
+  --cor-vez-fraca: rgba(184, 67, 79, 0.16);
+}
+
+[data-vez='azul'] {
+  --cor-vez: var(--azul-claro);
+  --cor-vez-viva: var(--azul-vivo);
+  --cor-vez-fraca: rgba(44, 126, 146, 0.16);
+}
+
+/* Quem não quer animação não precisa aguentar cartas girando. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --suave: 1ms;
+    --virada: 1ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

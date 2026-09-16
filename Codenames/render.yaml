@@ -1,0 +1,24 @@
+# Modelo de deploy do servidor de salas no Render (plano gratuito).
+#
+# O Render procura o render.yaml na RAIZ do repositorio, e as regras do bundle
+# nao permitem criar arquivos fora da pasta do jogo. Entao use este arquivo de
+# um destes dois jeitos:
+#
+#   a) copie-o para a raiz do SEU fork; ou
+#   b) crie o servico pelo painel do Render usando estes mesmos valores
+#      (Root Directory: Codenames, Dockerfile: server/Dockerfile).
+#
+# Detalhes e alternativas em Codenames/README.md.
+services:
+  - type: web
+    name: palavras-secretas
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: Codenames
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: PORT
+        value: 8787

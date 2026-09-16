@@ -1,0 +1,10 @@
+# Dependencias instaladas
+node_modules/
+
+# Saidas de build
+dist/
+build/
+
+# Logs e temporarios
+*.log
+npm-debug.log*

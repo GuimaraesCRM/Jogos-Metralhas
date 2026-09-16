@@ -1,0 +1,943 @@
+/*
+ * As quatro telas: entrada, lobby, jogo e fim de partida.
+ */
+
+/* =================================================================== logo */
+
+.logo {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
+  user-select: none;
+}
+
+.logo__titulo {
+  font-family: var(--fonte-display);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  /* O contorno dourado é aplicado só no texto: dá o ar de placa gravada. */
+  background: linear-gradient(175deg, #f7ecd4 10%, var(--ouro-claro) 60%, #a5811a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.logo__linha {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+  margin-top: 5px;
+}
+
+.logo--grande .logo__titulo {
+  font-size: clamp(2.6rem, 6.4vw, 4.1rem);
+}
+
+.logo--grande .logo__linha {
+  font-size: 11px;
+  letter-spacing: 0.44em;
+  margin-top: 10px;
+}
+
+.logo--pequeno .logo__titulo {
+  font-size: 1.32rem;
+}
+
+/* ================================================================ entrada */
+
+.tela-entrada {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  overflow-y: auto;
+}
+
+.entrada__caixa {
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  text-align: center;
+}
+
+.entrada__cabecalho {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.entrada__subtitulo {
+  max-width: 34ch;
+  color: var(--texto-suave);
+  font-size: 14px;
+  margin: 0;
+}
+
+.painel {
+  width: 100%;
+  padding: 26px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background: linear-gradient(180deg, var(--fundo-2), var(--fundo-1));
+  box-shadow: var(--sombra-painel);
+}
+
+.entrada__formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  text-align: left;
+}
+
+.entrada__acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.entrada__separador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--texto-fraco);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.entrada__separador::before,
+.entrada__separador::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--borda);
+}
+
+.entrada__rodape {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.ligacao {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--texto-fraco);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ligacao:hover {
+  color: var(--texto-suave);
+}
+
+/* Estado da conexão, canto inferior da tela de entrada. */
+.conexao {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.conexao__ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--texto-fraco);
+}
+
+.conexao[data-estado='conectado'] .conexao__ponto {
+  background: #58a860;
+  box-shadow: 0 0 0 3px rgba(88, 168, 96, 0.18);
+}
+
+.conexao[data-estado='conectando'] .conexao__ponto {
+  background: var(--ouro);
+  animation: pulso 1.1s ease-in-out infinite;
+}
+
+.conexao[data-estado='caiu'] .conexao__ponto {
+  background: var(--vermelho-vivo);
+}
+
+@keyframes pulso {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ================================================================== lobby */
+
+.tela-lobby {
+  flex: 1;
+  overflow-y: auto;
+  padding: 26px;
+}
+
+.lobby {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.lobby__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* O código da sala é a informação mais importante da tela: é o que a pessoa
+   dita no áudio para os amigos entrarem. Então ele é enorme e copiável. */
+.codigo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 20px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background: linear-gradient(180deg, var(--fundo-2), var(--fundo-1));
+}
+
+.codigo__rotulo {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.codigo__valor {
+  font-family: var(--fonte-display);
+  font-size: 2.3rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--ouro-claro);
+  line-height: 1;
+  margin-top: 3px;
+}
+
+.times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.time {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--borda);
+  border-top: 3px solid var(--cor-time);
+  border-radius: var(--raio-g);
+  background: linear-gradient(180deg, var(--fundo-2), var(--fundo-1));
+}
+
+.time--vermelho {
+  --cor-time: var(--vermelho-claro);
+}
+
+.time--azul {
+  --cor-time: var(--azul-claro);
+}
+
+.time__nome {
+  width: 100%;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-p);
+  background: transparent;
+  font-family: var(--fonte-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--cor-time);
+}
+
+.time__nome:not(:disabled):hover {
+  border-color: var(--borda);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.time__nome:focus {
+  outline: none;
+  border-color: var(--cor-time);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.time__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.time__titulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.time__vazio {
+  padding: 10px 12px;
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio-p);
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+
+.jogador {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: var(--raio-p);
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 14px;
+}
+
+.jogador--eu {
+  box-shadow: inset 0 0 0 1px var(--ouro);
+}
+
+.jogador--ausente {
+  opacity: 0.45;
+}
+
+.jogador__nome {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jogador__sigla {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  background: var(--cor-time, var(--fundo-3));
+  color: #fdf6ec;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.lobby__sem-time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 14px 18px;
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio-g);
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.config {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.lobby__inicio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.lobby__dica {
+  font-size: 13px;
+  color: var(--texto-fraco);
+  text-align: center;
+}
+
+/* =================================================================== jogo */
+
+.tela-jogo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cabecalho {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--borda);
+  background: rgba(20, 16, 14, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+/* Faixa fina embaixo do cabeçalho, na cor de quem está jogando. É o sinal
+   periférico de "vez de quem": dá para saber sem ler nada. */
+.cabecalho::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--cor-vez, transparent), transparent);
+  opacity: 0.9;
+}
+
+.placar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.placar__time {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.26);
+  transition: border-color var(--suave), background var(--suave), transform var(--suave);
+}
+
+.placar__time[data-ativo='sim'] {
+  border-color: var(--cor-time);
+  background: var(--cor-time-fraca);
+  transform: scale(1.04);
+}
+
+.placar__time--vermelho {
+  --cor-time: var(--vermelho-vivo);
+  --cor-time-fraca: rgba(184, 67, 79, 0.18);
+}
+
+.placar__time--azul {
+  --cor-time: var(--azul-vivo);
+  --cor-time-fraca: rgba(44, 126, 146, 0.18);
+}
+
+.placar__numero {
+  font-family: var(--fonte-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--cor-time);
+}
+
+.placar__nome {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placar__traco {
+  width: 22px;
+  height: 1px;
+  background: var(--borda-forte);
+}
+
+.cabecalho__direita {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.relogio {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 13px;
+  border: 1px solid var(--borda);
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.26);
+  font-variant-numeric: tabular-nums;
+}
+
+.relogio__valor {
+  font-family: var(--fonte-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.relogio[data-urgente='sim'] {
+  border-color: var(--vermelho-claro);
+  color: var(--vermelho-vivo);
+  animation: pulso 900ms ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------- corpo do jogo */
+
+.jogo__corpo {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 20px;
+  padding: 20px 22px 24px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.jogo__tabuleiro {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  max-width: 1020px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.painel {
+  min-height: 0;
+}
+
+.jogo__painel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cartao {
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-g);
+  background: linear-gradient(180deg, var(--fundo-2), var(--fundo-1));
+}
+
+.cartao__titulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+  margin-bottom: 12px;
+}
+
+/* ------------------------------------------------------------------- dica */
+
+.vez {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 16px;
+  border: 1px solid var(--cor-vez, var(--borda));
+  border-radius: var(--raio-g);
+  background: var(--cor-vez-fraca, var(--fundo-2));
+}
+
+.vez__bolinha {
+  width: 9px;
+  height: 9px;
+  border-radius: 99px;
+  background: var(--cor-vez);
+  box-shadow: 0 0 0 4px var(--cor-vez-fraca);
+  animation: pulso 1.6s ease-in-out infinite;
+}
+
+.vez__rotulo {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.vez__texto {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cor-vez);
+  line-height: 1.25;
+}
+
+.vez__sub {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* A dica em cartaz, do tamanho que merece: é a única coisa que os operativos
+   têm para trabalhar durante o turno inteiro. */
+.dica-atual {
+  display: flex;
+  /* Sem o wrap, a contagem de palpites disputava a mesma linha da dica e
+     espremia a palavra até ela quebrar no meio ("ENI / GMA"). */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 16px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-g);
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(201, 162, 39, 0.1), transparent 70%),
+    linear-gradient(180deg, var(--fundo-3), var(--fundo-2));
+  text-align: center;
+}
+
+.dica-atual__palavra {
+  font-family: var(--fonte-display);
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  color: var(--ouro-claro);
+  /* A dica nunca é partida ao meio: só quebra se a palavra sozinha não couber. */
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.dica-atual__numero {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 99px;
+  background: var(--ouro);
+  color: #211a0f;
+  font-family: var(--fonte-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.dica-atual__restantes {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.formulario-dica {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formulario-dica__linha {
+  display: grid;
+  grid-template-columns: 1fr 86px;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------- histórico */
+
+.historico {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+.historico__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: var(--raio-p);
+  border-left: 3px solid var(--cor-item, var(--borda-forte));
+  background: rgba(0, 0, 0, 0.22);
+  font-size: 13px;
+}
+
+.historico__item--vermelho {
+  --cor-item: var(--vermelho-claro);
+}
+
+.historico__item--azul {
+  --cor-item: var(--azul-claro);
+}
+
+.historico__palavra {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.historico__nota {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+}
+
+.historico__vazio {
+  font-size: 13px;
+  color: var(--texto-fraco);
+}
+
+/* ------------------------------------------------------------- fim de jogo */
+
+.fim {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 26px;
+  /* Véu leve de propósito: a graça desta tela é ver o tabuleiro aberto atrás,
+     descobrindo de quem era cada carta que ninguém teve coragem de clicar. */
+  background: rgba(12, 9, 8, 0.42);
+  backdrop-filter: blur(1.5px);
+  z-index: 50;
+  animation: fim-entra 320ms ease-out;
+}
+
+@keyframes fim-entra {
+  from {
+    opacity: 0;
+  }
+}
+
+.fim__caixa {
+  width: min(460px, 100%);
+  padding: 28px 30px;
+  text-align: center;
+  border: 1px solid var(--borda-forte);
+  border-top: 4px solid var(--cor-vencedor);
+  border-radius: var(--raio-xg);
+  background: linear-gradient(180deg, #2a221dfa, #16110efa);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
+  animation: fim-sobe 380ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes fim-sobe {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+}
+
+.fim--vermelho {
+  --cor-vencedor: var(--vermelho-claro);
+}
+
+.fim--azul {
+  --cor-vencedor: var(--azul-claro);
+}
+
+.fim__faixa {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.fim__vencedor {
+  font-family: var(--fonte-display);
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  font-weight: 800;
+  color: var(--cor-vencedor);
+  margin: 10px 0 6px;
+}
+
+.fim__motivo {
+  color: var(--texto-suave);
+  font-size: 14px;
+  margin: 0 auto 22px;
+  max-width: 34ch;
+}
+
+.fim__caveira {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 6px;
+  opacity: 0.9;
+}
+
+.fim__acoes {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* -------------------------------------------------------------- elenco */
+
+.elenco {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.elenco__time {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 3px solid var(--cor-time);
+}
+
+.elenco__time--vermelho {
+  --cor-time: var(--vermelho-claro);
+}
+
+.elenco__time--azul {
+  --cor-time: var(--azul-claro);
+}
+
+.elenco__nome {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cor-time);
+}
+
+.elenco__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.elenco__pessoa {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.26);
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.elenco__pessoa[data-mestre='sim'] {
+  color: var(--ouro-claro);
+  background: rgba(201, 162, 39, 0.12);
+}
+
+.elenco__pessoa[data-ausente='sim'] {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+/* --------------------------------------------------------------- responsivo */
+
+@media (max-width: 1080px) {
+  .jogo__corpo {
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
+/*
+ * Abaixo de 900px o painel lateral não cabe mais ao lado do tabuleiro: a tela
+ * inteira passa a rolar na vertical, com o painel embaixo. É o caso do
+ * jogador que está de celular na mão enquanto conversa por voz.
+ */
+@media (max-width: 900px) {
+  .jogo__corpo {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .jogo__painel {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .historico {
+    max-height: 170px;
+  }
+
+  .cabecalho {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 14px;
+  }
+
+  .cabecalho::after {
+    display: none;
+  }
+
+  .times,
+  .config {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby__topo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .entrada__acoes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .placar__nome {
+    display: none;
+  }
+
+  .logo--pequeno .logo__linha {
+    display: none;
+  }
+
+  .tela-lobby,
+  .tela-entrada {
+    padding: 16px;
+  }
+}
+
+/* ------------------------------------------------------- controle de tempo */
+
+.tempo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tempo__livre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tempo__livre .entrada {
+  width: 88px;
+  padding: 9px 11px;
+  text-align: center;
+}
+
+.tempo__unidade {
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+/* Cinco pílulas não cabem lado a lado no painel estreito da tela de jogo. */
+.jogo__painel .opcoes {
+  flex-wrap: wrap;
+}
+
+.jogo__painel .opcoes__item {
+  flex: 1 0 28%;
+  font-size: 12px;
+  padding: 7px 6px;
+}

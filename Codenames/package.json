@@ -1,0 +1,66 @@
+{
+  "name": "palavras-secretas",
+  "productName": "Palavras Secretas",
+  "version": "1.0.0",
+  "description": "Jogo de dedução por associação de palavras, no estilo Codenames, para jogar com amigos pela internet.",
+  "author": "Palavras Secretas",
+  "license": "MIT",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "node scripts/dev.js",
+    "server": "node server/index.js",
+    "test": "node --test shared/regras.test.js server/integracao.test.js",
+    "icone": "electron scripts/gerar-icone.cjs",
+    "build": "npm run icone && electron-builder --win",
+    "fontes": "node scripts/baixar-fontes.js"
+  },
+  "build": {
+    "appId": "com.palavrassecretas.app",
+    "productName": "Palavras Secretas",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "shared/**/*",
+      "!shared/*.test.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icone.ico"
+    },
+    "portable": {
+      "artifactName": "Palavras Secretas ${version} (portatil).exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Palavras Secretas",
+      "artifactName": "Palavras Secretas ${version} (instalador).exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.1",
+    "electron-builder": "^26.15.3",
+    "ws": "^8.21.3"
+  }
+}

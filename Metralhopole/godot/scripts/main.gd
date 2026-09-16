@@ -41,6 +41,9 @@ var hud_card: PanelContainer
 var portfolio_panel: PanelContainer
 var portfolio_box: HBoxContainer
 var portfolio_heading: Label
+var portfolio_toggle: Button
+var portfolio_open := false
+var trade_open := false
 var preview_index := 0
 var character_preview: SubViewport
 var character_preview_root: Node3D
@@ -213,10 +216,10 @@ func update_camera() -> void:
 func make_hud() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 4
-	hud_card = PanelContainer.new(); hud_card.position = Vector2(28, 26)
+	hud_card = PanelContainer.new(); hud_card.position = Vector2(18, 18)
 	hud_card.add_theme_stylebox_override("panel", panel_style(Color("162631dc"), 18, Color("ffffff20")))
-	var label := RichTextLabel.new(); label.fit_content = true; label.custom_minimum_size = Vector2(390, 64)
-	label.bbcode_enabled = true; label.text = "[font_size=24][b]METRALHOPOLE[/b][/font_size]\n[color=#b8c8d0][font_size=14]ARRASTE PARA GIRAR  •  RODA PARA ZOOM  •  ESC PARA MENU[/font_size][/color]"
+	var label := RichTextLabel.new(); label.fit_content = true; label.custom_minimum_size = Vector2(300, 50)
+	label.bbcode_enabled = true; label.text = "[font_size=20][b]METRALHOPOLE[/b][/font_size]\n[color=#b8c8d0][font_size=12]GIRAR  •  ZOOM  •  ESC MENU[/font_size][/color]"
 	hud_card.add_child(label); layer.add_child(hud_card)
 	add_child(layer)
 
@@ -227,7 +230,7 @@ func panel_style(color: Color, radius: int, border := Color.TRANSPARENT) -> Styl
 	return style
 
 func make_ui_theme() -> Theme:
-	var theme := Theme.new(); theme.default_font_size = 17
+	var theme := Theme.new(); theme.default_font_size = 15
 	var normal := panel_style(Color("243640ee"), 10, Color("ffffff18")); normal.content_margin_top = 11; normal.content_margin_bottom = 11
 	var hover := panel_style(Color("38515ddd"), 10, Color("aeea74aa")); hover.content_margin_top = 11; hover.content_margin_bottom = 11
 	var pressed := panel_style(Color("9bd064ee"), 10); pressed.content_margin_top = 11; pressed.content_margin_bottom = 11
@@ -273,14 +276,14 @@ func make_online_ui() -> void:
 	var layer := CanvasLayer.new(); layer.layer = 5; add_child(layer)
 	var ui_root := Control.new(); ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ui_root.theme = make_ui_theme(); layer.add_child(ui_root)
 	online_panel = PanelContainer.new()
-	online_panel.custom_minimum_size = Vector2(420, 0)
+	online_panel.custom_minimum_size = Vector2.ZERO
 	online_panel.add_theme_stylebox_override("panel", panel_style(Color("172731e8"), 18, Color("ffffff22")))
 	ui_root.add_child(online_panel)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(420, 0)
+	scroll.custom_minimum_size = Vector2.ZERO
 	online_panel.add_child(scroll)
 	var box := VBoxContainer.new()
-	box.custom_minimum_size = Vector2(380, 0); box.add_theme_constant_override("separation", 10)
+	box.custom_minimum_size = Vector2(300, 0); box.add_theme_constant_override("separation", 10)
 	scroll.add_child(box)
 	online_heading = Label.new(); online_heading.text = "JOGAR ONLINE"; online_heading.add_theme_font_size_override("font_size", 25); box.add_child(online_heading)
 	setup_box = VBoxContainer.new(); setup_box.add_theme_constant_override("separation", 9); box.add_child(setup_box)
@@ -301,13 +304,18 @@ func make_online_ui() -> void:
 func layout_ui() -> void:
 	if not online_panel: return
 	var viewport := get_viewport().get_visible_rect().size
-	var width := clampf(viewport.x * 0.23, 390.0, 470.0)
-	online_panel.position = Vector2(viewport.x - width - 28, 28)
-	online_panel.size = Vector2(width, minf(viewport.y - 56, 690.0))
+	var in_game := str(game_state.get("phase", "lobby")) != "lobby" and not game_state.is_empty()
+	var width := 300.0 if in_game else clampf(viewport.x * 0.22, 360.0, 420.0)
+	online_panel.position = Vector2(viewport.x - width - 18, 18)
+	if in_game:
+		online_panel.size = Vector2(width, minf(viewport.y - 36, 230.0))
+	else: online_panel.size = Vector2(width, minf(viewport.y - 36, 650.0))
 	if escape_menu: escape_menu.position = (viewport - escape_menu.custom_minimum_size) * 0.5
 	if portfolio_panel:
-		portfolio_panel.position = Vector2(28, viewport.y - 260)
-		portfolio_panel.size = Vector2(minf(viewport.x - width - 84, 930), 232)
+		portfolio_panel.size = Vector2(minf(viewport.x - width - 90, 760), 170)
+		var open_x := 18.0; var closed_x := -portfolio_panel.size.x - 8.0
+		portfolio_panel.position = Vector2(open_x if portfolio_open else closed_x, viewport.y - 188)
+		portfolio_toggle.position = Vector2(portfolio_panel.size.x + 24 if portfolio_open else 12, viewport.y - 132)
 
 func make_portfolio(parent: Control) -> void:
 	portfolio_panel = PanelContainer.new(); portfolio_panel.visible = false
@@ -316,12 +324,23 @@ func make_portfolio(parent: Control) -> void:
 	portfolio_heading = Label.new(); portfolio_heading.text = "MEU PATRIMÔNIO"; portfolio_heading.add_theme_font_size_override("font_size", 20); outer.add_child(portfolio_heading)
 	var scroll := ScrollContainer.new(); scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; outer.add_child(scroll)
 	portfolio_box = HBoxContainer.new(); portfolio_box.add_theme_constant_override("separation", 10); scroll.add_child(portfolio_box)
+	portfolio_toggle = Button.new(); portfolio_toggle.text = "▶"; portfolio_toggle.visible = false; portfolio_toggle.custom_minimum_size = Vector2(48, 68); parent.add_child(portfolio_toggle)
+	portfolio_toggle.pressed.connect(toggle_portfolio)
+
+func toggle_portfolio() -> void:
+	portfolio_open = not portfolio_open; portfolio_toggle.text = "◀" if portfolio_open else "▶"
+	var viewport := get_viewport().get_visible_rect().size
+	var target_x := 18.0 if portfolio_open else -portfolio_panel.size.x - 8.0
+	var target_button_x := portfolio_panel.size.x + 24 if portfolio_open else 12.0
+	var tween := create_tween().set_parallel().set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	tween.tween_property(portfolio_panel, "position:x", target_x, 0.32)
+	tween.tween_property(portfolio_toggle, "position:x", target_button_x, 0.32)
 
 func make_property_card(tile: Dictionary, lot: Dictionary) -> Control:
-	var card := PanelContainer.new(); card.custom_minimum_size = Vector2(215, 145)
+	var card := PanelContainer.new(); card.custom_minimum_size = Vector2(175, 100)
 	var color := Color(str(tile.get("color", "#78909c"))); card.add_theme_stylebox_override("panel", panel_style(Color("20333ddd"), 12, color))
 	var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); card.add_child(row)
-	var viewport_box := SubViewportContainer.new(); viewport_box.custom_minimum_size = Vector2(88, 105); viewport_box.stretch = true; row.add_child(viewport_box)
+	var viewport_box := SubViewportContainer.new(); viewport_box.custom_minimum_size = Vector2(68, 76); viewport_box.stretch = true; row.add_child(viewport_box)
 	var viewport := SubViewport.new(); viewport.size = Vector2i(128, 144); viewport.transparent_bg = true; viewport.own_world_3d = true; viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS; viewport_box.add_child(viewport)
 	var root := Node3D.new(); viewport.add_child(root); root.add_child(cube(Vector3(1.8, 0.18, 1.5), color, Vector3.ZERO))
 	var level := int(lot.get("level", 0)); var building_count := mini(level, 3)
@@ -329,7 +348,7 @@ func make_property_card(tile: Dictionary, lot: Dictionary) -> Control:
 	if level == 4: root.add_child(cube(Vector3(1.0, 0.85, 0.55), Color("f1c56e"), Vector3(0, 0.52, 0)))
 	var camera := Camera3D.new(); camera.position = Vector3(2.7, 2.5, 3.2); camera.look_at_from_position(camera.position, Vector3(0, 0.25, 0)); viewport.add_child(camera)
 	var light := DirectionalLight3D.new(); light.rotation_degrees = Vector3(-55, -35, 0); light.light_energy = 1.8; viewport.add_child(light)
-	var info := RichTextLabel.new(); info.bbcode_enabled = true; info.fit_content = true; info.text = "[b]%s[/b]\n[color=#aebfc7]%s[/color]\n%s" % [tile.name, tile.get("city", "Indústria"), "HOTEL" if level == 4 else "%d CASA(S)" % level if level > 0 else "SEM MELHORIA"]; info.custom_minimum_size.x = 92; row.add_child(info)
+	var info := RichTextLabel.new(); info.bbcode_enabled = true; info.fit_content = true; info.add_theme_font_size_override("normal_font_size", 12); info.text = "[b]%s[/b]\n[color=#aebfc7]%s[/color]\n%s" % [tile.name, tile.get("city", "Indústria"), "HOTEL" if level == 4 else "%d CASA(S)" % level if level > 0 else "SEM MELHORIA"]; info.custom_minimum_size.x = 74; row.add_child(info)
 	return card
 
 func add_character_selector(me: Dictionary, players: Array) -> void:
@@ -516,13 +535,14 @@ func render_actions() -> void:
 	var phase := str(game_state.get("phase", "lobby")); var stage := str(game_state.get("stage", "roll"))
 	setup_box.visible = false
 	online_heading.text = "LOBBY DA SALA" if phase == "lobby" else "CENTRAL DA PARTIDA"
-	set_online_status("Sala %s · %d/%d jogadores\n%s · R$ %d" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), me.name, int(me.money)])
+	online_heading.add_theme_font_size_override("font_size", 25 if phase == "lobby" else 18)
+	set_online_status("Sala %s · %d/%d jogadores\n%s · R$ %s" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), me.name, format_money(int(me.money))] if phase == "lobby" else "%s  ·  R$ %s" % [me.name, format_money(int(me.money))])
 	if escape_info:
 		var names: Array[String] = []
 		for player in players: names.append("• %s%s" % [player.name, "  ·  R$ %d" % int(player.money) if phase != "lobby" else ""])
 		escape_info.text = "SALA %s  ·  %d/%d JOGADORES\n\n%s" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), "\n".join(names)]
 	update_portfolio(me)
-	var logs: Array = game_state.get("logs", []); if not logs.is_empty(): online_status.text += "\n\n" + "\n".join(logs.slice(maxi(0, logs.size() - 4)))
+	layout_ui()
 	if phase == "lobby":
 		var roster_title := Label.new(); roster_title.text = "JOGADORES  ·  %d/%d" % [players.size(), int(game_state.get("maxPlayers", 8))]; roster_title.add_theme_font_size_override("font_size", 18); actions_box.add_child(roster_title)
 		var roster := HFlowContainer.new(); roster.add_theme_constant_override("h_separation", 6); roster.add_theme_constant_override("v_separation", 6); actions_box.add_child(roster)
@@ -533,8 +553,7 @@ func render_actions() -> void:
 		action_button("Sair da sala", "leave")
 		return
 	var current: Dictionary = players[int(game_state.get("turn", 0))]
-	var current_label := Label.new(); current_label.text = "Turno: %s · etapa: %s" % [current.name, stage]; actions_box.add_child(current_label)
-	action_button("Pausar" if not game_state.get("paused", false) else "Retomar", "pause" if not game_state.get("paused", false) else "resume")
+	var current_label := Label.new(); current_label.text = "TURNO DE %s" % current.name.to_upper(); current_label.add_theme_font_size_override("font_size", 17); actions_box.add_child(current_label)
 	var offer: Dictionary = game_state.get("trade", {}) if game_state.get("trade") != null else {}
 	if not offer.is_empty():
 		if offer.get("to", "") == api.player_id:
@@ -564,13 +583,16 @@ func render_actions() -> void:
 			else: eligible = tile.type == "property" and not lot.is_empty() and lot.get("owner", "") != api.player_id
 			if eligible: action_button("Escolher %s" % tile.name, "card-choice", tile.id)
 	if stage != "roll" and stage != "rent" and stage != "choice": action_button("Encerrar turno", "end")
-	if offer.is_empty(): add_trade_controls(me)
-	action_button("Sair da partida", "leave")
+	if offer.is_empty():
+		if trade_open: add_trade_controls(me)
+		else:
+			var trade_button := Button.new(); trade_button.text = "NEGOCIAR"; trade_button.pressed.connect(func(): trade_open = true; render_actions()); actions_box.add_child(trade_button)
 
 func add_trade_controls(me: Dictionary) -> void:
 	var targets: Array = game_state.players.filter(func(player): return player.id != api.player_id and not player.get("bankrupt", false))
 	if targets.is_empty(): return
 	var heading := Label.new(); heading.text = "Negociar propriedade"; actions_box.add_child(heading)
+	var close := Button.new(); close.text = "FECHAR NEGOCIAÇÃO"; close.pressed.connect(func(): trade_open = false; render_actions()); actions_box.add_child(close)
 	var kind := OptionButton.new(); kind.add_item("Comprar", 0); kind.add_item("Vender", 1); actions_box.add_child(kind)
 	var target := OptionButton.new(); for player in targets: target.add_item(player.name); target.set_item_metadata(target.item_count - 1, player.id); actions_box.add_child(target)
 	var property := OptionButton.new(); actions_box.add_child(property)
@@ -586,7 +608,7 @@ func add_trade_controls(me: Dictionary) -> void:
 	); actions_box.add_child(send)
 
 func update_portfolio(me: Dictionary) -> void:
-	portfolio_panel.visible = str(game_state.get("phase", "lobby")) != "lobby"
+	portfolio_panel.visible = str(game_state.get("phase", "lobby")) != "lobby"; portfolio_toggle.visible = portfolio_panel.visible
 	if not portfolio_panel.visible: return
 	portfolio_heading.text = "MEU PATRIMÔNIO  ·  R$ %s" % format_money(int(me.money))
 	for child in portfolio_box.get_children(): child.queue_free()
@@ -606,7 +628,7 @@ func send_action(action: String, value: Variant = null) -> void:
 	var result := await api.action(action, value)
 	if not result.ok: set_online_status(result.error); return
 	if action == "leave":
-		api.code = ""; api.token = ""; api.player_id = ""; game_state = {}; setup_box.visible = true; preview_initialized = false; portfolio_panel.visible = false
+		api.code = ""; api.token = ""; api.player_id = ""; game_state = {}; setup_box.visible = true; preview_initialized = false; portfolio_panel.visible = false; portfolio_toggle.visible = false; portfolio_open = false; trade_open = false
 		set_online_status("Você saiu da sala. Crie uma nova sala ou entre em outra.")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://session.cfg")); return
 	apply_server_state(result.data)

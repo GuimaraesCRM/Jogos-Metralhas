@@ -35,6 +35,9 @@ var construction_nodes := {}
 var last_move_sequence := 0
 var board_labels_for := 0
 var escape_menu: PanelContainer
+var setup_box: VBoxContainer
+var escape_info: Label
+var hud_card: PanelContainer
 
 func _ready() -> void:
 	rng.randomize()
@@ -93,21 +96,30 @@ func make_board(count := TILES) -> void:
 	board_root = Node3D.new(); board_root.name = "CasasDoTabuleiro"; add_child(board_root); points.clear()
 	board_labels_for = 0
 	var per_side := count / 4
-	var tile_step := 2.25 if count == 60 else 3.35
-	var board_edge := tile_step * per_side / 2.0
+	var board_edge := 17.0
+	var corner_size := 3.25
+	var tile_step := (board_edge * 2.0 - corner_size) / float(per_side - 1)
 	var colors := [Color("ef9a9a"), Color("90caf9"), Color("ffe082"), Color("ce93d8"), Color("80cbc4"), Color("ffab91")]
 	for index in count:
 		var side := index / per_side
 		var slot := index % per_side
-		var offset := -board_edge + tile_step * (slot + 0.5)
+		var offset := -board_edge + corner_size / 2.0 + tile_step * (slot - 0.5)
 		var at := Vector3.ZERO
-		var size := Vector3(tile_step - 0.08, 0.32, 3.1)
-		match side:
-			0: at = Vector3(offset, 0.35, board_edge)
-			1: at = Vector3(board_edge, 0.35, -offset); size = Vector3(3.1, 0.32, tile_step - 0.08)
-			2: at = Vector3(-offset, 0.35, -board_edge)
-			_: at = Vector3(-board_edge, 0.35, offset); size = Vector3(3.1, 0.32, tile_step - 0.08)
-		points.append(at + Vector3(0, 0.65, 0))
+		var size := Vector3(tile_step - 0.08, 0.32, corner_size)
+		if slot == 0:
+			size = Vector3(corner_size, 0.38, corner_size)
+			match side:
+				0: at = Vector3(-board_edge, 0.38, board_edge)
+				1: at = Vector3(board_edge, 0.38, board_edge)
+				2: at = Vector3(board_edge, 0.38, -board_edge)
+				_: at = Vector3(-board_edge, 0.38, -board_edge)
+		else:
+			match side:
+				0: at = Vector3(offset, 0.35, board_edge)
+				1: at = Vector3(board_edge, 0.35, -offset); size = Vector3(corner_size, 0.32, tile_step - 0.08)
+				2: at = Vector3(-offset, 0.35, -board_edge)
+				_: at = Vector3(-board_edge, 0.35, offset); size = Vector3(corner_size, 0.32, tile_step - 0.08)
+		points.append(Vector3(at.x, at.y + size.y * 0.5 + 0.03, at.z))
 		board_root.add_child(cube(size, colors[(index / 5) % colors.size()] if index % 5 == 0 else Color("f4f0df"), at))
 	var title := Label3D.new(); title.text = "METRALHOPOLE"; title.font_size = 72; title.pixel_size = 0.018; title.modulate = Color("345c50"); title.outline_size = 4; title.position = Vector3(0, 0.3, -2.2); title.rotation_degrees.x = -90; board_root.add_child(title)
 
@@ -117,14 +129,26 @@ func label_board(board_data: Array) -> void:
 	for index in mini(board_data.size(), points.size()):
 		var tile: Dictionary = board_data[index]; var label := Label3D.new(); var name := str(tile.get("name", "")); if name.length() > 16: name = name.left(15) + "…"
 		label.text = name + ("\nR$ %d mil" % (int(tile.get("price", 0)) / 1000) if tile.has("price") else "")
-		label.font_size = 28; label.pixel_size = 0.012; label.modulate = Color("203735"); label.outline_size = 3; label.outline_modulate = Color("ffffffcc"); label.position = points[index] + Vector3(0, -0.17, 0); label.rotation_degrees.x = -90
+		label.font_size = 28; label.pixel_size = 0.012; label.modulate = Color("203735"); label.outline_size = 3; label.outline_modulate = Color("ffffffcc"); label.position = points[index] + Vector3(0, 0.015, 0); label.rotation_degrees.x = -90
 		board_root.add_child(label)
 
 func make_pawn() -> void:
-	pawn = PLAYER.instantiate()
-	pawn.scale = Vector3.ONE * 0.72
+	pawn = Node3D.new(); var visual := PLAYER.instantiate(); pawn.add_child(visual); add_child(pawn); fit_character(visual)
 	pawn.position = points[0]
-	add_child(pawn)
+
+func fit_character(visual: Node3D) -> void:
+	fit_model_to_height(visual, 1.75)
+
+func fit_model_to_height(visual: Node3D, desired_height: float) -> void:
+	var bounds := AABB(); var initialized := false
+	for mesh: MeshInstance3D in visual.find_children("*", "MeshInstance3D", true, false):
+		var transform := visual.global_transform.affine_inverse() * mesh.global_transform
+		var current := transform * mesh.get_aabb()
+		bounds = current if not initialized else bounds.merge(current); initialized = true
+	if not initialized or bounds.size.y <= 0: return
+	var factor := desired_height / bounds.size.y
+	visual.scale = Vector3.ONE * factor
+	visual.position.y = -bounds.position.y * factor
 
 func make_dice() -> void:
 	for index in 2:
@@ -167,12 +191,31 @@ func update_camera() -> void:
 
 func make_hud() -> void:
 	var layer := CanvasLayer.new()
-	var label := Label.new()
-	label.position = Vector2(24, 24)
-	label.text = "METRALHOPOLE 3D\nArraste: girar câmera · Roda: zoom · ESC: menu"
-	label.add_theme_font_size_override("font_size", 20)
-	layer.add_child(label)
+	layer.layer = 4
+	hud_card = PanelContainer.new(); hud_card.position = Vector2(28, 26)
+	hud_card.add_theme_stylebox_override("panel", panel_style(Color("162631dc"), 18, Color("ffffff20")))
+	var label := RichTextLabel.new(); label.fit_content = true; label.custom_minimum_size = Vector2(390, 64)
+	label.bbcode_enabled = true; label.text = "[font_size=24][b]METRALHOPOLE[/b][/font_size]\n[color=#b8c8d0][font_size=14]ARRASTE PARA GIRAR  •  RODA PARA ZOOM  •  ESC PARA MENU[/font_size][/color]"
+	hud_card.add_child(label); layer.add_child(hud_card)
 	add_child(layer)
+
+func panel_style(color: Color, radius: int, border := Color.TRANSPARENT) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new(); style.bg_color = color; style.border_color = border
+	style.set_border_width_all(1); style.set_corner_radius_all(radius)
+	style.content_margin_left = 20; style.content_margin_right = 20; style.content_margin_top = 18; style.content_margin_bottom = 18
+	return style
+
+func make_ui_theme() -> Theme:
+	var theme := Theme.new(); theme.default_font_size = 17
+	var normal := panel_style(Color("243640ee"), 10, Color("ffffff18")); normal.content_margin_top = 11; normal.content_margin_bottom = 11
+	var hover := panel_style(Color("38515ddd"), 10, Color("aeea74aa")); hover.content_margin_top = 11; hover.content_margin_bottom = 11
+	var pressed := panel_style(Color("9bd064ee"), 10); pressed.content_margin_top = 11; pressed.content_margin_bottom = 11
+	theme.set_stylebox("normal", "Button", normal); theme.set_stylebox("hover", "Button", hover); theme.set_stylebox("pressed", "Button", pressed)
+	theme.set_color("font_color", "Button", Color("edf5f6")); theme.set_color("font_pressed_color", "Button", Color("142027"))
+	var input := panel_style(Color("101c24dd"), 9, Color("ffffff24")); input.content_margin_top = 10; input.content_margin_bottom = 10
+	theme.set_stylebox("normal", "LineEdit", input); theme.set_stylebox("normal", "OptionButton", normal); theme.set_stylebox("hover", "OptionButton", hover)
+	theme.set_color("font_color", "Label", Color("edf5f6")); theme.set_color("font_color", "LineEdit", Color("edf5f6"))
+	return theme
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -206,49 +249,60 @@ func make_online_ui() -> void:
 	api = API_SCRIPT.new()
 	add_child(api)
 	local_server = SERVER_SCRIPT.new(); add_child(local_server)
-	var layer := CanvasLayer.new()
-	layer.layer = 5
-	add_child(layer)
+	var layer := CanvasLayer.new(); layer.layer = 5; add_child(layer)
+	var ui_root := Control.new(); ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ui_root.theme = make_ui_theme(); layer.add_child(ui_root)
 	online_panel = PanelContainer.new()
-	online_panel.position = Vector2(24, 125)
-	online_panel.custom_minimum_size = Vector2(360, 520)
-	layer.add_child(online_panel)
+	online_panel.custom_minimum_size = Vector2(420, 0)
+	online_panel.add_theme_stylebox_override("panel", panel_style(Color("172731e8"), 18, Color("ffffff22")))
+	ui_root.add_child(online_panel)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(360, 520)
+	scroll.custom_minimum_size = Vector2(420, 0)
 	online_panel.add_child(scroll)
 	var box := VBoxContainer.new()
-	box.custom_minimum_size = Vector2(330, 0)
-	box.add_theme_constant_override("separation", 8)
+	box.custom_minimum_size = Vector2(380, 0); box.add_theme_constant_override("separation", 10)
 	scroll.add_child(box)
-	name_input = field(box, "Seu nome", "Guilherme")
-	endpoint_input = field(box, "Servidor", "http://127.0.0.1:3000")
-	code_input = field(box, "Código da sala", "")
+	var heading := Label.new(); heading.text = "JOGAR ONLINE"; heading.add_theme_font_size_override("font_size", 25); box.add_child(heading)
+	setup_box = VBoxContainer.new(); setup_box.add_theme_constant_override("separation", 9); box.add_child(setup_box)
+	name_input = field(setup_box, "Seu nome", "Guilherme")
+	endpoint_input = field(setup_box, "Servidor", "http://127.0.0.1:3000")
+	code_input = field(setup_box, "Código da sala", "")
 	character_input = OptionButton.new()
 	for character in CHARACTERS: character_input.add_item(character)
 	character_input.select(6)
-	box.add_child(character_input)
-	size_input = OptionButton.new(); size_input.add_item("Até 8 jogadores", 8); size_input.add_item("Até 4 jogadores", 4); box.add_child(size_input)
-	var create_button := Button.new(); create_button.text = "Hospedar sala"; create_button.pressed.connect(create_online_room); box.add_child(create_button)
-	var join_button := Button.new(); join_button.text = "Entrar na sala"; join_button.pressed.connect(join_online_room); box.add_child(join_button)
-	var reconnect_button := Button.new(); reconnect_button.text = "Reconectar sessão salva"; reconnect_button.pressed.connect(reconnect_session); box.add_child(reconnect_button)
+	setup_box.add_child(character_input)
+	size_input = OptionButton.new(); size_input.add_item("Até 8 jogadores", 8); size_input.add_item("Até 4 jogadores", 4); setup_box.add_child(size_input)
+	var create_button := Button.new(); create_button.text = "HOSPEDAR SALA"; create_button.pressed.connect(create_online_room); setup_box.add_child(create_button)
+	var join_button := Button.new(); join_button.text = "ENTRAR NA SALA"; join_button.pressed.connect(join_online_room); setup_box.add_child(join_button)
+	var reconnect_button := Button.new(); reconnect_button.text = "RECONECTAR SESSÃO"; reconnect_button.pressed.connect(reconnect_session); setup_box.add_child(reconnect_button)
 	online_status = Label.new(); online_status.text = "Inicie o servidor Node e crie ou entre em uma sala."; online_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(online_status)
 	actions_box = VBoxContainer.new(); actions_box.add_theme_constant_override("separation", 6); box.add_child(actions_box)
 	var timer := Timer.new(); timer.wait_time = 1.0; timer.autostart = true; timer.timeout.connect(poll_state); add_child(timer)
-	make_escape_menu(layer)
+	make_escape_menu(ui_root)
+	get_viewport().size_changed.connect(layout_ui); layout_ui()
 
-func make_escape_menu(layer: CanvasLayer) -> void:
-	escape_menu = PanelContainer.new(); escape_menu.visible = false; escape_menu.position = Vector2(515, 180); escape_menu.custom_minimum_size = Vector2(420, 330); layer.add_child(escape_menu)
-	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 12); escape_menu.add_child(box)
-	var title := Label.new(); title.text = "METRALHOPOLE · MENU"; title.add_theme_font_size_override("font_size", 26); box.add_child(title)
-	var help := Label.new(); help.text = "Sala, jogadores e estado permanecem sincronizados.\nFechar o anfitrião encerra as salas deste computador."; help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; box.add_child(help)
+func layout_ui() -> void:
+	if not online_panel: return
+	var viewport := get_viewport().get_visible_rect().size
+	var width := clampf(viewport.x * 0.23, 390.0, 470.0)
+	online_panel.position = Vector2(viewport.x - width - 28, 28)
+	online_panel.size = Vector2(width, minf(viewport.y - 56, 760.0))
+	if escape_menu: escape_menu.position = (viewport - escape_menu.custom_minimum_size) * 0.5
+
+func make_escape_menu(layer: Control) -> void:
+	escape_menu = PanelContainer.new(); escape_menu.visible = false; escape_menu.custom_minimum_size = Vector2(520, 440)
+	escape_menu.add_theme_stylebox_override("panel", panel_style(Color("101c25f5"), 22, Color("b9e87d55"))); layer.add_child(escape_menu)
+	var box := VBoxContainer.new(); box.add_theme_constant_override("separation", 14); escape_menu.add_child(box)
+	var title := Label.new(); title.text = "MENU DA PARTIDA"; title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; title.add_theme_font_size_override("font_size", 30); box.add_child(title)
+	box.add_child(HSeparator.new())
+	escape_info = Label.new(); escape_info.text = "Nenhuma sala conectada."; escape_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; escape_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; box.add_child(escape_info)
 	var pause_button := Button.new(); pause_button.text = "Pausar / retomar partida"; pause_button.pressed.connect(func():
 		if not api.code.is_empty() and not game_state.is_empty(): await send_action("resume" if game_state.get("paused", false) else "pause")
 	); box.add_child(pause_button)
 	var leave_button := Button.new(); leave_button.text = "Sair da sala"; leave_button.pressed.connect(func():
 		if not api.code.is_empty(): await send_action("leave"); escape_menu.visible = false
 	); box.add_child(leave_button)
-	var close_button := Button.new(); close_button.text = "Voltar ao jogo"; close_button.pressed.connect(func(): escape_menu.visible = false); box.add_child(close_button)
-	var quit_button := Button.new(); quit_button.text = "Sair do jogo"; quit_button.pressed.connect(func(): get_tree().quit()); box.add_child(quit_button)
+	var close_button := Button.new(); close_button.text = "VOLTAR AO JOGO"; close_button.pressed.connect(func(): escape_menu.visible = false); box.add_child(close_button)
+	var quit_button := Button.new(); quit_button.text = "SAIR DO JOGO"; quit_button.pressed.connect(func(): get_tree().quit()); box.add_child(quit_button)
 
 func field(parent: Control, placeholder: String, initial: String) -> LineEdit:
 	var input := LineEdit.new(); input.placeholder_text = placeholder; input.text = initial; parent.add_child(input); return input
@@ -316,14 +370,17 @@ func sync_online_players() -> void:
 		var model: Node3D = player_nodes.get(data.id)
 		if model == null:
 			var scene: PackedScene = load("res://assets/models/%s.glb" % data.character)
-			model = scene.instantiate(); model.scale = Vector3.ONE * 0.72; add_child(model); player_nodes[data.id] = model
+			model = Node3D.new(); var visual := scene.instantiate(); model.add_child(visual); add_child(model); fit_character(visual); player_nodes[data.id] = model
 		var position_index := clampi(int(data.position), 0, points.size() - 1)
 		var slot: int = index % 8
 		var offset := Vector3((slot % 4 - 1.5) * 0.34, 0, (slot / 4 - 0.5) * 0.45)
 		var movement: Dictionary = game_state.get("lastMove", {})
 		if movement.get("player", "") == data.id and int(movement.get("sequence", 0)) > last_move_sequence:
 			animate_online_move(model, movement.get("path", []), offset)
-		else: model.position = points[position_index] + offset
+		else:
+			model.position = points[position_index] + offset
+			var next := points[(position_index + 1) % points.size()] + offset
+			model.look_at(Vector3(next.x, model.position.y, next.z), Vector3.UP, true)
 		model.visible = not bool(data.get("bankrupt", false))
 	for id in player_nodes.keys():
 		if not alive.has(id): player_nodes[id].queue_free(); player_nodes.erase(id)
@@ -333,6 +390,7 @@ func animate_online_move(model: Node3D, path: Array, offset: Vector3) -> void:
 	var tween := create_tween()
 	for raw_position in path:
 		var index := clampi(int(raw_position), 0, points.size() - 1); var target := points[index] + offset
+		tween.tween_callback(func(): model.look_at(Vector3(target.x, model.position.y, target.z), Vector3.UP, true))
 		tween.tween_property(model, "position", target + Vector3.UP * 0.35, 0.11)
 		tween.tween_property(model, "position", target, 0.07)
 
@@ -345,13 +403,14 @@ func sync_constructions() -> void:
 		var lot: Dictionary = game_state.properties[raw_id]; var owner_index := 0
 		for index in game_state.players.size():
 			if game_state.players[index].id == lot.owner: owner_index = index
-		var root := Node3D.new(); root.position = points[id] - points[id].normalized() * 0.62; add_child(root); construction_nodes[raw_id] = root
-		var marker := cube(Vector3(0.34, 0.22, 0.34), palette[owner_index % palette.size()], Vector3(0, 0.12, 0)); root.add_child(marker)
+		var outward := Vector3(points[id].x, 0, points[id].z).normalized()
+		var root := Node3D.new(); root.position = points[id] - outward * 0.62; add_child(root); construction_nodes[raw_id] = root
+		var marker := cube(Vector3(0.72, 0.045, 0.24), palette[owner_index % palette.size()], Vector3(0, -0.07, 0)); root.add_child(marker)
 		var level := int(lot.get("level", 0))
 		if level > 0:
 			var filename := "Hotel" if level == 4 else "%d casa%s" % [level, "" if level == 1 else "s"]
 			var scene: PackedScene = load("res://assets/models/%s.glb" % filename)
-			var building := scene.instantiate(); building.scale = Vector3.ONE * 0.38; building.position.y = 0.2; root.add_child(building)
+			var building := scene.instantiate(); root.add_child(building); fit_model_to_height(building, 1.05 if level == 4 else 0.72)
 
 func launch_server_dice(values: Array) -> void:
 	for index in min(2, dice.size()):
@@ -384,7 +443,12 @@ func render_actions() -> void:
 		if candidate.id == api.player_id: me = candidate
 	if me.is_empty(): return
 	var phase := str(game_state.get("phase", "lobby")); var stage := str(game_state.get("stage", "roll"))
+	setup_box.visible = false
 	set_online_status("Sala %s · %d/%d jogadores\n%s · R$ %d" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), me.name, int(me.money)])
+	if escape_info:
+		var names: Array[String] = []
+		for player in players: names.append("• %s%s" % [player.name, "  ·  R$ %d" % int(player.money) if phase != "lobby" else ""])
+		escape_info.text = "SALA %s  ·  %d/%d JOGADORES\n\n%s" % [api.code, players.size(), int(game_state.get("maxPlayers", 8)), "\n".join(names)]
 	var logs: Array = game_state.get("logs", []); if not logs.is_empty(): online_status.text += "\n\n" + "\n".join(logs.slice(maxi(0, logs.size() - 4)))
 	if phase == "lobby":
 		if players[0].id == api.player_id: action_button("Iniciar partida", "start")
@@ -446,5 +510,8 @@ func add_trade_controls(me: Dictionary) -> void:
 func send_action(action: String, value: Variant = null) -> void:
 	var result := await api.action(action, value)
 	if not result.ok: set_online_status(result.error); return
-	if action == "leave": api.code = ""; api.token = ""; api.player_id = ""; DirAccess.remove_absolute(ProjectSettings.globalize_path("user://session.cfg"))
+	if action == "leave":
+		api.code = ""; api.token = ""; api.player_id = ""; game_state = {}; setup_box.visible = true
+		set_online_status("Você saiu da sala. Crie uma nova sala ou entre em outra.")
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://session.cfg")); return
 	apply_server_state(result.data)

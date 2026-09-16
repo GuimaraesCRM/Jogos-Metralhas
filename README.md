@@ -2,7 +2,15 @@
 
 Bundle de jogos para Guilherme e seus amigos jogarem juntos online. Codenames e Spyfall são exemplos de jogos planejados; outros poderão ser adicionados pelo grupo.
 
-Cada jogo será desenvolvido de forma independente, em uma pasta na raiz com o nome do jogo, por exemplo `Codenames/` ou `Spyfall/`. O executável único, a seleção de jogos, o lobby e a integração online entre os jogos serão desenvolvidos posteriormente. Ainda não há jogos implementados nem tecnologia definida.
+Cada jogo será desenvolvido de forma independente, em uma pasta na raiz com o nome do jogo, por exemplo `Codenames/` ou `Spyfall/`. Ainda não há jogos implementados.
+
+## Tecnologias e launcher futuro
+
+Não existe uma tecnologia única obrigatória para o bundle. Cada responsável pode escolher a linguagem, engine, framework e ferramentas do próprio jogo, mesmo que sejam diferentes das usadas nos demais jogos. Essa liberdade é uma diretriz do projeto, não uma decisão temporariamente pendente. Não é necessário reescrever ou padronizar os jogos em uma mesma tecnologia para participar do bundle.
+
+Posteriormente, os jogos serão reunidos em um mega launcher, com um executável central para selecionar e iniciar os jogos, lobby online, convites, lista de amigos, criação e entrada em salas e outros recursos compartilhados. A tecnologia do launcher e os contratos de integração serão definidos nessa etapa, respeitando as tecnologias de cada jogo.
+
+Por enquanto, cada jogo deve funcionar e ser testado de forma independente e documentar seus requisitos de execução, build, rede e pontos de entrada. A integração poderá precisar de adaptadores ou processos separados, conforme as tecnologias escolhidas; não se deve presumir que todo o código será compilado no mesmo binário. Não implementar o launcher ou seus serviços compartilhados dentro de uma tarefa de jogo.
 
 ## Antes de começar
 

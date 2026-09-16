@@ -2,7 +2,15 @@
 
 ## Objetivo
 
-Este repositório contém o futuro bundle Jogos Metralhas: vários jogos independentes para amigos jogarem online, incluindo possíveis Codenames e Spyfall. O executável único, menu de seleção, lobby e integração compartilhada serão feitos posteriormente. Não implementar essa infraestrutura como efeito colateral do trabalho em um jogo.
+Este repositório contém o futuro bundle Jogos Metralhas: vários jogos independentes para amigos jogarem online, incluindo possíveis Codenames e Spyfall. Posteriormente, um mega launcher com executável central reunirá seleção e inicialização dos jogos, lobby online, convites, lista de amigos, criação e entrada em salas e outros recursos compartilhados. Não implementar essa infraestrutura como efeito colateral do trabalho em um jogo.
+
+## Liberdade de tecnologia
+
+- Não há linguagem, engine, framework ou stack obrigatória para todos os jogos. Cada responsável pode escolher a tecnologia do próprio jogo; jogos diferentes podem usar tecnologias completamente diferentes.
+- Não impor a tecnologia de um jogo a outro, nem migrar ou reescrever jogos para uniformizar o bundle. A futura integração deve respeitar essa independência.
+- Manter dependências, configurações e ferramentas específicas dentro da pasta do jogo. Documentar tecnologias, versões necessárias, execução, build, validação, requisitos de rede e pontos de entrada no README local.
+- Desenvolver e testar o jogo isoladamente. A tecnologia do launcher e os contratos de integração serão definidos posteriormente; não inventar agora um protocolo obrigatório para todos os jogos.
+- O executável central poderá iniciar jogos com runtimes ou processos distintos e usar adaptadores definidos na integração. Não presumir que todos os jogos devem compartilhar runtime ou ser compilados em um único binário.
 
 ## Identidade e escopo antes de editar
 

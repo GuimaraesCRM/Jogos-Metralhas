@@ -4,11 +4,17 @@
 
 Peça a Guilherme o cadastro do seu usuário do GitHub e da pasta em `RESPONSAVEIS.md`. Depois, crie a pasta com o nome exato do jogo e mantenha todo o desenvolvimento dentro dela. Apenas Guilherme pode mudar responsáveis e regras compartilhadas.
 
+Escolha livremente a tecnologia do seu jogo: linguagem, engine, framework e ferramentas podem ser diferentes das dos outros jogos. Não há stack única obrigatória. Mantenha o jogo executável e testável de forma independente, com suas dependências e configurações na própria pasta.
+
+A união acontecerá posteriormente em um mega launcher com seleção e inicialização dos jogos, lobby online, convites, lista de amigos e criação e entrada em salas. Os contratos e adaptadores de integração serão definidos nessa etapa, preservando as tecnologias escolhidas. Não implemente infraestrutura compartilhada nem altere outros jogos para antecipar essa integração.
+
 Inclua no `README.md` do jogo:
 
 - Nome do jogo, responsável e usuário GitHub.
 - Estado atual e regras básicas para jogar.
+- Tecnologias escolhidas e versões necessárias de runtimes, engines e ferramentas.
 - Pré-requisitos e comandos reais para instalar, executar e validar.
+- Como gerar e iniciar a versão distribuível, quando essa etapa estiver implementada.
 - Como testar separadamente do futuro executável central.
 - Necessidades de rede, jogadores, salas e estado da partida, conforme forem definidas.
 - Pontos de entrada previstos para futura integração e pendências conhecidas.

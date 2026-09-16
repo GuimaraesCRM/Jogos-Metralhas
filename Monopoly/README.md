@@ -20,12 +20,15 @@ Para validar regras e API e gerar o executável:
 ```powershell
 npm test
 npm run test:desktop
+npm run test:trade
 npm run build
 ```
 
 O executável portátil é gerado em `dist/Monopoly-Metralhas-0.1.0-x64.exe`. Distribua esse arquivo aos amigos; não é necessário copiar o código-fonte. O build inicial baixa componentes de empacotamento. O executável ainda não tem assinatura digital. Outros sistemas operacionais não foram preparados ou validados.
 
 O teste desktop usa uma janela oculta e oito clientes, exige a porta 3000 livre e grava capturas em `test-results/` e um perfil descartável em `.cache/`. Para validar o aplicativo empacotado, defina `MONOPOLY_TEST_EXE` com o caminho absoluto de `dist/win-unpacked/Monopoly Metralhas.exe` e execute `npm run test:desktop`.
+
+`npm run test:trade` usa dois aplicativos com perfis separados e um servidor local de teste em porta disponível para verificar compra, venda, aceite, recusa, cancelamento e sincronização. Também aceita `MONOPOLY_TEST_EXE` para testar o aplicativo empacotado.
 
 ## Jogar com os amigos
 
@@ -48,7 +51,10 @@ O anfitrião precisa manter o aplicativo aberto; fechá-lo encerra seu servidor 
 - Ao cair em terreno livre, compre ou passe. Em terreno de outra pessoa, pague aluguel automaticamente.
 - No seu turno, melhore qualquer terreno seu até três níveis. Cada melhoria custa metade do preço original; o aluguel é o valor base multiplicado por `nível + 1`.
 - Sorte dá $150 ou cobra $90. Imposto custa $120; café e férias são descanso.
-- Sem saldo suficiente para uma cobrança, o jogador paga o saldo restante, vai à falência e devolve seus terrenos ao banco. Não há venda automática, hipotecas, leilões ou negociações.
+- Não há venda automática, hipotecas ou leilões. Sem saldo suficiente para uma cobrança, o jogador paga o saldo restante, vai à falência e devolve seus terrenos ao banco. Negociações manuais precisam ser concluídas antes da cobrança; elas não interrompem uma falência já resolvida.
+- No próprio turno, antes ou depois de lançar os dados, o jogador pode propor **comprar uma propriedade de outro jogador** ou **vender uma de suas propriedades**. Ele escolhe com quem negociar, a propriedade e o preço total em dinheiro (inteiro positivo).
+- A pessoa escolhida pode aceitar ou recusar mesmo fora do próprio turno. Sem aceitação, nenhum dinheiro ou propriedade muda de mãos. A venda inclui todas as melhorias; o servidor confere proprietário e saldo do comprador ao enviar e ao aceitar. O autor não pode aceitar a própria oferta e terceiros não podem responder por outro jogador.
+- Há uma oferta pendente por vez. Enquanto aguarda resposta, o autor pode cancelar ou encerrar o turno se já lançou os dados; dados, compra do banco e melhorias ficam pausados, mas o relógio de 75 segundos continua contando. Fim do turno, tempo esgotado ou saída de um participante da negociação cancela a oferta. Após recusa ou cancelamento, o autor pode enviar outra proposta no mesmo turno. As ofertas e seus resultados ficam visíveis na sala.
 - A partida termina com um sobrevivente ou ao completar 20 rodadas. Vence o maior patrimônio: saldo + preço dos terrenos + custo das melhorias. Empates dividem a vitória.
 - Turnos de até 75 segundos. Dados iguais não concedem turno extra. Não há prisão nem bônus por conjunto nesta versão.
 

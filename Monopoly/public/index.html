@@ -43,13 +43,25 @@
     </section>
     <aside class="right-panel">
       <section class="panel turn-panel"><div class="eyebrow accent" id="turn-label">SEU LUGAR ESTÁ RESERVADO</div><h2 id="turn-title">Vamos jogar?</h2><p id="turn-description" class="muted">Uma partida de negócios, sorte e boas disputas.</p><div id="timer" class="timer" hidden></div><div id="actions"></div></section>
+      <section id="trade-panel" class="panel" hidden><h3>Negociar propriedades</h3><div id="trade-content"></div></section>
       <section class="panel"><div class="section-heading"><h3>Seus negócios</h3><span id="asset-count" class="muted">0</span></div><div id="assets"><p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p></div></section>
       <section class="panel feed-panel"><h3>Aconteceu na cidade</h3><div id="feed"><p class="hint">Os acontecimentos da partida aparecem aqui.</p></div></section>
     </aside>
   </main>
   <div id="notice" role="status" hidden></div>
+  <dialog id="trade-dialog">
+    <div class="eyebrow accent">FAÇA UMA PROPOSTA</div><h2>Vamos negociar.</h2>
+    <form id="trade-form">
+      <label for="trade-type">O que você quer fazer?</label><select id="trade-type"><option value="buy">Comprar uma propriedade de alguém</option><option value="sell">Vender uma propriedade minha</option></select>
+      <label for="trade-target">Com quem?</label><select id="trade-target" required></select>
+      <label for="trade-property">Qual propriedade?</label><select id="trade-property" required></select>
+      <label for="trade-price">Preço total da oferta ($)</label><input id="trade-price" type="number" min="1" step="1" required placeholder="Ex.: 250">
+      <p id="trade-budget" class="hint"></p><p class="hint">Uma propriedade por oferta, com todas as melhorias. A outra pessoa precisa aceitar. O tempo do seu turno continua contando.</p>
+      <div class="button-row"><button type="button" id="close-trade" class="secondary">Voltar</button><button id="send-trade" type="submit" class="primary">Enviar oferta</button></div>
+    </form>
+  </dialog>
   <dialog id="leave-dialog"><h2>Sair da sala?</h2><p class="muted">Durante a partida, sair conta como desistência. Se você hospeda, o servidor continua aberto até fechar o aplicativo.</p><div class="button-row"><button id="cancel-leave" class="secondary">Continuar jogando</button><button id="confirm-leave" class="primary">Sair da sala</button></div></dialog>
-  <dialog id="rules"><button id="close-rules" class="ghost close">Fechar ×</button><div class="eyebrow accent">GUIA RÁPIDO</div><h2>Negócios sem complicação.</h2><ol><li>De 2 a 8 pessoas. Cada uma começa com $1.500.</li><li>No seu turno, lance os dois dados e percorra o tabuleiro.</li><li>Compre o terreno onde parar ou passe. Terrenos de outros jogadores cobram aluguel automaticamente.</li><li>Melhore seus terrenos no seu turno, até três níveis. Cada nível acrescenta um aluguel base e custa metade do preço do terreno.</li><li>Uma volta rende $200. Sorte dá $150 ou cobra $90; imposto custa $120. Férias e café são casas de descanso.</li><li>Sem dinheiro para pagar? Você paga o saldo restante e vai à falência. Os terrenos voltam ao banco; não há hipotecas nem venda.</li><li>Ganha quem sobreviver ou tiver maior patrimônio após 20 rodadas. Empates dividem a vitória.</li></ol><p class="hint">Cada turno dura até 75 segundos. Não há leilões, trocas, prisão, bônus de conjuntos ou turno extra por dados iguais nesta versão. A aparência 3D usa perspectiva, sem câmera livre.</p></dialog>
+  <dialog id="rules"><button id="close-rules" class="ghost close">Fechar ×</button><div class="eyebrow accent">GUIA RÁPIDO</div><h2>Negócios sem complicação.</h2><ol><li>De 2 a 8 pessoas. Cada uma começa com $1.500.</li><li>No seu turno, lance os dois dados e percorra o tabuleiro.</li><li>Compre o terreno onde parar ou passe. Terrenos de outros jogadores cobram aluguel automaticamente.</li><li>Melhore seus terrenos no seu turno, até três níveis. Cada nível acrescenta um aluguel base e custa metade do preço do terreno.</li><li>Uma volta rende $200. Sorte dá $150 ou cobra $90; imposto custa $120. Férias e café são casas de descanso.</li><li>Sem dinheiro para pagar? Você paga o saldo restante e vai à falência. Os terrenos voltam ao banco; não há hipotecas nem venda.</li><li>Ganha quem sobreviver ou tiver maior patrimônio após 20 rodadas. Empates dividem a vitória.</li></ol><p class="hint">Cada turno dura até 75 segundos. Não há venda automática, hipotecas, leilões, prisão, bônus de conjuntos ou turno extra por dados iguais nesta versão. No seu turno, use Negociar propriedades para oferecer a compra ou venda de um terreno: escolha o jogador e o preço. Só o destinatário pode aceitar ou recusar. A transferência inclui melhorias e exige saldo. Ofertas expiram ao acabar o turno ou sair um participante. O relógio continua contando; cancele a oferta para voltar a lançar dados, comprar do banco ou melhorar terrenos. A aparência 3D usa perspectiva, sem câmera livre.</p></dialog>
   <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -3,8 +3,7 @@ import { randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createRoom, join, act, snapshot, tick } from './game.js';
 
-export function createServer() {
-  const rooms = new Map();
+export function createServer({rooms = new Map()} = {}) {
   return http.createServer(async (req, res) => {
     const send = (status, body) => { res.writeHead(status, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}); res.end(JSON.stringify(body)); };
     try {

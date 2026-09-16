@@ -85,11 +85,45 @@ function render() {
   const disabled = busy ? 'disabled' : '';
   $('actions').innerHTML = mine ? `${state.stage === 'roll' ? `<button class="primary" data-action="roll" ${disabled}>⚄ Lançar dados</button>` : `${state.stage === 'buy' ? `<button class="primary" data-action="buy" ${busy || me.money < state.board[me.position].price ? 'disabled' : ''}>Comprar por ${money(state.board[me.position].price)}</button>` : ''}<button class="secondary" data-action="end" ${disabled}>${state.stage === 'buy' ? 'Não comprar e passar' : 'Encerrar turno'} →</button>`}` : '';
   $('timer').hidden = state.phase !== 'playing'; updateTimer();
+  renderTrade(mine);
   const assets = Object.entries(state.properties).filter(([,lot]) => lot.owner === session.id);
   $('asset-count').textContent = assets.length;
-  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>Nível ${lot.level} · aluguel ${money(tile.rent * (lot.level + 1))}</small></div><button data-action="upgrade" data-value="${id}" ${!mine || busy || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button></div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
+  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>Nível ${lot.level} · aluguel ${money(tile.rent * (lot.level + 1))}</small></div><button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button></div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
   $('feed').innerHTML = state.logs.map(text => `<div class="feed-item">${esc(text)}</div>`).join('') || '<p class="hint">Os acontecimentos da partida aparecem aqui.</p>';
   if (state.dice.length) { $('die-one').textContent = String.fromCodePoint(0x267f + state.dice[0]); $('die-two').textContent = String.fromCodePoint(0x267f + state.dice[1]); }
+}
+function renderTrade(mine) {
+  const offer = state.trade;
+  $('trade-panel').hidden = state.phase !== 'playing';
+  $('send-trade').disabled = busy || !$('trade-property').value;
+  if (!mine || offer) $('trade-dialog').close();
+  if (!offer) {
+    $('trade-content').innerHTML = mine
+      ? '<p class="hint">Escolha um jogador e proponha comprar ou vender uma propriedade por um valor definido por você.</p><button class="secondary wide" data-open-trade>Fazer uma oferta</button>'
+      : '<p class="hint">Você pode propor negócios no seu turno e responder a ofertas quando elas chegarem.</p>';
+    return;
+  }
+  const buyer = state.players.find(p => p.id === offer.buyer);
+  const seller = state.players.find(p => p.id === offer.seller);
+  const toMe = offer.to === session.id;
+  const fromMe = offer.from === session.id;
+  const disabled = busy ? 'disabled' : '';
+  $('trade-content').innerHTML = `<div class="eyebrow accent">${toMe ? 'OFERTA PARA VOCÊ' : 'OFERTA PENDENTE'}</div><h4>${esc(state.board[offer.property].name)}</h4><p class="muted">${esc(buyer.name)} paga <strong>${money(offer.price)}</strong> a ${esc(seller.name)} pela propriedade com nível ${offer.level}.</p>${toMe ? `<p class="hint">${offer.buyer === session.id ? 'Ao aceitar, você paga e recebe a propriedade.' : 'Ao aceitar, você recebe o valor e entrega a propriedade.'}</p><div class="button-row"><button class="primary" data-action="trade-accept" data-value="${offer.id}" ${disabled}>Aceitar</button><button class="secondary" data-action="trade-reject" data-value="${offer.id}" ${disabled}>Recusar</button></div>` : fromMe ? `<p class="hint">Aguardando resposta. A oferta expira ao encerrar seu turno.</p><button class="ghost wide" data-action="trade-cancel" data-value="${offer.id}" ${disabled}>Cancelar oferta</button>` : '<p class="hint">Os jogadores estão decidindo. Nenhuma transferência aconteceu ainda.</p>'}`;
+  if (mine) $('actions').querySelectorAll('[data-action]').forEach(button => { if (button.dataset.action !== 'end') button.disabled = true; });
+}
+function fillTradeProperties() {
+  const selling = $('trade-type').value === 'sell';
+  const owner = selling ? session.id : $('trade-target').value;
+  const lots = Object.entries(state.properties).filter(([, lot]) => lot.owner === owner);
+  $('trade-property').innerHTML = lots.length ? lots.map(([id, lot]) => `<option value="${id}">${esc(state.board[id].name)} · nível ${lot.level}</option>`).join('') : '<option value="">Nenhuma propriedade disponível</option>';
+  const buyer = state.players.find(p => p.id === (selling ? $('trade-target').value : session.id));
+  $('trade-budget').textContent = buyer ? `Saldo do comprador (${buyer.name}): ${money(buyer.money)}.` : '';
+  $('send-trade').disabled = !lots.length || busy;
+}
+function openTrade() {
+  if (busy || state?.phase !== 'playing' || state.players[state.turn].id !== session.id || state.trade) return;
+  $('trade-target').innerHTML = state.players.filter(p => p.id !== session.id && !p.bankrupt).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  $('trade-price').value = ''; fillTradeProperties(); $('trade-dialog').showModal();
 }
 function updateTimer() { if (state?.phase === 'playing') $('timer').textContent = `◷ ${Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000))}s para encerrar o turno`; }
 $('host').onclick = () => perform(async () => {
@@ -100,9 +134,18 @@ $('create').onclick = () => perform(() => enter('create'));
 $('join').onclick = () => perform(() => enter('join'));
 $('start').onclick = () => perform(async () => { state = await request('/api/action', {code: session.code, action:'start'}); });
 document.addEventListener('click', event => {
+  if (event.target.closest('[data-open-trade]')) { openTrade(); return; }
   const button = event.target.closest('[data-action]');
-  if (button) perform(async () => { state = await request('/api/action', {code:session.code, action:button.dataset.action, value:Number(button.dataset.value)}); });
+  if (button) perform(async () => { state = await request('/api/action', {code:session.code, action:button.dataset.action, value:button.dataset.action.startsWith('trade-') ? button.dataset.value : Number(button.dataset.value)}); });
 });
+$('trade-type').onchange = fillTradeProperties;
+$('trade-target').onchange = fillTradeProperties;
+$('close-trade').onclick = () => $('trade-dialog').close();
+$('trade-form').onsubmit = event => {
+  event.preventDefault();
+  const value = {type:$('trade-type').value, target:$('trade-target').value, property:Number($('trade-property').value), price:Number($('trade-price').value)};
+  perform(async () => { state = await request('/api/action', {code:session.code, action:'trade-offer', value}); });
+};
 $('leave').onclick = () => $('leave-dialog').showModal();
 $('cancel-leave').onclick = () => $('leave-dialog').close();
 $('confirm-leave').onclick = () => perform(async () => {

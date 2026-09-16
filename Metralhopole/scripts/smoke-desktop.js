@@ -28,10 +28,21 @@ try {
   }
   await page.waitForFunction(() => document.querySelectorAll('.player').length === 8);
   await page.locator('#start').click();
+  await page.evaluate(() => {
+    const session = JSON.parse(localStorage.getItem('session'));
+    window.movementSteps = [];
+    new MutationObserver(() => {
+      const pawn = document.querySelector(`.token[data-player-id="${session.id}"]`);
+      const position = pawn?.closest('[data-tile]')?.dataset.tile;
+      if (position !== undefined && window.movementSteps.at(-1) !== position) window.movementSteps.push(position);
+    }).observe(document.getElementById('board'), {childList:true, subtree:true});
+  });
   await page.locator('[data-action="roll"]').click();
   await page.locator('[data-action="end"]').waitFor();
+  assert.ok((await page.evaluate(() => window.movementSteps)).length >= 3, 'o peão deve ocupar casas intermediárias durante a animação');
   assert.equal(await page.locator('.tile').count(), 60);
   assert.equal(await page.locator('.token').count(), 8);
+  assert.equal(await page.locator('.token span').count(), 8);
   if (!process.env.METRALHOPOLE_TEST_EXE) await page.screenshot({path:'test-results/desktop-game.png'});
   await page.locator('[data-action="end"]').click();
   await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
@@ -46,6 +57,19 @@ try {
   await page.locator('#close-rules').click();
   await page.locator('#view').click();
   assert.equal(await page.locator('.board.top').count(), 1);
+  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-tilt')), '0deg');
+  await page.locator('#view').click();
+  await page.locator('#zoom-in').click();
+  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-zoom')), '0.78');
+  await page.locator('#rotate-right').click();
+  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-8deg');
+  const scene = await page.locator('.board-scene').boundingBox();
+  await page.mouse.move(scene.x + scene.width / 2, scene.y + scene.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(scene.x + scene.width / 2 + 60, scene.y + scene.height / 2 + 20, {steps:4});
+  await page.mouse.up();
+  assert.notEqual(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-8deg');
+  assert.equal(await page.locator('#tile-dialog').isVisible(), false);
   await page.reload();
   await page.waitForFunction(() => document.querySelectorAll('.player').length === 8);
   await page.locator('#leave').click();
@@ -54,5 +78,6 @@ try {
   assert.deepEqual(errors, []);
   console.log('Desktop validado: janela, hospedagem, oito jogadores, turno, regras, câmera, reconexão e saída.');
 } finally {
+  if (errors.length) console.error('Erros da janela:', errors);
   await application.evaluate(({app}) => app.exit(0)).catch(() => {});
 }

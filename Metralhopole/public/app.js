@@ -1,20 +1,64 @@
-import {board as preview, SIDE, RULES, INDUSTRIES, buyable, money} from './board.js';
+import {board as preview, SIDE, RULES, INDUSTRIES, buyable, ownsGroup, rentFor, money} from './board.js';
 const $ = id => document.getElementById(id);
 const palette = ['#c6f185', '#7bc6f1', '#ee98b3', '#eac776', '#bca1ef', '#76d9c2', '#f2a477', '#d4dee8'];
 const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let session;
 try { session = JSON.parse(localStorage.getItem('session') || 'null'); } catch { localStorage.removeItem('session'); }
-let state, busy = false, polling = false, connected = false, noticeTimer, hostAddresses = [], boardStamp;
+let state, busy = false, polling = false, connected = false, animating = false, noticeTimer, hostAddresses = [], boardStamp;
+const displayedPositions = new Map();
+let lastAnimatedMove = 0;
+const camera = {tilt:28, rotation:-23, zoom:.7};
+let cameraDrag, suppressCameraClick = false;
+function applyCamera() {
+  const boardElement = $('board');
+  boardElement.style.setProperty('--camera-tilt', `${camera.tilt}deg`);
+  boardElement.style.setProperty('--camera-rotation', `${camera.rotation}deg`);
+  boardElement.style.setProperty('--camera-zoom', camera.zoom);
+}
+function setCamera(next, top = false) {
+  if (next.zoom !== undefined) next.zoom = Math.round(next.zoom * 100) / 100;
+  Object.assign(camera, next); $('board').classList.toggle('top', top); applyCamera();
+  $('view').textContent = top ? 'Vista 3D' : 'Vista de cima';
+}
+const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+const completeGroup = (tile, lot) => !!(state && lot && tile.type === 'property' && ownsGroup(state.board, state.properties, lot.owner, tile.group));
+const displayedRent = (tile, lot) => rentFor(tile, lot, 0, completeGroup(tile, lot));
 const initialRightPanel = document.querySelector('.right-panel').innerHTML;
 function notify(message) { $('notice').textContent = message.replace(/^Error invoking remote method '[^']+': Error: /, ''); $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => $('notice').hidden = true, 6500); }
 async function request(path, body, endpoint = session?.endpoint || $('endpoint').value.trim()) {
   return window.desktop.request({endpoint, path, body, token: session?.token});
 }
 async function perform(fn) {
-  if (busy) return;
+  if (busy || animating) return;
   busy = true; if (state) render();
   try { await fn(); } catch (e) { notify(e.message); }
   finally { busy = false; if (state) render(); }
+}
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function acceptState(latest) {
+  const movement = latest.lastMove;
+  const shouldAnimate = movement && movement.sequence > lastAnimatedMove && displayedPositions.has(movement.player);
+  state = latest;
+  for (const player of state.players) if (!displayedPositions.has(player.id)) displayedPositions.set(player.id, player.position);
+  if (!shouldAnimate) {
+    for (const player of state.players) displayedPositions.set(player.id, player.position);
+    if (movement) lastAnimatedMove = movement.sequence;
+    render(); return;
+  }
+  animating = true;
+  displayedPositions.set(movement.player, movement.from);
+  render();
+  for (const position of movement.path) {
+    await delay(movement.direct ? 320 : 145);
+    displayedPositions.set(movement.player, position);
+    boardStamp = undefined;
+    renderBoard();
+    const pawn = document.querySelector(`.token[data-player-id="${movement.player}"]`);
+    pawn?.classList.add('moving');
+  }
+  lastAnimatedMove = movement.sequence;
+  animating = false;
+  render();
 }
 function saveSession(data, endpoint) {
   session = {...data, endpoint}; localStorage.setItem('session', JSON.stringify(session));
@@ -35,7 +79,7 @@ async function poll(manual = false) {
     if (session !== activeSession) return;
     const wasDisconnected = !connected; connected = true;
     $('connection').textContent = '● CONECTADO';
-    if (wasDisconnected || JSON.stringify(latest) !== JSON.stringify(state)) { state = latest; render(); }
+    if (wasDisconnected || JSON.stringify(latest) !== JSON.stringify(state)) await acceptState(latest);
     if (manual) notify('Reconectado! Seu dinheiro, propriedades, cartas e posição foram recuperados.');
   }
   catch(e) { if (session !== activeSession) return; connected = false; if (state) render(); $('connection').textContent = '○ SEM CONEXÃO'; $('setup').hidden = true; $('room-panel').hidden = false; $('room-code').textContent = session.code; $('lobby-note').textContent = 'Conexão interrompida. Seu progresso permanece no servidor. Use Reconectar ou aguarde a tentativa automática; não use Sair para reconectar.'; if (manual) notify('Ainda sem conexão. Confira o anfitrião; sua sessão foi mantida para tentar novamente.'); }
@@ -48,7 +92,7 @@ function boardLocation(id) {
   return [id - SIDE * 3 + 1, SIDE + 1];
 }
 function renderBoard() {
-  const stamp = JSON.stringify({board:state?.board || preview, players:state?.players, properties:state?.properties});
+  const stamp = JSON.stringify({board:state?.board || preview, players:state?.players, properties:state?.properties, displayed:[...displayedPositions]});
   if (stamp === boardStamp) return;
   boardStamp = stamp;
   $('board').querySelectorAll('.tile').forEach(el => el.remove());
@@ -57,11 +101,11 @@ function renderBoard() {
     const [row, col] = boardLocation(tile.id); el.style.gridRow = row; el.style.gridColumn = col;
     const lot = state?.properties[tile.id];
     const owner = lot ? state.players.findIndex(p => p.id === lot.owner) : -1;
-    const tokens = (state?.players || []).map((p, i) => ({...p, index:i})).filter(p => !p.bankrupt && p.position === tile.id);
+    const tokens = (state?.players || []).map((p, i) => ({...p, index:i, visualPosition:displayedPositions.get(p.id) ?? p.position})).filter(p => !p.bankrupt && p.visualPosition === tile.id);
     el.style.setProperty('--color', tile.color || '#abc8a9'); el.style.setProperty('--owner', palette[owner] || '#344');
-    el.title = tile.name + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(tile.rent * (lot.level + 1))}` : '');
+    el.title = tile.name + (tile.city ? ` · ${tile.city}` : '') + (lot ? ` · ${state.players[owner].name} · aluguel ${tile.type === 'industry' ? money(tile.price) + ' × soma dos dados' : money(displayedRent(tile, lot)) + (completeGroup(tile, lot) && lot.level === 0 ? ' (grupo completo)' : '')}` : '');
     el.setAttribute('aria-label', el.title + ' — ver detalhes');
-    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${lot ? `<span class="owner-mark">${owner + 1} ${'◆'.repeat(lot.level)}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}">${p.index + 1}</span>`).join('')}</span>`;
+    el.innerHTML = `${tile.type === 'property' ? '<span class="stripe"></span>' : `<span class="tile-symbol">${({start:'↗',event:'?',rest:'☕',tax:'R$',jail:'▥','go-to-jail':'➜▥',industry:'⚙'})[tile.type]}</span>`}<span class="tile-name">${esc(tile.name)}</span>${buyable(tile) ? `<span class="tile-price">${tile.price / 1000} mil</span>` : ''}${lot ? `<span class="owner-mark">${owner + 1} ${'◆'.repeat(lot.level)}</span>` : ''}<span class="tokens">${tokens.map(p => `<span class="token ${p.jailed ? 'jailed' : ''}" data-player-id="${p.id}" title="${esc(p.name)}${p.jailed ? ' — preso' : tile.type === 'jail' ? ' — visitante' : ''}" style="--player:${palette[p.index]}"><span>${p.index + 1}</span></span>`).join('')}</span>`;
     $('board').append(el);
   }
 }
@@ -71,7 +115,7 @@ function render() {
   if (!state || !session) return;
   const me = state.players.find(p => p.id === session.id);
   const current = state.players[state.turn];
-  const mine = current?.id === session.id && state.phase === 'playing' && !me?.bankrupt && !state.paused && connected;
+  const mine = current?.id === session.id && state.phase === 'playing' && !me?.bankrupt && !state.paused && connected && !animating;
   $('pause').hidden = state.phase !== 'playing'; $('pause').disabled = busy || !connected || me?.bankrupt;
   $('pause').textContent = state.paused ? 'Retomar partida' : 'Pausar partida';
   $('pause-banner').hidden = !state.paused || state.phase !== 'playing';
@@ -94,7 +138,7 @@ function render() {
   renderTrade(mine);
   const assets = Object.entries(state.properties).filter(([,lot]) => lot.owner === session.id);
   $('asset-count').textContent = assets.length;
-  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `Nível ${lot.level} · aluguel ${money(tile.rent * (lot.level + 1))}`}</small></div>${tile.type === 'property' ? `<button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button>` : '<span class="hint">⚙</span>'}</div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
+  $('assets').innerHTML = assets.length ? assets.map(([id,lot]) => { const tile = state.board[id]; const cost = Math.floor(tile.price / 2), set = completeGroup(tile, lot); return `<div class="asset"><span class="asset-swatch" style="background:${tile.color}"></span><div class="asset-name">${esc(tile.name)}<small>${tile.type === 'industry' ? `${money(tile.price)} × soma dos dados` : `${esc(tile.city)} · nível ${lot.level} · aluguel ${money(displayedRent(tile, lot))}${set && lot.level === 0 ? ' · grupo completo 2×' : ''}`}</small></div>${tile.type === 'property' ? `<button data-action="upgrade" data-value="${id}" ${!mine || busy || state.trade || lot.level >= 3 || me.money < cost ? 'disabled' : ''}>${lot.level >= 3 ? 'Máx.' : '+ ' + money(cost)}</button>` : '<span class="hint">⚙</span>'}</div>`; }).join('') : '<p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p>';
   $('feed').innerHTML = state.logs.map(text => `<div class="feed-item">${esc(text)}</div>`).join('') || '<p class="hint">Os acontecimentos da partida aparecem aqui.</p>';
   if (state.dice.length) { $('die-one').textContent = String.fromCodePoint(0x267f + state.dice[0]); $('die-two').textContent = String.fromCodePoint(0x267f + state.dice[1]); }
 }
@@ -138,13 +182,13 @@ $('host').onclick = () => perform(async () => {
 });
 $('create').onclick = () => perform(() => enter('create'));
 $('join').onclick = () => perform(() => enter('join'));
-$('start').onclick = () => perform(async () => { state = await request('/api/action', {code: session.code, action:'start'}); });
+$('start').onclick = () => perform(async () => { await acceptState(await request('/api/action', {code: session.code, action:'start'})); });
 document.addEventListener('click', event => {
   const tileButton = event.target.closest('[data-tile]');
   if (tileButton) { showTile(Number(tileButton.dataset.tile)); return; }
   if (event.target.closest('[data-open-trade]')) { openTrade(); return; }
   const button = event.target.closest('[data-action]');
-  if (button) perform(async () => { state = await request('/api/action', {code:session.code, action:button.dataset.action, value:button.dataset.action.startsWith('trade-') ? button.dataset.value : Number(button.dataset.value)}); });
+  if (button) perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:button.dataset.action, value:button.dataset.action.startsWith('trade-') ? button.dataset.value : Number(button.dataset.value)})); });
 });
 $('trade-type').onchange = fillTradeProperties;
 $('trade-target').onchange = fillTradeProperties;
@@ -152,7 +196,7 @@ $('close-trade').onclick = () => $('trade-dialog').close();
 $('trade-form').onsubmit = event => {
   event.preventDefault();
   const value = {type:$('trade-type').value, target:$('trade-target').value, property:Number($('trade-property').value), price:Number($('trade-price').value)};
-  perform(async () => { state = await request('/api/action', {code:session.code, action:'trade-offer', value}); });
+  perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:'trade-offer', value})); });
 };
 $('leave').onclick = () => $('leave-dialog').showModal();
 $('cancel-leave').onclick = () => $('leave-dialog').close();
@@ -166,15 +210,48 @@ $('confirm-leave').onclick = () => perform(async () => {
   $('die-one').textContent = '⚄'; $('die-two').textContent = '⚂'; render();
 });
 $('copy-code').onclick = () => navigator.clipboard.writeText(session.code).then(() => notify('Código copiado! Envie também o endereço do servidor.')).catch(() => notify(`Código: ${session.code}`));
-$('view').onclick = () => { const top = $('board').classList.toggle('top'); $('view').textContent = top ? 'Vista 3D' : 'Vista de cima'; };
+$('view').onclick = () => $('board').classList.contains('top') ? setCamera({tilt:28, rotation:-23, zoom:.7}) : setCamera({tilt:0, rotation:0, zoom:.78}, true);
+$('reset-view').onclick = () => setCamera({tilt:28, rotation:-23, zoom:.7});
+$('zoom-in').onclick = () => setCamera({zoom:clamp(camera.zoom + .08, .4, 1.2)});
+$('zoom-out').onclick = () => setCamera({zoom:clamp(camera.zoom - .08, .4, 1.2)});
+$('rotate-left').onclick = () => setCamera({rotation:camera.rotation - 15});
+$('rotate-right').onclick = () => setCamera({rotation:camera.rotation + 15});
+$('tilt-up').onclick = () => setCamera({tilt:clamp(camera.tilt - 8, 0, 65)});
+$('tilt-down').onclick = () => setCamera({tilt:clamp(camera.tilt + 8, 0, 65)});
+document.querySelector('.board-scene').addEventListener('wheel', event => {
+  event.preventDefault(); setCamera({zoom:clamp(camera.zoom + (event.deltaY < 0 ? .07 : -.07), .4, 1.2)});
+}, {passive:false});
+document.querySelector('.board-scene').addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+  cameraDrag = {x:event.clientX, y:event.clientY, rotation:camera.rotation, tilt:camera.tilt, moved:false};
+  event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.classList.add('dragging'); $('board').classList.add('camera-dragging');
+});
+document.querySelector('.board-scene').addEventListener('pointermove', event => {
+  if (!cameraDrag) return;
+  const dx = event.clientX - cameraDrag.x, dy = event.clientY - cameraDrag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 5) cameraDrag.moved = true;
+  if (cameraDrag.moved) setCamera({rotation:cameraDrag.rotation + dx * .35, tilt:clamp(cameraDrag.tilt - dy * .25, 0, 65)});
+});
+document.querySelector('.board-scene').addEventListener('pointerup', event => {
+  if (!cameraDrag) return;
+  const moved = cameraDrag.moved; cameraDrag = null; event.currentTarget.classList.remove('dragging'); $('board').classList.remove('camera-dragging');
+  if (moved) suppressCameraClick = true;
+});
+document.querySelector('.board-scene').addEventListener('pointercancel', event => {
+  cameraDrag = null; event.currentTarget.classList.remove('dragging'); $('board').classList.remove('camera-dragging');
+});
+document.querySelector('.board-scene').addEventListener('click', event => {
+  if (!suppressCameraClick) return;
+  suppressCameraClick = false; event.preventDefault(); event.stopPropagation();
+}, true);
 $('rules-button').onclick = () => $('rules').showModal(); $('close-rules').onclick = () => $('rules').close();
 $('reconnect').onclick = () => { if (polling || busy) notify('Uma tentativa de conexão já está em andamento.'); else { $('connection').textContent = 'RECONECTANDO…'; poll(true); } };
-$('pause').onclick = () => perform(async () => { state = await request('/api/action', {code:session.code, action:state.paused ? 'resume' : 'pause'}); });
+$('pause').onclick = () => perform(async () => { await acceptState(await request('/api/action', {code:session.code, action:state.paused ? 'resume' : 'pause'})); });
 function showTile(id) {
   const tile = (state?.board || preview)[id], lot = state?.properties[id];
   $('tile-title').textContent = tile.name;
-  $('tile-detail').textContent = buyable(tile) ? `Preço original: ${money(tile.price)}. ${lot ? 'Proprietário: ' + state.players.find(p => p.id === lot.owner).name + '.' : 'Disponível no banco.'} ${tile.type === 'industry' ? `Aluguel: ${money(tile.price)} multiplicado pela soma dos dois dados. Conquiste as quatro indústrias para vencer. Não recebe melhorias.` : `Aluguel: ${money(tile.rent * ((lot?.level || 0) + 1))}. Nível ${lot?.level || 0} de 3.`}` : ({jail:'Cair aqui pelo movimento normal é apenas uma visita. Quem foi enviado à prisão precisa tirar uma dupla, cumprir três turnos ou usar a carta de saída.', 'go-to-jail':'Você é enviado à prisão no canto oposto, sem bônus de partida pelo deslocamento.', event:'Compre uma carta Sorte: bônus, reparos, ir à prisão ou guardar uma carta Sair da prisão.',start:`Cada volta completa rende ${money(RULES.lapBonus)}.`,rest:'Casa de descanso. Nenhuma cobrança.',tax:`Pague ${money(RULES.tax)} ao banco.`})[tile.type];
+  $('tile-detail').textContent = buyable(tile) ? `${tile.city ? tile.city + '. ' : ''}Preço original: ${money(tile.price)}. ${lot ? 'Proprietário: ' + state.players.find(p => p.id === lot.owner).name + '.' : 'Disponível no banco.'} ${tile.type === 'industry' ? `Aluguel: ${money(tile.price)} multiplicado pela soma dos dois dados. Conquiste as quatro indústrias para vencer. Não recebe melhorias.` : `Aluguel: ${money(lot ? displayedRent(tile, lot) : tile.rent)}. Nível ${lot?.level || 0} de 3.${lot && completeGroup(tile, lot) && lot.level === 0 ? ' O proprietário possui as quatro propriedades desta cor, então o aluguel base está dobrado.' : ''}`}` : ({jail:'Cair aqui pelo movimento normal é apenas uma visita. Quem foi enviado à prisão precisa tirar uma dupla, cumprir três turnos ou usar a carta de saída.', 'go-to-jail':'Você é enviado à prisão no canto oposto, sem bônus de partida pelo deslocamento.', event:'Compre uma carta Sorte: bônus, reparos, ir à prisão ou guardar uma carta Sair da prisão.',start:`Cada volta completa rende ${money(RULES.lapBonus)}.`,rest:'Casa de descanso. Nenhuma cobrança.',tax:`Pague ${money(RULES.tax)} ao banco.`})[tile.type];
   $('tile-dialog').showModal();
 }
 $('close-tile').onclick = () => $('tile-dialog').close();
-renderBoard(); if (session) poll(); setInterval(poll, 1200); setInterval(updateTimer, 250);
+applyCamera(); renderBoard(); if (session) poll(); setInterval(poll, 1200); setInterval(updateTimer, 250);

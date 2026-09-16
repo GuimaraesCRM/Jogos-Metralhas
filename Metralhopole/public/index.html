@@ -39,9 +39,9 @@
       </section>
     </aside>
     <section class="table-area">
-      <div class="table-heading"><div><div class="eyebrow">UMA CIDADE. MUITAS POSSIBILIDADES.</div><h2 id="table-title">Construa sua sorte.</h2></div><button id="view" class="ghost">Vista de cima</button></div>
+      <div class="table-heading"><div><div class="eyebrow">UMA CIDADE. MUITAS POSSIBILIDADES.</div><h2 id="table-title">Construa sua sorte.</h2></div><div class="camera-controls" aria-label="Controles da câmera"><button id="zoom-out" class="ghost" title="Afastar" aria-label="Afastar câmera">−</button><button id="zoom-in" class="ghost" title="Aproximar" aria-label="Aproximar câmera">+</button><button id="rotate-left" class="ghost" title="Girar para a esquerda" aria-label="Girar câmera para a esquerda">↶</button><button id="rotate-right" class="ghost" title="Girar para a direita" aria-label="Girar câmera para a direita">↷</button><button id="tilt-up" class="ghost" title="Olhar mais de cima" aria-label="Olhar mais de cima">↑</button><button id="tilt-down" class="ghost" title="Olhar mais de lado" aria-label="Olhar mais de lado">↓</button><button id="reset-view" class="ghost" title="Restaurar câmera">Centralizar</button><button id="view" class="ghost">Vista de cima</button></div></div>
       <div class="board-scene"><div id="board" class="board"><div class="city"><div class="city-label">METRALHOPOLE<span>CLUBE DOS METRALHAS</span></div><div class="buildings"><i></i><i></i><i></i><i></i><i></i></div><div class="park"></div><div class="center-dice"><span id="die-one">⚄</span><span id="die-two">⚂</span></div><div class="city-subtitle">CONQUISTE AS QUATRO INDÚSTRIAS</div></div></div></div>
-      <div class="table-footer"><span><i class="live-dot"></i> <span id="round">60 casas · 44 propriedades</span></span><span>Clique em uma casa para ver detalhes · + R$ 50.000 por volta</span></div>
+      <div class="table-footer"><span><i class="live-dot"></i> <span id="round">60 casas · 44 propriedades</span></span><span>Arraste para girar · roda para zoom · clique em uma casa para detalhes</span></div>
     </section>
     <aside class="right-panel">
       <section class="panel turn-panel"><div class="eyebrow accent" id="turn-label">SEU LUGAR ESTÁ RESERVADO</div><h2 id="turn-title">Vamos jogar?</h2><p id="turn-description" class="muted">Uma partida de negócios, sorte e boas disputas.</p><div id="timer" class="timer" hidden></div><div id="actions"></div></section>
@@ -69,7 +69,8 @@
     <ol>
       <li>De 2 a 8 pessoas, cada uma com R$ 500.000. São 60 casas, 40 propriedades comuns e quatro indústrias. Não há limite de rodadas.</li>
       <li>Vence o último sobrevivente ou quem conquistar as quatro indústrias, inclusive por negociação.</li>
-      <li>Uma volta completa rende R$ 50.000. Propriedades custam de R$ 40.000 a R$ 148.000; melhorias custam metade do preço original e aumentam o aluguel, até três níveis.</li>
+      <li>As 40 propriedades usam nomes de locais reais do Brasil e formam dez grupos de quatro da mesma cor. Quem possuir as quatro propriedades de uma cor cobra o dobro do aluguel base nos terrenos ainda sem melhoria.</li>
+      <li>Uma volta completa rende R$ 50.000. Propriedades custam de R$ 40.000 a R$ 148.000; melhorias custam metade do preço original e aumentam o aluguel, até três níveis. Terrenos melhorados usam o aluguel do nível atual, sem o bônus adicional do grupo completo.</li>
       <li>Cada indústria custa R$ 25.000. Ao cair na indústria de outra pessoa, pague R$ 25.000 × a soma dos dois dados. Exemplo: 3 + 4 = aluguel de R$ 175.000. Indústrias não recebem melhorias.</li>
       <li>Uma dupla permite outra jogada depois de resolver a casa. Três duplas consecutivas no mesmo turno mandam à prisão, sem mover pela terceira jogada.</li>
       <li>Vai para a prisão quem tira a carta Sorte correspondente, tira três duplas seguidas ou cai em Vá à prisão. Cair normalmente na casa Prisão é apenas visita. O transporte para a prisão não rende bônus de partida.</li>
@@ -78,6 +79,7 @@
       <li>Negocie no seu turno: escolha comprador ou vendedor, propriedade e preço. Só o destinatário aceita ou recusa. Uma oferta por vez; melhorias acompanham o imóvel. Sem venda automática, hipotecas ou leilões.</li>
       <li>Sorte também concede R$ 25.000 ou cobra R$ 15.000. Imposto custa R$ 18.000. Sem saldo para uma cobrança, há falência e os terrenos voltam ao banco.</li>
       <li>O turno dura 75 segundos. Pausar congela o tempo restante e as ações para todos; qualquer jogador ativo pode retomar. Ofertas também ficam suspensas.</li>
+      <li>A câmera pode ser girada arrastando o tabuleiro. Use a roda do mouse ou os botões + e − para aproximar e afastar; as setas mudam a direção e a inclinação. Vista de cima e Centralizar restauram ângulos úteis.</li>
       <li>Reconectar recupera sua sessão e progresso no mesmo aplicativo, enquanto o servidor estiver ativo. Sair da sala é desistir. Fechar o anfitrião encerra as salas.</li>
     </ol>
   </dialog>

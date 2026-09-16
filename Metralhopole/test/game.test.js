@@ -42,6 +42,23 @@ test('compra, melhoria e aluguel alteram apenas os saldos corretos', () => {
   assert.equal(a.money, balance + tile.rent * 2);
   assert.throws(() => act(r, b.token, 'upgrade', 3), /indisponível/);
 });
+test('grupo completo de uma cor dobra apenas o aluguel de terreno sem melhoria', () => {
+  const group = board.filter(tile => tile.type === 'property' && tile.group === 0);
+  assert.equal(group.length, 4);
+
+  const complete = game(); const [owner, visitor] = complete.players; const target = group[3];
+  for (const tile of group) complete.properties[tile.id] = {owner:owner.id, level:0};
+  complete.turn = 1; visitor.position = target.id - 3;
+  act(complete, visitor.token, 'roll', null, nonDouble());
+  assert.equal(visitor.money, RULES.startingMoney - target.rent * 2);
+  assert.match(complete.logs[0], /grupo de cor completo/);
+
+  const improved = game(); const [builder, guest] = improved.players;
+  for (const tile of group) improved.properties[tile.id] = {owner:builder.id, level:0};
+  improved.properties[target.id].level = 2; improved.turn = 1; guest.position = target.id - 3;
+  act(improved, guest.token, 'roll', null, nonDouble());
+  assert.equal(guest.money, RULES.startingMoney - target.rent * 3);
+});
 test('limites de dinheiro, nível e bônus ao passar pela partida', () => {
   const r = game(); const p = r.players[0]; p.position = board.length - 2;
   act(r, p.token, 'roll', null, nonDouble());

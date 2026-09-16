@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+  <title>Monopoly Metralhas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand-icon">M<span>↗</span></div>
+    <div><div class="eyebrow">JOGOS METRALHAS</div><h1>Metrópole<span> / Monopoly</span></h1></div>
+    <div class="header-right"><span class="pill">2–8 JOGADORES</span><span id="connection" class="muted">EDIÇÃO DESKTOP</span><button id="rules-button" class="ghost">Como jogar</button></div>
+  </header>
+  <main>
+    <aside class="left-panel">
+      <section id="setup" class="panel">
+        <div class="eyebrow accent">SUA PRÓXIMA GRANDE JOGADA</div><h2>A cidade é<br>de vocês.</h2>
+        <p class="muted">Compre ruas, construa seu império e desafie até sete amigos.</p>
+        <label for="name">Seu nome</label><input id="name" maxlength="20" placeholder="Como você se chama?" autocomplete="off">
+        <button id="host" class="primary wide">Hospedar no meu computador <span>↗</span></button>
+        <div class="divider">OU CONECTE-SE A UM ANFITRIÃO</div>
+        <label for="endpoint">Endereço do servidor</label><input id="endpoint" placeholder="http://IP-DO-AMIGO:3000" value="http://127.0.0.1:3000" autocomplete="off">
+        <label for="code">Código da sala</label><input id="code" maxlength="6" placeholder="EX.: ABC123" class="code-input" autocomplete="off">
+        <div class="button-row"><button id="join" class="primary">Entrar</button><button id="create" class="secondary">Criar sala</button></div>
+        <p class="hint">O anfitrião mantém o aplicativo aberto. Na internet, use um servidor acessível ou uma rede privada entre amigos.</p>
+      </section>
+      <section id="room-panel" class="panel" hidden>
+        <div class="section-heading"><span class="eyebrow">SALA PRIVADA</span><button id="copy-code" class="ghost small">Copiar código</button></div>
+        <div id="room-code" class="room-code"></div><p id="host-address" class="hint"></p>
+        <div class="section-heading"><h3>Na mesa</h3><span id="player-count" class="muted"></span></div>
+        <div id="players"></div>
+        <button id="start" class="primary wide">Começar partida</button>
+        <p id="lobby-note" class="hint"></p>
+        <button id="leave" class="ghost wide">Sair da sala</button>
+      </section>
+    </aside>
+    <section class="table-area">
+      <div class="table-heading"><div><div class="eyebrow">UMA CIDADE. MUITAS POSSIBILIDADES.</div><h2 id="table-title">Construa sua sorte.</h2></div><button id="view" class="ghost">Vista de cima</button></div>
+      <div class="board-scene"><div id="board" class="board"><div class="city"><div class="city-label">METRÓPOLE<span>CLUBE DOS METRALHAS</span></div><div class="buildings"><i></i><i></i><i></i><i></i><i></i></div><div class="park"></div><div class="center-dice"><span id="die-one">⚄</span><span id="die-two">⚂</span></div><div class="city-subtitle">GRANDES NEGÓCIOS • BONS AMIGOS</div></div></div></div>
+      <div class="table-footer"><span><i class="live-dot"></i> <span id="round">20 rodadas · maior patrimônio vence</span></span><span>+ $200 por volta completa</span></div>
+    </section>
+    <aside class="right-panel">
+      <section class="panel turn-panel"><div class="eyebrow accent" id="turn-label">SEU LUGAR ESTÁ RESERVADO</div><h2 id="turn-title">Vamos jogar?</h2><p id="turn-description" class="muted">Uma partida de negócios, sorte e boas disputas.</p><div id="timer" class="timer" hidden></div><div id="actions"></div></section>
+      <section class="panel"><div class="section-heading"><h3>Seus negócios</h3><span id="asset-count" class="muted">0</span></div><div id="assets"><p class="hint empty">Sua primeira propriedade é só uma jogada de distância.</p></div></section>
+      <section class="panel feed-panel"><h3>Aconteceu na cidade</h3><div id="feed"><p class="hint">Os acontecimentos da partida aparecem aqui.</p></div></section>
+    </aside>
+  </main>
+  <div id="notice" role="status" hidden></div>
+  <dialog id="leave-dialog"><h2>Sair da sala?</h2><p class="muted">Durante a partida, sair conta como desistência. Se você hospeda, o servidor continua aberto até fechar o aplicativo.</p><div class="button-row"><button id="cancel-leave" class="secondary">Continuar jogando</button><button id="confirm-leave" class="primary">Sair da sala</button></div></dialog>
+  <dialog id="rules"><button id="close-rules" class="ghost close">Fechar ×</button><div class="eyebrow accent">GUIA RÁPIDO</div><h2>Negócios sem complicação.</h2><ol><li>De 2 a 8 pessoas. Cada uma começa com $1.500.</li><li>No seu turno, lance os dois dados e percorra o tabuleiro.</li><li>Compre o terreno onde parar ou passe. Terrenos de outros jogadores cobram aluguel automaticamente.</li><li>Melhore seus terrenos no seu turno, até três níveis. Cada nível acrescenta um aluguel base e custa metade do preço do terreno.</li><li>Uma volta rende $200. Sorte dá $150 ou cobra $90; imposto custa $120. Férias e café são casas de descanso.</li><li>Sem dinheiro para pagar? Você paga o saldo restante e vai à falência. Os terrenos voltam ao banco; não há hipotecas nem venda.</li><li>Ganha quem sobreviver ou tiver maior patrimônio após 20 rodadas. Empates dividem a vitória.</li></ol><p class="hint">Cada turno dura até 75 segundos. Não há leilões, trocas, prisão, bônus de conjuntos ou turno extra por dados iguais nesta versão. A aparência 3D usa perspectiva, sem câmera livre.</p></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

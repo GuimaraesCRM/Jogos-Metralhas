@@ -1,0 +1,44 @@
+{
+  "name": "metralhas-monopoly",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Jogo desktop de propriedades para 2 a 8 amigos",
+  "author": "Guilherme Guimarães",
+  "main": "desktop.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server.js",
+    "test": "node --test",
+    "test:desktop": "node scripts/smoke-desktop.js",
+    "build": "electron-builder --win portable --x64"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3",
+    "playwright": "1.63.0"
+  },
+  "build": {
+    "appId": "com.metralhas.monopoly",
+    "productName": "Monopoly Metralhas",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop.js",
+      "preload.cjs",
+      "server.js",
+      "game.js",
+      "public/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "signAndEditExecutable": false
+    },
+    "artifactName": "Monopoly-Metralhas-${version}-${arch}.${ext}"
+  }
+}

@@ -10,6 +10,8 @@ Para trabalhar em um jogo já existente, a pasta deve estar atribuída a você e
 
 Escolha livremente a tecnologia do seu jogo: linguagem, engine, framework e ferramentas podem ser diferentes das dos outros jogos. Não há stack única obrigatória. Mantenha o jogo executável e testável de forma independente, com suas dependências e configurações na própria pasta.
 
+Priorize a entrega como executável desktop para Windows (`.exe`), em janela própria, sem exigir navegador ou ferramentas de desenvolvimento do jogador. Tecnologias web internas são permitidas se empacotadas como aplicativo. Uma versão exclusivamente para navegador deve ser uma alternativa explicitamente solicitada, não a entrega padrão. Documente separadamente como iniciar ou acessar o servidor multiplayer, quando necessário.
+
 A união acontecerá posteriormente em um mega launcher com seleção e inicialização dos jogos, lobby online, convites, lista de amigos e criação e entrada em salas. Os contratos e adaptadores de integração serão definidos nessa etapa, preservando as tecnologias escolhidas. Não implemente infraestrutura compartilhada nem altere outros jogos para antecipar essa integração.
 
 Inclua no `README.md` do jogo:
@@ -18,7 +20,7 @@ Inclua no `README.md` do jogo:
 - Estado atual e regras básicas para jogar.
 - Tecnologias escolhidas e versões necessárias de runtimes, engines e ferramentas.
 - Pré-requisitos e comandos reais para instalar, executar e validar.
-- Como gerar e iniciar a versão distribuível, quando essa etapa estiver implementada.
+- Como gerar e iniciar o executável desktop, quais sistemas são suportados e quais componentes acompanham a distribuição. Enquanto o empacotamento não estiver implementado, registre essa pendência explicitamente.
 - Como testar separadamente do futuro executável central.
 - Necessidades de rede, jogadores, salas e estado da partida, conforme forem definidas.
 - Pontos de entrada previstos para futura integração e pendências conhecidas.

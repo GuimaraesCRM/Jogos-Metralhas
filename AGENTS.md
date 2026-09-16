@@ -6,6 +6,9 @@ Este repositório contém o futuro bundle Jogos Metralhas: vários jogos indepen
 
 ## Liberdade de tecnologia
 
+- Priorize jogos distribuídos como executáveis desktop, com janela própria e sem exigir que o jogador abra ou instale um navegador. Para o ambiente atual, priorize Windows (`.exe`). Uma versão que rode apenas em navegador não é a entrega padrão; trate uma versão web como alternativa somente quando solicitada explicitamente.
+- A escolha da tecnologia continua livre. Tecnologias web podem ser usadas internamente, desde que empacotadas como aplicativo desktop com os componentes necessários. O jogador não deve precisar instalar ferramentas de desenvolvimento para executar a versão distribuída.
+- Documente como executar em desenvolvimento e como gerar e usar o executável. Dependências de rede ou de um servidor multiplayer devem ser informadas separadamente: ter um executável não significa dispensar o servidor online.
 - Não há linguagem, engine, framework ou stack obrigatória para todos os jogos. Cada responsável pode escolher a tecnologia do próprio jogo; jogos diferentes podem usar tecnologias completamente diferentes.
 - Não impor a tecnologia de um jogo a outro, nem migrar ou reescrever jogos para uniformizar o bundle. A futura integração deve respeitar essa independência.
 - Manter dependências, configurações e ferramentas específicas dentro da pasta do jogo. Documentar tecnologias, versões necessárias, execução, build, validação, requisitos de rede e pontos de entrada no README local.

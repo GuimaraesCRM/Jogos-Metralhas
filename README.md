@@ -6,6 +6,10 @@ Cada jogo será desenvolvido de forma independente, em uma pasta na raiz com o n
 
 ## Tecnologias e launcher futuro
 
+Os jogos devem ser prioritariamente aplicativos desktop distribuídos como executáveis, inicialmente para Windows (`.exe`), com janela própria e sem depender de abrir um navegador. A versão distribuída deve incluir os componentes necessários para jogar, sem exigir ferramentas de desenvolvimento. Uma versão exclusivamente web só deve ser escolhida quando solicitada explicitamente.
+
+É permitido usar tecnologias web internamente e empacotá-las em um aplicativo desktop. Essa preferência de distribuição não impõe uma linguagem, engine ou framework. Jogos online ainda podem precisar de um servidor multiplayer, cujo funcionamento deve ser documentado.
+
 Não existe uma tecnologia única obrigatória para o bundle. Cada responsável pode escolher a linguagem, engine, framework e ferramentas do próprio jogo, mesmo que sejam diferentes das usadas nos demais jogos. Essa liberdade é uma diretriz do projeto, não uma decisão temporariamente pendente. Não é necessário reescrever ou padronizar os jogos em uma mesma tecnologia para participar do bundle.
 
 Posteriormente, os jogos serão reunidos em um mega launcher, com um executável central para selecionar e iniciar os jogos, lobby online, convites, lista de amigos, criação e entrada em salas e outros recursos compartilhados. A tecnologia do launcher e os contratos de integração serão definidos nessa etapa, respeitando as tecnologias de cada jogo.

@@ -1,5 +1,7 @@
 # Metralhopole
 
+> **Migração 3D:** a nova implementação visual em Godot 4 está em [`godot/`](godot/README.md). Ela já possui uma única cena 3D para tabuleiro, peão, câmera e dados físicos. A versão Electron permanece disponível como referência das regras e do multiplayer durante a migração.
+
 Primeira versão de um jogo de propriedades simplificado para **2 a 8 pessoas online**, inspirado na dinâmica de Monopoly e Business Tour. Tabuleiro original com aparência 3D feita em perspectiva CSS; não utiliza arte desses jogos. Não é uma reprodução integral das regras clássicas.
 
 **Responsável proposto:** Guilherme Guimarães, `@GuimaraesCRM`. **Pasta:** `Metralhopole/`. Cadastro pendente de revisão do primeiro PR. Todo o código, configuração e recursos deste jogo ficam nesta pasta.

@@ -1,5 +1,7 @@
 # Metralhopole
 
+Migração em andamento: a nova camada visual deve ser desenvolvida em Godot 4 dentro de `godot/`, com tabuleiro, peões, construções e dados no mesmo mundo 3D. A versão Electron permanece como referência funcional até a integração das regras e do multiplayer. Não simular 3D por sobreposição de HTML nessa nova camada.
+
 Responsável proposto: Guilherme Guimarães, `@GuimaraesCRM`. Cadastro pendente de revisão do primeiro PR.
 
 Escopo: somente `Metralhopole/`. As regras do `AGENTS.md` da raiz continuam válidas. Não editar outros jogos, cadastro de responsáveis ou infraestrutura compartilhada.

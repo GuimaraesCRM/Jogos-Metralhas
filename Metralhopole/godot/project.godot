@@ -1,0 +1,14 @@
+[application]
+config/name="Metralhopole 3D"
+run/main_scene="res://main.tscn"
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/size/window_width_override=1280
+window/size/window_height_override=720
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+[input]
+roll_dice={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":32)]}
+move_demo={"deadzone":0.5,"events":[Object(InputEventKey,"physical_keycode":77)]}

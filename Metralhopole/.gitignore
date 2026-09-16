@@ -5,3 +5,6 @@ dist/
 .cache/
 test-results/
 modelos metralhas/
+godot/.godot/
+godot/.tools/
+godot/build/

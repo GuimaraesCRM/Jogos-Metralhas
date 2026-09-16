@@ -318,3 +318,110 @@ test('consenso exige os dois operativos, e quem cai volta ao mesmo lugar', async
   intruso.enviar('reconectar', { codigo, jogadorId: cracha.jogadorId, token: 'token-errado' });
   await intruso.ate((c) => c.erros.length > 0, 'recusa de crachá inválido');
 });
+
+test('espectador assiste sem entregar as cores nem contar para os times', async (t) => {
+  const servidor = await subirServidor();
+  const clientes = [];
+  t.after(() => {
+    clientes.forEach((c) => c.fechar());
+    servidor.kill();
+  });
+
+  const mestreV = await new Cliente('mestre vermelho').conectar();
+  const opV = await new Cliente('operativo vermelho').conectar();
+  const mestreA = await new Cliente('mestre azul').conectar();
+  const opA = await new Cliente('operativo azul').conectar();
+  const plateia = await new Cliente('espectador').conectar();
+  clientes.push(mestreV, opV, mestreA, opA, plateia);
+
+  mestreV.enviar('criar_sala', { nome: 'Ana' });
+  await mestreV.ate((c) => c.codigo, 'código da sala');
+  const codigo = mestreV.codigo;
+
+  for (const [cliente, nome] of [[opV, 'Bruno'], [mestreA, 'Carla'], [opA, 'Diego'], [plateia, 'Elis']]) {
+    cliente.enviar('entrar_sala', { codigo, nome });
+    await cliente.ate((c) => c.estado, `${nome} entrar`);
+  }
+
+  mestreV.enviar('escolher_funcao', { time: 'vermelho', funcao: 'mestre' });
+  opV.enviar('escolher_funcao', { time: 'vermelho', funcao: 'operativo' });
+  mestreA.enviar('escolher_funcao', { time: 'azul', funcao: 'mestre' });
+  opA.enviar('escolher_funcao', { time: 'azul', funcao: 'operativo' });
+  plateia.enviar('escolher_funcao', { funcao: 'espectador' });
+
+  await plateia.ate((c) => c.estado?.voce.funcao === 'espectador', 'virar espectador');
+  assert.equal(plateia.estado.voce.time, null, 'espectador não pertence a time');
+  await mestreV.ate((c) => c.estado?.podeIniciar, 'a sala poder começar mesmo com espectador');
+
+  mestreV.enviar('iniciar_partida');
+  for (const cliente of clientes) {
+    await cliente.ate((c) => c.estado?.tela === 'jogo', 'partida começar');
+  }
+
+  // O ponto: espectador vê o tabuleiro fechado, igual a um operativo adversário.
+  assert.ok(
+    plateia.estado.partida.cartas.every((c) => c.tipo === null),
+    'o espectador não pode receber as cores'
+  );
+
+  // E não consegue jogar, mesmo mandando a mensagem na mão.
+  plateia.erros = [];
+  const vez = mestreV.estado.partida.vez;
+  const mestreDaVez = vez === 'vermelho' ? mestreV : mestreA;
+  mestreDaVez.enviar('dar_dica', { palavra: 'PLATEIA', numero: 1 });
+  await plateia.ate((c) => c.estado?.partida?.fase === 'palpite', 'a dica chegar');
+
+  plateia.enviar('votar_carta', { indice: 0 });
+  await plateia.ate((c) => c.erros.length > 0, 'recusa de voto do espectador');
+  assert.equal(plateia.estado.partida.cartas[0].revelada, false, 'nada foi revelado');
+
+  plateia.erros = [];
+  plateia.enviar('dar_dica', { palavra: 'OUTRA', numero: 1 });
+  await plateia.ate((c) => c.erros.length > 0, 'recusa de dica do espectador');
+});
+
+test('quem chega no meio da partida entra assistindo', async (t) => {
+  const servidor = await subirServidor();
+  const clientes = [];
+  t.after(() => {
+    clientes.forEach((c) => c.fechar());
+    servidor.kill();
+  });
+
+  const mestreV = await new Cliente('mestre vermelho').conectar();
+  const opV = await new Cliente('operativo vermelho').conectar();
+  const mestreA = await new Cliente('mestre azul').conectar();
+  const opA = await new Cliente('operativo azul').conectar();
+  clientes.push(mestreV, opV, mestreA, opA);
+
+  mestreV.enviar('criar_sala', { nome: 'Ana' });
+  await mestreV.ate((c) => c.codigo, 'código');
+  const codigo = mestreV.codigo;
+
+  for (const [cliente, nome] of [[opV, 'Bruno'], [mestreA, 'Carla'], [opA, 'Diego']]) {
+    cliente.enviar('entrar_sala', { codigo, nome });
+    await cliente.ate((c) => c.estado, `${nome} entrar`);
+  }
+
+  mestreV.enviar('escolher_funcao', { time: 'vermelho', funcao: 'mestre' });
+  opV.enviar('escolher_funcao', { time: 'vermelho', funcao: 'operativo' });
+  mestreA.enviar('escolher_funcao', { time: 'azul', funcao: 'mestre' });
+  opA.enviar('escolher_funcao', { time: 'azul', funcao: 'operativo' });
+  await mestreV.ate((c) => c.estado?.podeIniciar, 'sala pronta');
+
+  mestreV.enviar('iniciar_partida');
+  await opA.ate((c) => c.estado?.tela === 'jogo', 'partida começar');
+
+  // Antes, chegar atrasado dava "a partida já começou" e a pessoa ficava de fora.
+  const atrasado = await new Cliente('atrasado').conectar();
+  clientes.push(atrasado);
+  atrasado.enviar('entrar_sala', { codigo, nome: 'Fábio' });
+  await atrasado.ate((c) => c.estado?.tela === 'jogo', 'entrar direto na partida');
+
+  assert.equal(atrasado.estado.voce.funcao, 'espectador');
+  assert.equal(atrasado.estado.voce.time, null);
+  assert.ok(
+    atrasado.estado.partida.cartas.every((c) => c.tipo === null || c.revelada),
+    'quem chega atrasado também não recebe as cores'
+  );
+});

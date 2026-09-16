@@ -9,7 +9,7 @@ que é específico deste jogo.
 
 | | |
 | --- | --- |
-| **Jogo** | Codenames (nome do app: Palavras Secretas) |
+| **Jogo** | Codenames (nome do app: Metralhas Secretos) |
 | **Caminho autorizado** | `Codenames/` e nada além disso |
 | **Responsável proposto** | @lukinhasbh98 |
 | **Situação do cadastro** | **Pendente**. Este é o primeiro PR de um jogo novo, pela exceção prevista no `AGENTS.md` da raiz. Só o Guilherme (@GuimaraesCRM) cadastra o responsável em `RESPONSAVEIS.md` e aprova a integração. |
@@ -47,11 +47,18 @@ Nenhum deles grava fora da pasta do jogo.
 - `renderer/` — interface. Não calcula regra nenhuma: desenha o estado recebido.
 - `electron/main.cjs` — janela e protocolo `app://`. É CommonJS de propósito
   (veja o comentário no topo do arquivo antes de tentar convertê-lo para ESM).
+- `electron/identidade-launcher.cjs` e `renderer/js/launcher.js` — os dois
+  únicos lugares que sabem de onde vem o nome e a foto do jogador. Quando o
+  launcher do bundle definir o contrato, é aqui que se encaixa; nada mais do
+  jogo precisa mudar.
+- `shared/protocolo.js` — os rótulos que o jogador lê (`ROTULO_FUNCAO`) vivem
+  separados das chaves do protocolo. Renomeie funções lá, nunca no meio da
+  interface.
 
 ## Regras técnicas deste jogo
 
-1. **O servidor é autoritativo e a projeção do estado é anticola.** O operativo
-   nunca pode receber a cor de uma carta fechada. Ao mexer em `server/vistas.js`
+1. **O servidor é autoritativo e a projeção do estado é anticola.** Nem o
+   Metralha Operador nem o espectador podem receber a cor de uma carta fechada. Ao mexer em `server/vistas.js`
    ou no formato do estado, garanta que continua assim — há teste para isso em
    `server/integracao.test.js`, não o enfraqueça.
 2. **Regra de jogo se escreve em `shared/regras.js`**, nunca no cliente. O
@@ -70,6 +77,6 @@ Nenhum deles grava fora da pasta do jogo.
 
 ## Antes de dizer que terminou
 
-Rode `npm test`. Se mexeu na interface, abra com `npm run dev` e jogue uma
+Rode `npm test` (27 testes). Se mexeu na interface, abra com `npm run dev` e jogue uma
 partida até o fim — o teste automatizado não vê layout quebrado. Informe o que
 mudou, o que foi validado e a situação da publicação.

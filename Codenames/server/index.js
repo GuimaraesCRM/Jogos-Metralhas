@@ -14,12 +14,19 @@ import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { Sala } from './sala.js';
 import { vistaDaSala } from './vistas.js';
-import { DO_CLIENTE, DO_SERVIDOR, gerarCodigo } from '../shared/protocolo.js';
+import { DO_CLIENTE, DO_SERVIDOR, NOME_DO_JOGO, gerarCodigo } from '../shared/protocolo.js';
 
 const PORTA = Number(process.env.PORT) || 8787;
 
 /** Sala sem ninguém conectado vira lixo depois disso — dá tempo de reconectar. */
 const TEMPO_DE_VIDA_VAZIA = 5 * 60 * 1000;
+
+/**
+ * Teto de salas simultâneas. O servidor é pensado para um grupo de amigos, mas
+ * fica exposto na internet: sem um limite, um laço bobo criando salas derrubaria
+ * a partida de quem está jogando. Trezentas salas é folga larga para o uso real.
+ */
+const LIMITE_DE_SALAS = 300;
 const INTERVALO_MANUTENCAO = 1000;
 const INTERVALO_PULSO = 30000;
 
@@ -34,7 +41,7 @@ const servidorHttp = http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
     res.end(
       JSON.stringify({
-        servico: 'palavras-secretas',
+        servico: 'metralhas-secretos',
         salas: salas.size,
         jogadores: [...salas.values()].reduce((t, s) => t + s.quantidadeConectada, 0)
       })
@@ -45,7 +52,9 @@ const servidorHttp = http.createServer((req, res) => {
   res.end();
 });
 
-const wss = new WebSocketServer({ server: servidorHttp });
+// As mensagens do jogo têm algumas centenas de bytes. O teto de 16 KB corta
+// pela raiz o envio de payloads gigantes para consumir memória do servidor.
+const wss = new WebSocketServer({ server: servidorHttp, maxPayload: 16 * 1024 });
 
 // ------------------------------------------------------------------ envio
 
@@ -93,10 +102,16 @@ function tratar(ws, sessao, msg) {
   // --- entrada na sala -----------------------------------------------------
 
   if (tipo === DO_CLIENTE.CRIAR_SALA) {
+    if (salas.size >= LIMITE_DE_SALAS) {
+      return enviar(ws, DO_SERVIDOR.ERRO, {
+        mensagem: 'O servidor está cheio de salas agora. Tente de novo em alguns minutos.'
+      });
+    }
+
     const sala = new Sala(codigoInedito());
     salas.set(sala.codigo, sala);
 
-    const r = sala.entrar(msg.nome, ws);
+    const r = sala.entrar(msg.nome, ws, msg.avatar);
     if (!r.ok) return enviar(ws, DO_SERVIDOR.ERRO, { mensagem: r.erro });
 
     sessao.codigo = sala.codigo;
@@ -119,7 +134,7 @@ function tratar(ws, sessao, msg) {
       return enviar(ws, DO_SERVIDOR.ERRO, { mensagem: 'Não existe sala com esse código.' });
     }
 
-    const r = sala.entrar(msg.nome, ws);
+    const r = sala.entrar(msg.nome, ws, msg.avatar);
     if (!r.ok) return enviar(ws, DO_SERVIDOR.ERRO, { mensagem: r.erro });
 
     sessao.codigo = codigo;
@@ -262,5 +277,5 @@ setInterval(() => {
 }, INTERVALO_MANUTENCAO).unref();
 
 servidorHttp.listen(PORTA, () => {
-  log(`Servidor de Palavras Secretas ouvindo na porta ${PORTA}`);
+  log(`Servidor de ${NOME_DO_JOGO} ouvindo na porta ${PORTA}`);
 });

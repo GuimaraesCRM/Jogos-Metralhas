@@ -17,11 +17,12 @@
 const { app, BrowserWindow, Menu, shell, protocol, net, ipcMain } = require('electron');
 const { pathToFileURL } = require('node:url');
 const path = require('node:path');
+const { identidadeDoLauncher } = require('./identidade-launcher.cjs');
 
 // Nome e identidade da janela na barra de tarefas do Windows. Sem isso o app
 // aparece como "Electron" enquanto não está empacotado.
-app.setName('Palavras Secretas');
-if (process.platform === 'win32') app.setAppUserModelId('com.palavrassecretas.app');
+app.setName('Metralhas Secretos');
+if (process.platform === 'win32') app.setAppUserModelId('com.metralhassecretos.app');
 
 const RAIZ_RENDERER = path.join(__dirname, '..', 'renderer');
 // A interface importa as regras e o protocolo de shared/, que fica fora de
@@ -79,7 +80,7 @@ function criarJanela(indice = 0) {
     y: EH_DEV && indice > 0 ? 50 + indice * 34 : undefined,
     show: false,
     backgroundColor: '#14100e',
-    title: 'Palavras Secretas',
+    title: 'Metralhas Secretos',
     // Sem moldura do sistema: a barra de título é desenhada pelo próprio jogo,
     // no mesmo visual do resto da interface.
     frame: false,
@@ -116,6 +117,7 @@ app.whenReady().then(() => {
   registrarProtocoloApp();
   Menu.setApplicationMenu(null);
   ipcMain.handle('app:versao', () => app.getVersion());
+  ipcMain.handle('launcher:identidade', () => identidadeDoLauncher());
 
   // Comandos da barra de título própria. `BrowserWindow.fromWebContents` garante
   // que cada janela controle a si mesma, o que importa no modo de várias janelas.

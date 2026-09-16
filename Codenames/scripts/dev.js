@@ -48,4 +48,12 @@ iniciar('servidor', process.execPath, ['server/index.js'], {
 
 // `require('electron')` fora do Electron devolve o caminho do executável.
 const electron = exigir('electron');
-iniciar('app', electron, ['.', `--janelas=${janelas}`]);
+
+// ELECTRON_RUN_AS_NODE faz o executável se comportar como Node puro: a janela
+// nunca abre e o erro que aparece ("electron não exporta BrowserWindow") não
+// entrega a causa. Algumas ferramentas deixam essa variável ligada no ambiente,
+// então limpamos antes de abrir o app.
+const ambienteDoApp = { ...process.env };
+delete ambienteDoApp.ELECTRON_RUN_AS_NODE;
+
+iniciar('app', electron, ['.', `--janelas=${janelas}`], { env: ambienteDoApp });

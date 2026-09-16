@@ -6,9 +6,10 @@
  * servidor precisa de um lugar para colar o endereço sem recompilar o app.
  */
 
-import { el, logo, aviso } from '../ui.js';
-import { enviar, conectar } from '../net.js';
-import { CHAVES, SERVIDOR_PADRAO, enderecoDoServidor, guardar, lerGuardado } from '../config.js';
+import { el, logo, aviso, retrato } from '../ui.js';
+import { enviar } from '../net.js';
+import { CHAVES, SERVIDOR_PADRAO, enderecoDoServidor, guardar } from '../config.js';
+import { identidadeInicial } from '../launcher.js';
 import { DO_CLIENTE } from '/shared/protocolo.js';
 
 const TEXTO_CONEXAO = {
@@ -24,9 +25,14 @@ export function criarTelaEntrada() {
     type: 'text',
     maxLength: 18,
     placeholder: 'Como te chamam?',
-    value: lerGuardado(CHAVES.NOME, '') ?? '',
+    value: '',
     autofocus: true
   });
+
+  // Preenchido quando o launcher entregar a identidade; nulo enquanto não houver.
+  const blocoIdentidade = el('div', { classe: 'identidade oculta' });
+  let identidade = { nome: '', avatar: null, sala: null, travado: false };
+  let jaTentouEntrarSozinho = false;
 
   const campoCodigo = el('input', {
     classe: 'entrada entrada--codigo',
@@ -87,13 +93,14 @@ export function criarTelaEntrada() {
       campoNome.focus();
       return null;
     }
-    guardar(CHAVES.NOME, nome);
+    // Nome vindo do launcher não é nosso para guardar: ele manda na próxima vez.
+    if (!identidade.travado) guardar(CHAVES.NOME, nome);
     return nome;
   }
 
   function criarSala() {
     const nome = nomeValido();
-    if (nome) enviar(DO_CLIENTE.CRIAR_SALA, { nome });
+    if (nome) enviar(DO_CLIENTE.CRIAR_SALA, { nome, avatar: identidade.avatar });
   }
 
   function entrarNaSala() {
@@ -105,7 +112,7 @@ export function criarTelaEntrada() {
       campoCodigo.focus();
       return;
     }
-    enviar(DO_CLIENTE.ENTRAR_SALA, { codigo, nome });
+    enviar(DO_CLIENTE.ENTRAR_SALA, { codigo, nome, avatar: identidade.avatar });
   }
 
   const no = el(
@@ -135,7 +142,8 @@ export function criarTelaEntrada() {
             'label',
             { classe: 'campo' },
             el('span', { classe: 'campo__rotulo', texto: 'Seu nome' }),
-            campoNome
+            campoNome,
+            blocoIdentidade
           ),
           el('button', {
             classe: 'botao botao--principal botao--largo',
@@ -174,11 +182,51 @@ export function criarTelaEntrada() {
     if (e.key === 'Enter') (campoCodigo.value.length === 4 ? entrarNaSala : criarSala)();
   });
 
+  /**
+   * Aplica a identidade resolvida. Com o launcher no ar, o nome deixa de ser um
+   * campo para preencher e vira a exibição de quem você já é; sem ele, volta a
+   * ser o campo de sempre, preenchido com o último nome usado nesta máquina.
+   */
+  function aplicarIdentidade(resolvida) {
+    identidade = resolvida;
+    campoNome.value = resolvida.nome ?? '';
+
+    if (!resolvida.travado) {
+      blocoIdentidade.classList.add('oculta');
+      campoNome.focus();
+      return;
+    }
+
+    campoNome.classList.add('oculto');
+    blocoIdentidade.classList.remove('oculta');
+    blocoIdentidade.replaceChildren(
+      retrato({ nome: resolvida.nome, avatar: resolvida.avatar }, 'retrato--grande'),
+      el(
+        'div',
+        {},
+        el('div', { classe: 'identidade__nome', texto: resolvida.nome }),
+        el('div', { classe: 'identidade__origem', texto: 'identificado pelo launcher' })
+      )
+    );
+
+    if (resolvida.sala) campoCodigo.value = resolvida.sala;
+  }
+
+  identidadeInicial().then(aplicarIdentidade);
+
   return {
     no,
     atualizar(loja) {
       conexao.dataset.estado = loja.conexao;
       textoConexao.textContent = TEXTO_CONEXAO[loja.conexao] ?? '';
+
+      // Launcher que já indicou a sala não deveria exigir um clique a mais:
+      // assim que a conexão abre, o jogo entra sozinho. Uma vez só, para uma
+      // recusa do servidor não virar laço de tentativas.
+      if (identidade.sala && loja.conexao === 'conectado' && !jaTentouEntrarSozinho) {
+        jaTentouEntrarSozinho = true;
+        entrarNaSala();
+      }
     }
   };
 }

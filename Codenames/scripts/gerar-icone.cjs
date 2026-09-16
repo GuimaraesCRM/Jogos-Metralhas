@@ -40,7 +40,7 @@ const DESENHO = `
 
   <text x="128" y="158" text-anchor="middle" fill="url(#ouro)"
         font-family="Georgia, 'Times New Roman', serif" font-weight="700"
-        font-size="128" letter-spacing="-4">PS</text>
+        font-size="118" letter-spacing="-4">MS</text>
 
   <rect x="72" y="188" width="52" height="11" rx="5.5" fill="#8e2f3b"/>
   <rect x="132" y="188" width="52" height="11" rx="5.5" fill="#1e5b6c"/>

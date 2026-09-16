@@ -15,6 +15,8 @@ function fichaDoJogador(jogador, anfitriaoId) {
   return {
     id: jogador.id,
     nome: jogador.nome,
+    // Vem do launcher quando houver; nulo enquanto o jogador digita o nome à mão.
+    avatar: jogador.avatar ?? null,
     time: jogador.time,
     funcao: jogador.funcao,
     conectado: jogador.conectado,
@@ -53,8 +55,11 @@ function tabuleiroPara(sala, jogador) {
   const ehMestre = jogador.funcao === FUNCOES.MESTRE;
   // No fim da partida todo mundo vê tudo; durante o jogo, só o mestre.
   const revelaTudo = acabou || ehMestre;
-  // Os votos do time da vez ficam visíveis apenas para o próprio time.
-  const veVotos = jogador.time === partida.vez && !acabou;
+  // Os votos do time da vez ficam visíveis para o próprio time e para quem está
+  // assistindo — o espectador acompanha a discussão sem ganhar informação
+  // nenhuma sobre as cores.
+  const veVotos =
+    (jogador.time === partida.vez || jogador.funcao === FUNCOES.ESPECTADOR) && !acabou;
 
   return partida.cartas.map((carta, indice) => ({
     palavra: carta.palavra,
@@ -97,7 +102,9 @@ export function vistaDaSala(sala, jogadorId) {
           duracaoTurno: partida.duracaoTurno,
           turnoTerminaEm: partida.turnoTerminaEm,
           votosEncerrar:
-            jogador.time === partida.vez && !acabou ? [...sala.votosEncerrar] : []
+            (jogador.time === partida.vez || jogador.funcao === FUNCOES.ESPECTADOR) && !acabou
+              ? [...sala.votosEncerrar]
+              : []
         }
       : null
   };

@@ -20,9 +20,11 @@ import {
 } from '../shared/regras.js';
 import {
   FUNCOES,
+  ROTULO_FUNCAO,
   MODO_REVELACAO,
   duracaoTurnoValida,
-  limparNome
+  limparNome,
+  limparAvatar
 } from '../shared/protocolo.js';
 
 const TIMES = ['vermelho', 'azul'];
@@ -63,20 +65,22 @@ export class Sala {
     );
   }
 
-  entrar(nome, ws) {
+  entrar(nome, ws, avatar = null) {
     if (this.quantidadeConectada >= LIMITE_JOGADORES) {
       return { ok: false, erro: 'Esta sala já está cheia (8 jogadores).' };
     }
-    if (this.partida) {
-      return { ok: false, erro: 'A partida já começou nesta sala.' };
-    }
+
+    // Quem chega com a partida rolando entra como espectador: acompanha o jogo
+    // sem furar o equilíbrio dos times nem ver as cores.
+    const partidaEmAndamento = Boolean(this.partida);
 
     const jogador = {
       id: randomUUID(),
       token: randomUUID(),
       nome: this.nomeDisponivel(limparNome(nome)),
+      avatar: limparAvatar(avatar),
       time: null,
-      funcao: null,
+      funcao: partidaEmAndamento ? FUNCOES.ESPECTADOR : null,
       conectado: true,
       ws
     };
@@ -149,16 +153,25 @@ export class Sala {
     if (this.partida) return { ok: false, erro: 'A partida já começou.' };
     const jogador = this.jogadores.get(jogadorId);
     if (!jogador) return { ok: false, erro: 'Jogador desconhecido.' };
-    if (!TIMES.includes(time)) return { ok: false, erro: 'Time inválido.' };
     if (!Object.values(FUNCOES).includes(funcao)) return { ok: false, erro: 'Função inválida.' };
 
-    // Um mestre-espião por time: o cargo é único, como o cartão-chave no jogo físico.
+    // Espectador não pertence a time nenhum: assiste e não conta para o começo.
+    if (funcao === FUNCOES.ESPECTADOR) {
+      jogador.time = null;
+      jogador.funcao = FUNCOES.ESPECTADOR;
+      this.tocar();
+      return { ok: true };
+    }
+
+    if (!TIMES.includes(time)) return { ok: false, erro: 'Time inválido.' };
+
+    // Um Metralha Espião por time: o cargo é único, como o cartão-chave no jogo físico.
     if (funcao === FUNCOES.MESTRE) {
       const jaTem = [...this.jogadores.values()].find(
         (j) => j.id !== jogadorId && j.time === time && j.funcao === FUNCOES.MESTRE
       );
       if (jaTem) {
-        return { ok: false, erro: `${jaTem.nome} já é o mestre-espião desse time.` };
+        return { ok: false, erro: `${jaTem.nome} já é o ${ROTULO_FUNCAO.mestre} desse time.` };
       }
     }
 
@@ -224,10 +237,10 @@ export class Sala {
     for (const time of TIMES) {
       const doTime = [...this.jogadores.values()].filter((j) => j.conectado && j.time === time);
       if (!doTime.some((j) => j.funcao === FUNCOES.MESTRE)) {
-        return { ok: false, erro: `O ${this.config.nomes[time]} está sem mestre-espião.` };
+        return { ok: false, erro: `O ${this.config.nomes[time]} está sem ${ROTULO_FUNCAO.mestre}.` };
       }
       if (!doTime.some((j) => j.funcao === FUNCOES.OPERATIVO)) {
-        return { ok: false, erro: `O ${this.config.nomes[time]} está sem operativo.` };
+        return { ok: false, erro: `O ${this.config.nomes[time]} está sem ${ROTULO_FUNCAO.operativo}.` };
       }
     }
 
@@ -267,7 +280,7 @@ export class Sala {
     const jogador = this.jogadores.get(jogadorId);
     if (!this.partida) return { ok: false, erro: 'A partida não começou.' };
     if (!jogador || jogador.funcao !== FUNCOES.MESTRE) {
-      return { ok: false, erro: 'Só o mestre-espião dá a dica.' };
+      return { ok: false, erro: `Só o ${ROTULO_FUNCAO.mestre} dá a dica.` };
     }
 
     const r = darDica(this.partida, { time: jogador.time, palavra, numero });
@@ -297,10 +310,10 @@ export class Sala {
     const jogador = this.jogadores.get(jogadorId);
     if (!this.partida) return { ok: false, erro: 'A partida não começou.' };
     if (this.partida.fase !== FASE.PALPITE) {
-      return { ok: false, erro: 'Esperem a dica do mestre-espião.' };
+      return { ok: false, erro: `Esperem a dica do ${ROTULO_FUNCAO.mestre}.` };
     }
     if (!jogador || jogador.funcao !== FUNCOES.OPERATIVO) {
-      return { ok: false, erro: 'Só os operativos escolhem as cartas.' };
+      return { ok: false, erro: `Só o ${ROTULO_FUNCAO.operativo} escolhe as cartas.` };
     }
     if (jogador.time !== this.partida.vez) {
       return { ok: false, erro: 'Não é a vez do seu time.' };

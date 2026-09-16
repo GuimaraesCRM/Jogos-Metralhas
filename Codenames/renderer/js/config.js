@@ -12,9 +12,9 @@ export const SERVIDOR_PADRAO = 'ws://localhost:8787';
 
 /** Onde guardamos as preferências e o crachá de reconexão. */
 export const CHAVES = {
-  SERVIDOR: 'palavras-secretas.servidor',
-  NOME: 'palavras-secretas.nome',
-  CRACHA: 'palavras-secretas.cracha'
+  SERVIDOR: 'metralhas-secretos.servidor',
+  NOME: 'metralhas-secretos.nome',
+  CRACHA: 'metralhas-secretos.cracha'
 };
 
 /** Lê do localStorage sem explodir quando o valor está corrompido. */

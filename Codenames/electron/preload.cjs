@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld('appDesktop', {
   versao: () => ipcRenderer.invoke('app:versao'),
   plataforma: process.platform,
 
+  // Identidade entregue pelo launcher do bundle, quando ele existir.
+  // Devolve { nome, avatar, sala, origem } ou null. Veja o comentário em
+  // electron/main.cjs, que é onde o contrato é lido.
+  launcher: {
+    identidade: () => ipcRenderer.invoke('launcher:identidade')
+  },
+
   janela: {
     minimizar: () => ipcRenderer.send('janela:minimizar'),
     alternarMaximizar: () => ipcRenderer.send('janela:alternar-maximizar'),

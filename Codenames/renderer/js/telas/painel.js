@@ -7,9 +7,9 @@
  * mestre vê o campo de dica, e ninguém vê o que não lhe diz respeito.
  */
 
-import { el, preencher, plural } from '../ui.js';
+import { el, preencher, plural, retrato } from '../ui.js';
 import { enviar } from '../net.js';
-import { DO_CLIENTE, FUNCOES, MODO_REVELACAO } from '/shared/protocolo.js';
+import { DO_CLIENTE, FUNCOES, MODO_REVELACAO, ROTULO_FUNCAO } from '/shared/protocolo.js';
 import { criarControleDeTempo } from './tempo.js';
 
 const ROTULO_RESULTADO = {
@@ -153,7 +153,7 @@ export function criarPainel() {
       vezTexto.textContent = config.nomes[partida.vez];
       vezSub.textContent =
         partida.fase === 'dica'
-          ? `${mestreDaVez?.nome ?? 'O mestre-espião'} está escolhendo a dica`
+          ? `${mestreDaVez?.nome ?? `O ${ROTULO_FUNCAO.mestre}`} está escolhendo a dica`
           : `${plural(partida.dica?.palpitesRestantes ?? 0, 'palpite restante', 'palpites restantes')}`;
 
       // Formulário de dica: só para o mestre do time da vez, e só antes da dica.
@@ -255,7 +255,9 @@ function linhasDoHistorico(partida, config) {
 
 /** Quem está em cada time, com o mestre destacado e os ausentes esmaecidos. */
 function blocosDoElenco(jogadores, config, voce) {
-  return ['vermelho', 'azul'].map((time) => {
+  const assistindo = jogadores.filter((j) => j.funcao === FUNCOES.ESPECTADOR);
+
+  const times = ['vermelho', 'azul'].map((time) => {
     const doTime = jogadores
       .filter((j) => j.time === time)
       // Mestre primeiro: é a informação que mais se procura durante a partida.
@@ -272,7 +274,7 @@ function blocosDoElenco(jogadores, config, voce) {
           el('span', {
             classe: 'elenco__pessoa',
             texto: j.id === voce.id ? `${j.nome} (você)` : j.nome,
-            title: j.funcao === FUNCOES.MESTRE ? 'Mestre-espião' : 'Operativo',
+            title: ROTULO_FUNCAO[j.funcao] ?? '',
             dados: {
               mestre: j.funcao === FUNCOES.MESTRE ? 'sim' : 'nao',
               ausente: j.conectado ? 'nao' : 'sim'
@@ -282,4 +284,26 @@ function blocosDoElenco(jogadores, config, voce) {
       )
     );
   });
+
+  if (assistindo.length === 0) return times;
+
+  return [
+    ...times,
+    el(
+      'div',
+      { classe: 'elenco__time elenco__time--plateia' },
+      el('div', { classe: 'elenco__nome', texto: 'Assistindo' }),
+      el(
+        'div',
+        { classe: 'elenco__lista' },
+        ...assistindo.map((j) =>
+          el('span', {
+            classe: 'elenco__pessoa',
+            texto: j.id === voce.id ? `${j.nome} (você)` : j.nome,
+            dados: { ausente: j.conectado ? 'nao' : 'sim' }
+          })
+        )
+      )
+    )
+  ];
 }

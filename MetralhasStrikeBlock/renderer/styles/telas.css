@@ -1,0 +1,248 @@
+/* Telas fora da partida: inicial, lobby e fim. */
+
+.tela {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(77, 143, 224, 0.14), transparent 60%),
+    radial-gradient(1200px 600px at 80% 110%, rgba(224, 82, 82, 0.14), transparent 60%),
+    var(--fundo);
+}
+
+.cartao {
+  background: var(--fundo-2);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  box-shadow: var(--sombra);
+  padding: 32px;
+  width: min(480px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cartao.largo {
+  width: min(760px, 94vw);
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.logo .titulo {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.logo .titulo .azul {
+  color: var(--azul);
+}
+
+.logo .titulo .vermelho {
+  color: var(--vermelho);
+}
+
+.logo .subtitulo {
+  color: var(--texto-fraco);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  font-size: 12px;
+  color: var(--texto-fraco);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.linha {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.linha > * {
+  flex: 1;
+}
+
+.nota {
+  font-size: 12px;
+  color: var(--texto-fraco);
+  text-align: center;
+}
+
+.nota.launcher {
+  color: var(--ouro);
+}
+
+.separador {
+  border-top: 1px solid var(--borda);
+  margin: 4px 0;
+}
+
+/* ------------------------------------------------------------------ lobby */
+
+.lobby-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.lobby-codigo {
+  font-family: var(--fonte-mono);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: var(--ouro);
+}
+
+.lobby-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.time-coluna {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 12px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.time-coluna.azul {
+  border-color: var(--azul-escuro);
+  background: rgba(77, 143, 224, 0.06);
+}
+
+.time-coluna.vermelho {
+  border-color: var(--vermelho-escuro);
+  background: rgba(224, 82, 82, 0.06);
+}
+
+.time-coluna h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.time-coluna.azul h3 {
+  color: var(--azul);
+}
+
+.time-coluna.vermelho h3 {
+  color: var(--vermelho);
+}
+
+.jogador-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--fundo-3);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.jogador-item.desconectado {
+  opacity: 0.5;
+}
+
+.jogador-item .voce {
+  color: var(--ouro);
+  font-size: 11px;
+}
+
+.jogador-item .anfitriao {
+  font-size: 12px;
+}
+
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--borda);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  flex: none;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sem-time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 30px;
+}
+
+/* -------------------------------------------------------------------- fim */
+
+.fim-placar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  font-size: 44px;
+  font-weight: 800;
+}
+
+.fim-placar .azul {
+  color: var(--azul);
+}
+
+.fim-placar .vermelho {
+  color: var(--vermelho);
+}
+
+.fim-titulo {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.tabela-final {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabela-final th,
+.tabela-final td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--borda);
+}
+
+.tabela-final .num {
+  text-align: right;
+  font-family: var(--fonte-mono);
+}
+
+.cor-azul {
+  color: var(--azul);
+}
+
+.cor-vermelho {
+  color: var(--vermelho);
+}

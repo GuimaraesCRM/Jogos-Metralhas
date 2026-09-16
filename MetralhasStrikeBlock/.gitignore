@@ -1,0 +1,14 @@
+# Dependencias instaladas
+node_modules/
+
+# Saidas de build
+dist/
+build/
+
+# Biblioteca 3D copiada de node_modules por scripts/vendor.cjs
+renderer/vendor/
+
+# Logs e temporarios
+*.log
+npm-debug.log*
+.cache/

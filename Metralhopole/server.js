@@ -23,14 +23,14 @@ export function createServer({rooms = new Map()} = {}) {
       if (url.pathname === '/api/create') {
         if (rooms.size >= 200) return send(503, {error: 'Limite de salas atingido.'});
         let code; do { code = randomInt(0, 36 ** 6).toString(36).padStart(6, '0').toUpperCase(); } while (rooms.has(code));
-        const room = createRoom(code, body.name); rooms.set(code, room);
+        const room = createRoom(code, body.name, {maxPlayers:body.maxPlayers,character:body.character}); rooms.set(code, room);
         return send(201, {code, token: room.players[0].token, id: room.players[0].id});
       }
       const room = rooms.get(String(body.code || '').toUpperCase());
       if (!room) return send(404, {error: 'Sala não encontrada.'});
       room.touched = Date.now();
       if (url.pathname === '/api/join') {
-        const p = join(room, body.name); return send(200, {code: room.code, token: p.token, id: p.id});
+        const p = join(room, body.name,body.character); return send(200, {code: room.code, token: p.token, id: p.id});
       }
       tick(room);
       act(room, req.headers.authorization?.replace(/^Bearer /, ''), body.action, body.value);

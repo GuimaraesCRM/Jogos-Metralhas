@@ -38,7 +38,7 @@ select{font:inherit;width:100%;padding:12px;border-radius:9px;border:1px solid #
 @media(max-width:1250px){.board{--tile:42px;transform:rotateX(28deg) rotateZ(-23deg) scale(.64)}.board.top{transform:rotateX(0) rotateZ(0) scale(.74)}.board-scene{min-height:590px}}
 
 /* Câmera orbital: os controles e o arraste atualizam estas variáveis. */
-.board{--camera-tilt:28deg;--camera-rotation:-23deg;--camera-zoom:.7;transform:rotateX(var(--camera-tilt)) rotateZ(var(--camera-rotation)) scale(var(--camera-zoom));transition:transform .22s ease;will-change:transform}
+.board{--camera-tilt:28deg;--camera-rotation:-23deg;--camera-zoom:.82;transform:rotateX(var(--camera-tilt)) rotateZ(var(--camera-rotation)) scale(var(--camera-zoom));transition:transform .22s ease;will-change:transform}
 .board.top{transform:rotateX(var(--camera-tilt)) rotateZ(var(--camera-rotation)) scale(var(--camera-zoom))}
 .board.camera-dragging{transition:none}
 .board-scene{cursor:grab;user-select:none;touch-action:none}
@@ -46,3 +46,83 @@ select{font:inherit;width:100%;padding:12px;border-radius:9px;border:1px solid #
 .camera-controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;max-width:430px}
 .camera-controls button{min-width:34px;padding:8px 10px}
 @media(max-width:1250px){.camera-controls{max-width:310px}.camera-controls button{padding:7px 8px}.camera-controls #reset-view{display:none}}
+
+/* Mesa em tela cheia e HUD flutuante durante a partida. */
+body.game-active{height:100vh;overflow:hidden;background:radial-gradient(circle at 50% 42%,#91c9d7 0,#497d91 52%,#1b394b 100%)}
+body.game-active header,body.game-active .left-panel{display:none}
+body.game-active main{display:block;width:100vw;height:100vh;max-width:none;padding:0;margin:0}
+body.game-active .table-area{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;border:0;border-radius:0;background:radial-gradient(ellipse at 50% 49%,#d4edb8 0,#8fb778 31%,#78b1c7 32%,#acd7e6 72%,#7fb2c8 100%);overflow:hidden}
+body.game-active .board-scene{position:absolute;inset:0;min-height:0;height:100vh;perspective:1500px;padding:0 40px 150px}
+body.game-active .board{--tile:clamp(45px,4.25vmin,69px);--camera-zoom:.83;box-shadow:0 13px 0 #789081,0 27px 0 #4c6259,0 55px 75px #15344388}
+body.game-active .table-heading{position:fixed;z-index:40;top:16px;right:18px;padding:0;pointer-events:none}
+body.game-active .table-heading>div:first-child{display:none}
+body.game-active .camera-controls{pointer-events:auto;max-width:none;padding:8px;background:#122638cc;border:1px solid #ffffff22;border-radius:15px;box-shadow:0 10px 35px #10263366;backdrop-filter:blur(10px)}
+body.game-active .camera-controls{display:none}
+body.game-active .table-footer{position:fixed;left:20px;bottom:14px;z-index:30;padding:8px 12px;border-radius:10px;background:#102535b8;color:#d6e9ef;backdrop-filter:blur(7px)}
+body.game-active .right-panel{position:fixed;right:22px;bottom:55px;z-index:35;width:310px;pointer-events:none}
+body.game-active .right-panel>.panel{display:none}
+body.game-active .right-panel>.turn-panel,body.game-active .right-panel>#trade-panel:not([hidden]){display:block;pointer-events:auto;margin:10px 0;background:#13283ce8;border-color:#ffffff25;box-shadow:0 16px 45px #10213180;backdrop-filter:blur(12px)}
+body.game-active .turn-panel h2{margin:8px 0;font-size:21px}
+body.game-active .turn-panel .muted{margin:5px 0}
+#game-hud{position:fixed;left:18px;top:16px;z-index:45;display:flex;gap:10px;align-items:stretch}
+.hud-button,.hud-player{background:#10263bd9;border:1px solid #ffffff2b;border-radius:16px;box-shadow:0 12px 34px #0d243866;backdrop-filter:blur(12px);color:#eef7fa}
+.hud-button{display:flex;align-items:center;gap:10px;padding:11px 14px}.hud-button strong{font-size:21px}.hud-button span{font-size:10px;letter-spacing:1px}.hud-button kbd,#game-menu kbd{font:inherit;color:#c6f185}
+.hud-player{display:flex;align-items:center;min-width:250px;padding:8px 16px 8px 9px}.hud-player>span{width:43px;height:48px;border-radius:14px;background:var(--player,#c6f185);box-shadow:inset -6px -5px 0 #0002;margin-right:11px}.hud-player div{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1px 18px;flex:1}.hud-player small{grid-column:1/-1;color:#9fb6c4;font-size:9px;letter-spacing:1px}.hud-player strong{font-size:14px}.hud-player b{font-size:16px;color:#c6f185}
+#game-menu{width:min(1050px,92vw);max-width:1050px;max-height:88vh;overflow:auto}#game-menu::backdrop{background:#061321db}.menu-room{display:flex;gap:28px;flex-wrap:wrap;padding:13px 16px;background:#102033;border-radius:12px;margin-bottom:20px;font-size:12px}.menu-room strong{color:#c6f185}.menu-grid{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:18px}.menu-grid>section{background:#121e2e;border:1px solid #2b3c50;border-radius:14px;padding:16px;min-height:270px}.menu-grid .player{margin:2px 0}.menu-grid #menu-assets,.menu-grid #menu-feed{max-height:330px;overflow:auto}.menu-actions{display:flex;gap:9px;margin-top:18px}.menu-actions button{flex:1}
+
+/* Dados cúbicos com seis faces e arremesso. */
+.city{transform-style:preserve-3d;overflow:visible}.dice-arena{display:flex;gap:42px;margin-top:45px;perspective:700px;transform:translateZ(42px);transform-style:preserve-3d;z-index:30}
+.die3d{width:58px;height:58px;position:relative;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(9px 14px 7px #29442d70)}
+.die-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre;line-height:15px;border:2px solid #ffe1cc;border-radius:12px;background:radial-gradient(circle at 32% 25%,#ff796b,#cf2924 55%,#84120f);color:#fff;font-style:normal;font-size:14px;letter-spacing:7px;box-shadow:inset -8px -8px 12px #5f080855,inset 5px 5px 10px #fff4}
+.die-face.face-1{transform:translateZ(29px)}.die-face.face-2{transform:rotateY(90deg) translateZ(29px)}.die-face.face-3{transform:rotateY(-90deg) translateZ(29px)}.die-face.face-4{transform:rotateX(90deg) translateZ(29px)}.die-face.face-5{transform:rotateX(-90deg) translateZ(29px)}.die-face.face-6{transform:rotateY(180deg) translateZ(29px)}
+.die3d.value-1,.die3d.value-2,.die3d.value-3,.die3d.value-4,.die3d.value-5,.die3d.value-6{transform:rotateX(-16deg) rotateY(24deg) rotateZ(-4deg)}
+.die3d.rolling{animation:dice-throw .9s cubic-bezier(.18,.7,.28,1)}.die3d:nth-child(2).rolling{animation-name:dice-throw-two;animation-delay:.06s}
+@keyframes dice-throw{0%{transform:translate3d(-360px,-260px,220px) rotateX(0) rotateY(0) rotateZ(0)}38%{transform:translate3d(210px,-120px,130px) rotateX(540deg) rotateY(420deg) rotateZ(270deg)}67%{transform:translate3d(-125px,65px,65px) rotateX(840deg) rotateY(720deg)}84%{transform:translate3d(45px,-18px,24px) rotateX(990deg) rotateY(810deg)}100%{transform:translate3d(0,0,0) rotateX(1080deg) rotateY(900deg)}}
+@keyframes dice-throw-two{0%{transform:translate3d(380px,-280px,240px) rotateX(0) rotateY(0)}40%{transform:translate3d(-230px,-90px,145px) rotateX(-570deg) rotateY(540deg) rotateZ(-450deg)}69%{transform:translate3d(145px,75px,72px) rotateX(-870deg) rotateY(810deg)}85%{transform:translate3d(-52px,-15px,25px) rotateX(-1020deg) rotateY(960deg)}100%{transform:translate3d(0,0,0) rotateX(-1080deg) rotateY(1080deg)}}
+
+/* Peões elevados sobre as casas, com volume, brilho e sombra. */
+.board{transform-style:preserve-3d}.tile{transform-style:preserve-3d}.tokens{transform-style:preserve-3d;overflow:visible}
+.token{width:18px;height:31px;transform:translateZ(22px);filter:drop-shadow(5px 8px 4px #112b2d99);overflow:visible}
+.token::before{left:4px;top:0;width:12px;height:12px;background:radial-gradient(circle at 32% 24%,#fff,var(--player) 30%,color-mix(in srgb,var(--player),#000 35%) 100%);border:1px solid #fff9;box-shadow:0 2px 3px #0006}
+.token::after{left:1px;bottom:0;width:18px;height:20px;background:linear-gradient(90deg,color-mix(in srgb,var(--player),#000 28%),var(--player) 42%,color-mix(in srgb,var(--player),#fff 30%) 62%,color-mix(in srgb,var(--player),#000 35%));clip-path:polygon(35% 0,65% 0,74% 58%,94% 76%,100% 100%,0 100%,6% 76%,26% 58%);border-radius:3px;box-shadow:inset 0 -4px 3px #0004}
+.token>span{inset:12px 0 auto;color:#fff;text-shadow:0 1px 2px #000;font-size:8px}.tokens{grid-template-rows:repeat(2,30px);height:60px;bottom:4px}.token.moving{animation:pawn-step-3d .3s cubic-bezier(.2,.9,.25,1.2)}
+@keyframes pawn-step-3d{0%{transform:translateZ(55px) translateY(-15px) scale(1.18)}100%{transform:translateZ(22px) translateY(0) scale(1)}}
+@media(max-width:1200px){body.game-active .board{--tile:43px}.hud-player{min-width:210px}.menu-grid{grid-template-columns:1fr 1fr}.menu-grid>section:last-child{grid-column:1/-1}}
+
+/* A entrada e o lobby também usam a mesa cheia; os formulários flutuam sobre ela. */
+body:not(.game-active){height:100vh;overflow:hidden;background:#79afc5}
+body:not(.game-active) header{position:fixed;left:20px;top:18px;z-index:50;width:auto;height:62px;padding:8px 16px;border:1px solid #ffffff2b;border-radius:16px;background:#10263bdb;box-shadow:0 12px 34px #0d243866;backdrop-filter:blur(12px)}
+body:not(.game-active) header .brand-icon{width:42px;height:42px;font-size:24px}body:not(.game-active) header .header-right{display:none}
+body:not(.game-active) main{display:block;width:100vw;height:100vh;max-width:none;padding:0;margin:0}
+body:not(.game-active) .table-area{position:fixed;inset:0;width:100vw;height:100vh;min-height:0;border:0;border-radius:0;background:radial-gradient(ellipse at 50% 49%,#d4edb8 0,#8fb778 31%,#78b1c7 32%,#acd7e6 72%,#7fb2c8 100%);overflow:hidden}
+body:not(.game-active) .board-scene{position:absolute;inset:0;min-height:0;height:100vh;perspective:1500px;padding:25px 30px 60px}
+body:not(.game-active) .board{--tile:clamp(43px,4vmin,65px)}
+body:not(.game-active) .left-panel{position:fixed;left:22px;top:98px;bottom:22px;z-index:45;width:310px;overflow:auto;padding-right:4px}
+body:not(.game-active) .left-panel .panel{background:#13283ceb;border-color:#ffffff25;box-shadow:0 16px 45px #10213180;backdrop-filter:blur(13px)}
+body:not(.game-active) .right-panel{display:none}
+body:not(.game-active) .table-heading{position:fixed;right:18px;top:16px;z-index:40;padding:0;pointer-events:none}
+body:not(.game-active) .table-heading>div:first-child{display:none}
+body:not(.game-active) .camera-controls{pointer-events:auto;max-width:none;padding:8px;background:#122638cc;border:1px solid #ffffff22;border-radius:15px;box-shadow:0 10px 35px #10263366;backdrop-filter:blur(10px)}
+body:not(.game-active) .table-footer{position:fixed;right:20px;bottom:14px;z-index:30;padding:8px 12px;border-radius:10px;background:#102535b8;color:#d6e9ef;backdrop-filter:blur(7px)}
+@media(max-width:1200px){body:not(.game-active) .left-panel{width:280px}body:not(.game-active) .board{--tile:42px}}
+
+body.game-active .board{--tile:clamp(52px,5.1vmin,76px)}
+.board{grid-template-columns:repeat(var(--grid-side,16),var(--tile));grid-template-rows:repeat(var(--grid-side,16),var(--tile))}.city{grid-area:2 / 2 / var(--grid-side,16) / var(--grid-side,16)}
+.compact-board{--tile:clamp(72px,8vmin,105px)!important}.compact-board .tile-name{font-size:10px}.compact-board .tile-price{font-size:9px}
+.property-buildings{position:absolute;top:5px;right:2px;z-index:12;display:flex;gap:1px;transform:translateZ(13px);filter:drop-shadow(2px 3px 2px #172c2999)}
+.property-buildings i{display:block;width:7px;height:8px;background:linear-gradient(90deg,#197a43,#52d47f,#126334);transform:skewY(-12deg);border-top:2px solid #9cf0b4}
+.property-buildings.hotel i{width:17px;height:11px;background:linear-gradient(90deg,#8d1720,#ef5060,#76121b);border-top:3px solid #ff9ca4}
+.asset{background:#f1eee2;color:#263b3b;border:0;border-top:7px solid var(--asset-color,#8bcac0);border-radius:8px;padding:10px;margin:8px 0;box-shadow:0 5px 12px #0003}.asset small{color:#526665}.asset-swatch{display:none}
+.danger{color:#ff9f9f;border-color:#7d3c46}.menu-actions{flex-wrap:wrap}.menu-actions button{min-width:140px}
+
+/* Modelos GLB reais fornecidos para a Metralhopole. */
+model-3d{display:block;width:100%;height:100%;pointer-events:none}model-3d canvas{display:block;width:100%;height:100%}
+.character-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:205px;overflow:auto;padding:4px}.character-picker button{position:relative;height:82px;padding:2px;background:#0d1928;border:2px solid #30445a}.character-picker button.selected{border-color:#c6f185;background:#263c42}.character-picker model-3d{height:68px}.character-picker span{position:absolute;right:5px;bottom:3px;font-size:9px;color:#c6f185}
+.die3d{width:105px;height:105px;filter:drop-shadow(12px 18px 8px #29442d70);transform:none!important}.die3d::after{content:attr(data-value);position:absolute;right:0;bottom:0;width:26px;height:26px;display:grid;place-content:center;border-radius:50%;background:#10263b;color:#fff;font:bold 14px sans-serif;border:2px solid #fff}
+.die-face{display:none}.dice-arena{gap:65px;transform:translateZ(55px)}
+.dice-pair3d{position:relative;width:230px;height:145px;filter:drop-shadow(13px 20px 9px #29442d70)}.dice-pair3d::after{content:attr(data-values);position:absolute;right:3px;bottom:3px;padding:5px 9px;border-radius:14px;background:#10263b;color:#fff;font:bold 14px sans-serif;border:2px solid #fff}.dice-pair3d model-3d,.dice-pair3d model-3d img{display:block;width:100%;height:100%;object-fit:contain}
+.dice-pair3d.rolling{animation:glb-dice-throw 1.05s cubic-bezier(.18,.72,.24,1)}@keyframes glb-dice-throw{0%{transform:translate3d(-360px,-230px,180px) rotate(-25deg) scale(.72)}34%{transform:translate3d(245px,-105px,120px) rotate(210deg) scale(1.08)}64%{transform:translate3d(-155px,62px,55px) rotate(470deg) scale(.9)}82%{transform:translate3d(58px,-22px,20px) rotate(650deg) scale(1.02)}100%{transform:translate3d(0,0,0) rotate(720deg) scale(1)}}
+.token{width:25px;height:42px;transform:translateZ(28px);filter:drop-shadow(5px 9px 4px #112b2d99)}.token::before,.token::after{display:none}.token model-3d{position:absolute;inset:-10px -8px 0;width:41px;height:55px}.token>span{inset:auto -1px -2px;background:#10263bcc;border-radius:50%;width:14px;height:14px;line-height:14px;color:#fff}
+.property-buildings{width:42px;height:36px;top:-14px;right:-9px;transform:translateZ(25px);filter:drop-shadow(3px 5px 3px #172c2999)}.property-buildings i{display:none}
+.tokens{overflow:visible;grid-template-rows:repeat(2,36px);height:72px}
+@keyframes pawn-step-3d{0%{transform:translateZ(70px) translateY(-20px) scale(1.18)}100%{transform:translateZ(28px) translateY(0) scale(1)}}

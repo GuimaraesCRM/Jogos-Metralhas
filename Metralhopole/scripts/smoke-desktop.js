@@ -14,6 +14,8 @@ const errors = [];
 try {
   const page = await application.firstWindow();
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  page.on('requestfailed', request => errors.push(`${request.url()} — ${request.failure()?.errorText}`));
   await page.locator('#host').waitFor();
   // O Chromium empacotado pode não disponibilizar uma superfície de captura
   // para janelas ocultas. Capturas visuais são feitas no teste de desenvolvimento.
@@ -26,8 +28,16 @@ try {
     const response = await fetch('http://127.0.0.1:3000/api/join', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({code,name:`Amigo ${i}`})});
     assert.equal(response.status, 200);
   }
-  await page.waitForFunction(() => document.querySelectorAll('.player').length === 8);
+  await page.waitForFunction(() => document.querySelectorAll('#players .player').length === 8);
   await page.locator('#start').click();
+  await page.waitForFunction(() => document.body.classList.contains('game-active'));
+  assert.equal(await page.locator('.dice-arena model-3d').count(), 1);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#game-menu').isVisible(), true);
+  assert.match(await page.locator('#menu-room').textContent(), /Sala/);
+  assert.equal(await page.locator('#menu-players .player').count(), 8);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#game-menu').isVisible(), false);
   await page.evaluate(() => {
     const session = JSON.parse(localStorage.getItem('session'));
     window.movementSteps = [];
@@ -38,6 +48,14 @@ try {
     }).observe(document.getElementById('board'), {childList:true, subtree:true});
   });
   await page.locator('[data-action="roll"]').click();
+  await page.waitForFunction(() => window.movementSteps.length >= 3);
+  await page.waitForFunction(() => !document.querySelector('[data-action="roll"]'));
+  assert.match(await page.locator('#dice-pair').getAttribute('data-values'), /^[1-6] · [1-6]$/);
+  if (await page.locator('[data-action="buy"]').count()) {
+    await page.locator('[data-action="buy"]').click();
+  }
+  if (await page.locator('[data-action="card-choice"]').count()) await page.locator('[data-action="card-choice"]').first().click();
+  if (await page.locator('[data-action="rent-confirm"]').count()) await page.locator('[data-action="rent-confirm"]').click();
   await page.locator('[data-action="end"]').waitFor();
   assert.ok((await page.evaluate(() => window.movementSteps)).length >= 3, 'o peão deve ocupar casas intermediárias durante a animação');
   assert.equal(await page.locator('.tile').count(), 60);
@@ -48,31 +66,30 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
   for (let attempt = 0; attempt < 2 && await page.locator('[data-action="roll"]').count(); attempt++) {
     await page.locator('[data-action="roll"]').click();
+    await page.waitForFunction(() => !document.querySelector('[data-action="roll"]'));
+    if (await page.locator('[data-action="buy"]').count()) await page.locator('[data-action="buy"]').click();
+    if (await page.locator('[data-action="card-choice"]').count()) await page.locator('[data-action="card-choice"]').first().click();
+    if (await page.locator('[data-action="rent-confirm"]').count()) await page.locator('[data-action="rent-confirm"]').click();
     await page.locator('[data-action="end"]').click();
     await page.waitForFunction(() => document.querySelector('[data-action="roll"]') || document.getElementById('turn-title').textContent === 'Amigo 1');
   }
   await page.waitForFunction(() => document.getElementById('turn-title').textContent === 'Amigo 1');
-  await page.locator('#rules-button').click();
+  await page.keyboard.press('Escape');
+  await page.locator('#menu-rules').click();
   assert.equal(await page.locator('#rules').isVisible(), true);
   await page.locator('#close-rules').click();
-  await page.locator('#view').click();
-  assert.equal(await page.locator('.board.top').count(), 1);
-  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-tilt')), '0deg');
-  await page.locator('#view').click();
-  await page.locator('#zoom-in').click();
-  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-zoom')), '0.78');
-  await page.locator('#rotate-right').click();
-  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-8deg');
+  assert.equal(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-23deg');
   const scene = await page.locator('.board-scene').boundingBox();
   await page.mouse.move(scene.x + scene.width / 2, scene.y + scene.height / 2);
   await page.mouse.down();
   await page.mouse.move(scene.x + scene.width / 2 + 60, scene.y + scene.height / 2 + 20, {steps:4});
   await page.mouse.up();
-  assert.notEqual(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-8deg');
+  assert.notEqual(await page.locator('#board').evaluate(element => element.style.getPropertyValue('--camera-rotation')), '-23deg');
   assert.equal(await page.locator('#tile-dialog').isVisible(), false);
   await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('.player').length === 8);
-  await page.locator('#leave').click();
+  await page.waitForFunction(() => document.querySelectorAll('#players .player').length === 8);
+  await page.keyboard.press('Escape');
+  await page.locator('#menu-leave').click();
   await page.locator('#confirm-leave').click();
   await page.locator('#host').waitFor();
   assert.deepEqual(errors, []);

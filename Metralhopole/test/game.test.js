@@ -31,13 +31,15 @@ test('só começa com dois, impede entrada tardia, ações fora de turno e dados
 test('compra, melhoria e aluguel alteram apenas os saldos corretos', () => {
   const r = game(); const [a,b] = r.players; const tile = board[3];
   act(r, a.token, 'roll', null, nonDouble());
+  assert.equal(r.rollSequence,1);
   act(r, a.token, 'buy');
+  assert.equal(r.rollSequence,1);
   assert.equal(a.money, RULES.startingMoney - tile.price);
   assert.throws(() => act(r, a.token, 'buy'), /disponível/);
-  act(r, a.token, 'upgrade', 3);
+  r.properties[3].visits=2; r.stage='upgrade'; act(r, a.token, 'upgrade', {property:3,level:1});
   assert.equal(r.properties[3].level, 1);
   const balance = a.money;
-  act(r, a.token, 'end'); act(r, b.token, 'roll', null, nonDouble());
+  act(r, a.token, 'end'); act(r, b.token, 'roll', null, nonDouble()); act(r,b.token,'rent-confirm');
   assert.equal(b.money, RULES.startingMoney - tile.rent * 2);
   assert.equal(a.money, balance + tile.rent * 2);
   assert.throws(() => act(r, b.token, 'upgrade', 3), /indisponível/);
@@ -49,14 +51,14 @@ test('grupo completo de uma cor dobra apenas o aluguel de terreno sem melhoria',
   const complete = game(); const [owner, visitor] = complete.players; const target = group[3];
   for (const tile of group) complete.properties[tile.id] = {owner:owner.id, level:0};
   complete.turn = 1; visitor.position = target.id - 3;
-  act(complete, visitor.token, 'roll', null, nonDouble());
+  act(complete, visitor.token, 'roll', null, nonDouble()); act(complete,visitor.token,'rent-confirm');
   assert.equal(visitor.money, RULES.startingMoney - target.rent * 2);
-  assert.match(complete.logs[0], /grupo de cor completo/);
+  assert.ok(complete.logs.some(text => /grupo de cor completo/.test(text)));
 
   const improved = game(); const [builder, guest] = improved.players;
   for (const tile of group) improved.properties[tile.id] = {owner:builder.id, level:0};
   improved.properties[target.id].level = 2; improved.turn = 1; guest.position = target.id - 3;
-  act(improved, guest.token, 'roll', null, nonDouble());
+  act(improved, guest.token, 'roll', null, nonDouble()); act(improved,guest.token,'rent-confirm');
   assert.equal(guest.money, RULES.startingMoney - target.rent * 3);
 });
 test('limites de dinheiro, nível e bônus ao passar pela partida', () => {
@@ -65,15 +67,15 @@ test('limites de dinheiro, nível e bônus ao passar pela partida', () => {
   assert.equal(p.position, 1); assert.equal(p.money, RULES.startingMoney + RULES.lapBonus);
   p.money = 0; assert.throws(() => act(r, p.token, 'buy'), /Saldo/);
   p.money = 1000000; act(r, p.token, 'buy');
-  for (let i = 0; i < 3; i++) act(r, p.token, 'upgrade', 1);
-  assert.throws(() => act(r, p.token, 'upgrade', 1), /indisponível/);
+  r.properties[1].visits=3; r.stage='upgrade'; act(r,p.token,'upgrade',{property:1,level:4});
+  assert.throws(() => act(r, p.token, 'upgrade', {property:1,level:4}), /indisponível/);
 });
 test('falência liquida propriedades e encerra com último sobrevivente', () => {
   const r = game(); const [a,b] = r.players;
   r.properties[1] = {owner:a.id, level:2};
   r.properties[3] = {owner:b.id, level:3};
   a.money = 1;
-  act(r, a.token, 'roll', null, nonDouble());
+  act(r, a.token, 'roll', null, nonDouble()); act(r,a.token,'declare-bankruptcy');
   assert.equal(a.bankrupt, true); assert.equal(r.properties[1], undefined);
   assert.equal(b.money, RULES.startingMoney + 1); assert.equal(r.phase, 'finished'); assert.deepEqual(r.winner, [b.id]);
 });

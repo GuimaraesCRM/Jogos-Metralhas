@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob: data:">
   <title>Metralhopole</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -20,6 +20,8 @@
         <div class="eyebrow accent">SUA PRÓXIMA GRANDE JOGADA</div><h2>A cidade é<br>de vocês.</h2>
         <p class="muted">Compre ruas, construa seu império e desafie até sete amigos.</p>
         <label for="name">Seu nome</label><input id="name" maxlength="20" placeholder="Como você se chama?" autocomplete="off">
+        <label>Seu personagem 3D</label><input id="character" type="hidden" value="character-male-a"><div id="character-picker" class="character-picker" aria-label="Escolha seu personagem"></div>
+        <label for="board-size">Tamanho da partida</label><select id="board-size"><option value="8">Até 8 jogadores · 40 propriedades</option><option value="4">Até 4 jogadores · 20 propriedades</option></select>
         <button id="host" class="primary wide">Hospedar no meu computador <span>↗</span></button>
         <div class="divider">OU CONECTE-SE A UM ANFITRIÃO</div>
         <label for="endpoint">Endereço do servidor</label><input id="endpoint" placeholder="http://IP-DO-AMIGO:3000" value="http://127.0.0.1:3000" autocomplete="off">
@@ -39,8 +41,8 @@
       </section>
     </aside>
     <section class="table-area">
-      <div class="table-heading"><div><div class="eyebrow">UMA CIDADE. MUITAS POSSIBILIDADES.</div><h2 id="table-title">Construa sua sorte.</h2></div><div class="camera-controls" aria-label="Controles da câmera"><button id="zoom-out" class="ghost" title="Afastar" aria-label="Afastar câmera">−</button><button id="zoom-in" class="ghost" title="Aproximar" aria-label="Aproximar câmera">+</button><button id="rotate-left" class="ghost" title="Girar para a esquerda" aria-label="Girar câmera para a esquerda">↶</button><button id="rotate-right" class="ghost" title="Girar para a direita" aria-label="Girar câmera para a direita">↷</button><button id="tilt-up" class="ghost" title="Olhar mais de cima" aria-label="Olhar mais de cima">↑</button><button id="tilt-down" class="ghost" title="Olhar mais de lado" aria-label="Olhar mais de lado">↓</button><button id="reset-view" class="ghost" title="Restaurar câmera">Centralizar</button><button id="view" class="ghost">Vista de cima</button></div></div>
-      <div class="board-scene"><div id="board" class="board"><div class="city"><div class="city-label">METRALHOPOLE<span>CLUBE DOS METRALHAS</span></div><div class="buildings"><i></i><i></i><i></i><i></i><i></i></div><div class="park"></div><div class="center-dice"><span id="die-one">⚄</span><span id="die-two">⚂</span></div><div class="city-subtitle">CONQUISTE AS QUATRO INDÚSTRIAS</div></div></div></div>
+      <div class="table-heading"><div><div class="eyebrow">UMA CIDADE. MUITAS POSSIBILIDADES.</div><h2 id="table-title">Construa sua sorte.</h2></div></div>
+      <div class="board-scene"><div id="board" class="board"><div class="city"><div class="city-label">METRALHOPOLE<span>CLUBE DOS METRALHAS</span></div><div class="buildings"><i></i><i></i><i></i><i></i><i></i></div><div class="park"></div><div class="dice-arena" aria-label="Resultado dos dados"><div id="die-one" class="die3d value-5"><i class="die-face face-1">●</i><i class="die-face face-2">● ●</i><i class="die-face face-3">●<br>● ●</i><i class="die-face face-4">● ●<br>● ●</i><i class="die-face face-5">● ●<br>●<br>● ●</i><i class="die-face face-6">● ●<br>● ●<br>● ●</i></div><div id="die-two" class="die3d value-3"><i class="die-face face-1">●</i><i class="die-face face-2">● ●</i><i class="die-face face-3">●<br>● ●</i><i class="die-face face-4">● ●<br>● ●</i><i class="die-face face-5">● ●<br>●<br>● ●</i><i class="die-face face-6">● ●<br>● ●<br>● ●</i></div></div><div class="city-subtitle">CONQUISTE AS QUATRO INDÚSTRIAS</div></div></div></div>
       <div class="table-footer"><span><i class="live-dot"></i> <span id="round">60 casas · 44 propriedades</span></span><span>Arraste para girar · roda para zoom · clique em uma casa para detalhes</span></div>
     </section>
     <aside class="right-panel">
@@ -50,6 +52,7 @@
       <section class="panel feed-panel"><h3>Aconteceu na cidade</h3><div id="feed"><p class="hint">Os acontecimentos da partida aparecem aqui.</p></div></section>
     </aside>
   </main>
+  <div id="game-hud" hidden><button id="menu-button" class="hud-button"><strong>☰</strong><span>MENU <kbd>ESC</kbd></span></button><div class="hud-player"><span id="hud-avatar"></span><div><small id="hud-turn"></small><strong id="hud-name"></strong><b id="hud-money"></b></div></div></div>
   <div id="notice" role="status" hidden></div>
   <dialog id="trade-dialog">
     <div class="eyebrow accent">FAÇA UMA PROPOSTA</div><h2>Vamos negociar.</h2>
@@ -64,22 +67,28 @@
   </dialog>
   <dialog id="tile-dialog"><button id="close-tile" class="ghost close">Fechar ×</button><div class="eyebrow accent">CONHEÇA A CIDADE</div><h2 id="tile-title"></h2><p id="tile-detail" class="muted"></p></dialog>
   <dialog id="leave-dialog"><h2>Sair da sala?</h2><p class="muted">Durante a partida, sair conta como desistência. Se você hospeda, o servidor continua aberto até fechar o aplicativo.</p><div class="button-row"><button id="cancel-leave" class="secondary">Continuar jogando</button><button id="confirm-leave" class="primary">Sair da sala</button></div></dialog>
+  <dialog id="game-menu">
+    <button id="close-menu" class="ghost close">Continuar <kbd>Esc</kbd></button><div class="eyebrow accent">PAINEL DA PARTIDA</div><h2>Metralhopole</h2>
+    <div id="menu-room" class="menu-room"></div>
+    <div class="menu-grid"><section><h3>Jogadores</h3><div id="menu-players"></div></section><section><h3>Suas propriedades</h3><div id="menu-assets"></div></section><section><h3>Histórico</h3><div id="menu-feed"></div></section></div>
+    <div class="menu-actions"><button id="menu-pause" class="secondary">Pausar partida</button><button id="menu-reconnect" class="secondary">Reconectar</button><button id="menu-rules" class="secondary">Como jogar</button><button id="menu-leave" class="ghost">Sair da sala</button><button id="menu-quit" class="ghost danger">Sair do jogo</button></div>
+  </dialog>
   <dialog id="rules">
     <button id="close-rules" class="ghost close">Fechar ×</button><div class="eyebrow accent">GUIA DA METRALHOPOLE</div><h2>Uma cidade para conquistar.</h2>
     <ol>
-      <li>De 2 a 8 pessoas, cada uma com R$ 500.000. São 60 casas, 40 propriedades comuns e quatro indústrias. Não há limite de rodadas.</li>
+      <li>O anfitrião escolhe mesa para até 4 pessoas (32 casas e 20 propriedades) ou até 8 (60 casas e 40 propriedades). Cada jogador começa com R$ 500.000.</li>
       <li>Vence o último sobrevivente ou quem conquistar as quatro indústrias, inclusive por negociação.</li>
       <li>As 40 propriedades usam nomes de locais reais do Brasil e formam dez grupos de quatro da mesma cor. Quem possuir as quatro propriedades de uma cor cobra o dobro do aluguel base nos terrenos ainda sem melhoria.</li>
-      <li>Uma volta completa rende R$ 50.000. Propriedades custam de R$ 40.000 a R$ 148.000; melhorias custam metade do preço original e aumentam o aluguel, até três níveis. Terrenos melhorados usam o aluguel do nível atual, sem o bônus adicional do grupo completo.</li>
+      <li>Na primeira visita, compre o terreno. Na segunda visita do dono, construa até três casas; na terceira, um hotel. Casas e hotel multiplicam o aluguel em 2×, 3×, 5× e 8×. Clique em qualquer terreno para consultar custos e aluguéis.</li>
       <li>Cada indústria custa R$ 25.000. Ao cair na indústria de outra pessoa, pague R$ 25.000 × a soma dos dois dados. Exemplo: 3 + 4 = aluguel de R$ 175.000. Indústrias não recebem melhorias.</li>
       <li>Uma dupla permite outra jogada depois de resolver a casa. Três duplas consecutivas no mesmo turno mandam à prisão, sem mover pela terceira jogada.</li>
       <li>Vai para a prisão quem tira a carta Sorte correspondente, tira três duplas seguidas ou cai em Vá à prisão. Cair normalmente na casa Prisão é apenas visita. O transporte para a prisão não rende bônus de partida.</li>
       <li>Para sair: tirar uma dupla (anda a soma, sem jogada extra), usar uma carta Sair da prisão antes dos dados, ou cumprir três turnos preso. Após o terceiro turno de espera, volta a andar no próximo. O turno em que foi preso não conta.</li>
       <li>A carta Sair da prisão fica guardada até o uso. Presos continuam recebendo aluguéis e podem negociar no próprio turno.</li>
-      <li>Negocie no seu turno: escolha comprador ou vendedor, propriedade e preço. Só o destinatário aceita ou recusa. Uma oferta por vez; melhorias acompanham o imóvel. Sem venda automática, hipotecas ou leilões.</li>
-      <li>Sorte também concede R$ 25.000 ou cobra R$ 15.000. Imposto custa R$ 18.000. Sem saldo para uma cobrança, há falência e os terrenos voltam ao banco.</li>
+      <li>O aluguel precisa ser confirmado. Sem saldo, venda imóveis escolhidos ao banco, use venda automática ou negocie com outro jogador. Não há hipotecas ou leilões.</li>
+      <li>Sorte inclui ganhos, despesas, prisão, METRALHA CORINGA (uma vez por jogo), Carnaval e Apagão. Coringa compra um imóvel livre pela metade; Carnaval aumenta um aluguel em 50%; Apagão suspende outro aluguel por cinco rodadas.</li>
       <li>O turno dura 75 segundos. Pausar congela o tempo restante e as ações para todos; qualquer jogador ativo pode retomar. Ofertas também ficam suspensas.</li>
-      <li>A câmera pode ser girada arrastando o tabuleiro. Use a roda do mouse ou os botões + e − para aproximar e afastar; as setas mudam a direção e a inclinação. Vista de cima e Centralizar restauram ângulos úteis.</li>
+      <li>A câmera pode ser girada arrastando o tabuleiro. Use a roda do mouse para aproximar e afastar.</li>
       <li>Reconectar recupera sua sessão e progresso no mesmo aplicativo, enquanto o servidor estiver ativo. Sair da sala é desistir. Fechar o anfitrião encerra as salas.</li>
     </ol>
   </dialog>

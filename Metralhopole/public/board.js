@@ -32,9 +32,21 @@ export const board = Array.from({length: SIDE * 4}, (_, id) => {
   return {id, type:'property', name:places[n][0], city:places[n][1], group, color:colors[group], price:40000 + group * 12000, rent:3000 + group * 1200};
 });
 export const buyable = tile => tile?.type === 'property' || tile?.type === 'industry';
+export const RENT_MULTIPLIERS = [1, 2, 3, 5, 8];
+export const improvementCost = (tile, nextLevel) => Math.round(tile.price * (nextLevel === 4 ? .6 : .35));
 export const ownsGroup = (gameBoard, properties, owner, group) => gameBoard
   .filter(tile => tile.type === 'property' && tile.group === group)
   .every(tile => properties[tile.id]?.owner === owner);
 export const rentFor = (tile, lot, diceTotal, completeGroup = false) => tile.type === 'industry'
   ? tile.price * diceTotal
-  : tile.rent * (lot.level + 1) * (completeGroup && lot.level === 0 ? 2 : 1);
+  : tile.rent * RENT_MULTIPLIERS[lot.level || 0] * (completeGroup && lot.level === 0 ? 2 : 1);
+
+const smallSpecial = new Map([[0,['start','PARTIDA']],[8,['jail','PRISÃO / VISITA']],[16,['rest','FÉRIAS']],[24,['go-to-jail','VÁ À PRISÃO']],...[4,12,20,28].map(id=>[id,['event','SORTE']])]);
+export const SMALL_INDUSTRIES = [2,10,18,26];
+let smallProperty = 0;
+export const smallBoard = Array.from({length:32}, (_, id) => {
+  if (smallSpecial.has(id)) return {id,type:smallSpecial.get(id)[0],name:smallSpecial.get(id)[1]};
+  if (SMALL_INDUSTRIES.includes(id)) return {id,type:'industry',name:factories[SMALL_INDUSTRIES.indexOf(id)],color:'#77b4cf',price:RULES.industryPrice};
+  const n=smallProperty++, group=Math.floor(n/4);
+  return {id,type:'property',name:places[n][0],city:places[n][1],group,color:colors[group],price:40000+group*12000,rent:3000+group*1200};
+});

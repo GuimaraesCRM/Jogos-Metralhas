@@ -23,10 +23,18 @@ function arsenalInicial() {
   };
 }
 
-export function criarPartida({ jogadores, agora }) {
+export function criarPartida({ jogadores, agora, tempos }) {
+  // O dono da sala pode ter escolhido outros tempos no lobby.
+  const duracoes = {
+    COMPRA: tempos?.compra ?? TEMPOS.COMPRA,
+    COMBATE: tempos?.combate ?? TEMPOS.COMBATE,
+    POS_ROUND: TEMPOS.POS_ROUND
+  };
+
   const partida = {
+    tempos: duracoes,
     fase: FASES.COMPRA,
-    faseTerminaEm: agora + TEMPOS.COMPRA * 1000,
+    faseTerminaEm: agora + duracoes.COMPRA * 1000,
     round: 1,
     placar: { [TIMES.AZUL]: 0, [TIMES.VERMELHO]: 0 },
     ladosTrocados: false,
@@ -185,7 +193,7 @@ export function terminarRound(partida, { vencedor, motivo }, agora) {
   }
 
   partida.fase = FASES.POS_ROUND;
-  partida.faseTerminaEm = agora + TEMPOS.POS_ROUND * 1000;
+  partida.faseTerminaEm = agora + (partida.tempos?.POS_ROUND ?? TEMPOS.POS_ROUND) * 1000;
 
   return { vencedor, motivo, placar: { ...partida.placar } };
 }
@@ -234,7 +242,7 @@ export function trocarLados(partida) {
 export function iniciarProximoRound(partida, agora) {
   partida.round += 1;
   partida.fase = FASES.COMPRA;
-  partida.faseTerminaEm = agora + TEMPOS.COMPRA * 1000;
+  partida.faseTerminaEm = agora + (partida.tempos?.COMPRA ?? TEMPOS.COMPRA) * 1000;
 
   for (const jogador of partida.jogadores.values()) {
     if (!jogador.vivo) {
@@ -259,7 +267,7 @@ export function iniciarProximoRound(partida, agora) {
 /** Entra na fase de combate (fim do freeze time). */
 export function iniciarCombate(partida, agora) {
   partida.fase = FASES.COMBATE;
-  partida.faseTerminaEm = agora + TEMPOS.COMBATE * 1000;
+  partida.faseTerminaEm = agora + (partida.tempos?.COMBATE ?? TEMPOS.COMBATE) * 1000;
 }
 
 /** Encerra a partida com um campeão. */

@@ -121,7 +121,7 @@ test('marreta e equipamentos', () => {
   assert.ok(MARRETA.momentoDoImpacto > 0 && MARRETA.momentoDoImpacto < 1);
   assert.ok(MARRETA.duracaoGolpe > 0);
   assert.equal(EQUIPAMENTOS.granada.maximo, 2);
-  assert.equal(EQUIPAMENTOS.blocos.quantidade, 6);
-  assert.equal(EQUIPAMENTOS.blocos.maximo, 30);
+  assert.equal(EQUIPAMENTOS.blocos.quantidade, 10);
+  assert.equal(EQUIPAMENTOS.blocos.maximo, 100);
   assert.equal(CATEGORIAS.SNIPER, 'sniper');
 });

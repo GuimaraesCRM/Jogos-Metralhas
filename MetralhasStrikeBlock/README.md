@@ -19,9 +19,11 @@ Cada round tem três fases:
 
 | Fase | Duração | O que acontece |
 | --- | --- | --- |
-| **Compra** (freeze) | 15 s | Todo mundo fica preso na própria base. Abra a loja com **B** e gaste o dinheiro. |
-| **Combate** | 105 s | Os portões liberam. Quem morre vira espectador até o fim do round. |
+| **Compra** (freeze) | 15 s (ajustável) | Todo mundo fica preso na própria base. Abra a loja com **B** e gaste o dinheiro. |
+| **Combate** | 105 s (ajustável) | Os portões liberam. Quem morre vira espectador até o fim do round. |
 | **Pós-round** | 5 s | Resultado na tela, economia paga, blocos de jogador somem. |
+
+O **dono da sala escolhe os tempos** de compra e de combate no lobby, antes de iniciar.
 
 O round acaba quando um time é **eliminado**. Se o tempo estourar, **vence quem tiver mais jogadores vivos** — empatou em número de vivos, é empate: ninguém pontua e os dois lados recebem o dinheiro de derrota. Sem bomba para plantar, premiar quem preservou gente é o que impede o time em desvantagem de simplesmente esperar o relógio.
 
@@ -44,7 +46,7 @@ Armas fracas pagam mais por abate: matar de shotgun rende $900 e de marreta $1.5
 | Tecla | Ação |
 | --- | --- |
 | **WASD** | Andar |
-| **Espaço** | Pular |
+| **Espaço** | Pular — pule e olhe para baixo colocando blocos para levantar uma torre |
 | **Ctrl** ou **C** | Agachar (mais devagar, mira mais firme, silhueta menor) |
 | **Clique esquerdo** | Atirar |
 | **Clique direito** | Mirar — vale para **todas** as armas: a arma sobe até a linha do olho, a mira fecha e o tiro fica mais preciso |
@@ -76,13 +78,17 @@ Todos os preços, danos e cadências ficam em [`shared/armas.js`](shared/armas.j
 | Luneta Leve | Sniper | $1.700 | 74 | 48 RPM | $300 |
 | AWB | Sniper | $4.750 | 115 | 41 RPM | $100 |
 
-Equipamento: **Colete** $650 · **Colete + Capacete** $1.000 · **Granada HE** $300 (máx. 2) · **Pacote de 6 blocos** $200 (máx. 30 carregados). A **Marreta** é de graça e fica sempre no slot 3.
+Equipamento: **Colete** $650 · **Colete + Capacete** $1.000 · **Granada HE** $300 (máx. 2) · **Pacote de 10 blocos** $250 (até **100** carregados). A **Marreta** é de graça e fica sempre no slot 3.
 
 Headshot multiplica o dano (×4 em rifles, pistolas e snipers); o capacete corta esse multiplicador para ×2. O colete absorve 40% do dano no corpo e vai se gastando. Shotguns perdem dano com a distância. A MC-47 mata de um tiro na cabeça sem capacete; a AWB mata de um tiro no corpo.
 
 ### Recuo e mira
 
-**Segurar o gatilho apontando para o mesmo lugar não funciona.** Cada tiro empurra a mira para cima e, depois dos primeiros disparos, o spray passa a puxar para os lados alternadamente — como no CS. Quem aprende o padrão da arma consegue compensar puxando o mouse para baixo; quem não aprende leva vantagem dando tapinhas de 2 ou 3 tiros e deixando a mira voltar.
+**Segurar o gatilho apontando para o mesmo lugar não funciona.** O recuo é um padrão fixo de spray, no formato de T invertido do CS: os primeiros tiros sobem quase retos, o meio do pente puxa forte para um lado e depois vira para o outro. Um spray de 10 tiros da MC-47 sobe cerca de **21 graus** — a mira sai mesmo do lugar, e a bala vai junto.
+
+A mira **só começa a voltar depois que você solta o gatilho**. Durante a rajada o recuo acumula, que é o que faz o padrão existir: se ela se recuperasse enquanto você atira, tudo saturaria em dois graus e a mira ficaria praticamente cravada no centro.
+
+Como o padrão é fixo, ele é decorável — e é decorando que se aprende a compensar puxando o mouse no caminho contrário. Quem não decorou leva mais vantagem dando tapinhas de 2 ou 3 tiros.
 
 Cada arma tem o próprio coice: a MC-47 é forte e difícil de segurar, a MB-4 é mais fraca mas bem mais controlável, a AWB dá um coice enorme (e não importa, porque você vai atirar uma vez). **Mirar com o botão direito** sobe a arma até a linha do olho, alinha a mira de ferro (ou a luneta) com o centro da tela, fecha o cone de tiro e segura um pouco o recuo. Andar, e principalmente pular, espalha o tiro de qualquer arma.
 
@@ -90,7 +96,7 @@ A mira na tela mostra o cone real: ela abre quando você corre e durante o spray
 
 ### Blocos
 
-Compre um pacote na loja, aperte **4** e clique para levantar cobertura: uma parede para atravessar o campo aberto, degraus para alcançar a torre central, um bloqueio no portão do inimigo. Blocos de jogador têm 60 de vida e são destruídos a tiro (a shotgun derruba rápido) ou com **2 golpes de marreta**. O mapa base é indestrutível, e todo bloco colocado some no fim do round.
+Compre um pacote na loja, aperte **4** e clique para levantar cobertura: uma parede para atravessar o campo aberto, degraus para alcançar a torre central, um bloqueio no portão do inimigo. Dá para carregar **até 100 blocos**, o suficiente para uma torre — pule e coloque um bloco embaixo de si mesmo para subir. Blocos de jogador têm 60 de vida e são destruídos a tiro (a shotgun derruba rápido) ou com **2 golpes de marreta**. O mapa base é indestrutível, e todo bloco colocado some no fim do round.
 
 ### O mapa
 

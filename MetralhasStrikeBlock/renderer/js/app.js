@@ -60,6 +60,7 @@ function mostrarLobby() {
   if (!app.estadoLobby || app.emPartida) return;
   telaLobby(raiz, app.estadoLobby, app.meuId, {
     aoEscolherTime: (time) => app.conexao.enviar(DO_CLIENTE.ESCOLHER_TIME, { time }),
+    aoConfigurar: (mudanca) => app.conexao.enviar(DO_CLIENTE.CONFIGURAR, mudanca),
     aoIniciar: () => app.conexao.enviar(DO_CLIENTE.INICIAR_PARTIDA),
     aoSair: sairDaSala
   });

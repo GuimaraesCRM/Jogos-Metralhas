@@ -51,9 +51,9 @@ export const ARMAS = {
     zoom: null,
     slot: 2,
     spreadMirando: 0.004,
-    recuoVertical: 0.010,
-    recuoHorizontal: 0.004,
-    recuperacao: 7,
+    recuoVertical: 0.026,
+    recuoHorizontal: 0.009,
+    recuperacao: 9,
     tirosRetos: 3,
     zoomAds: 0.85
   },
@@ -77,9 +77,9 @@ export const ARMAS = {
     zoom: null,
     slot: 2,
     spreadMirando: 0.003,
-    recuoVertical: 0.032,
-    recuoHorizontal: 0.008,
-    recuperacao: 6,
+    recuoVertical: 0.075,
+    recuoHorizontal: 0.02,
+    recuperacao: 7,
     tirosRetos: 2,
     zoomAds: 0.8
   },
@@ -104,9 +104,9 @@ export const ARMAS = {
     slot: 1,
     // Shotgun mirando fecha um pouco o cone, mas continua um cone.
     spreadMirando: 0.090,
-    recuoVertical: 0.048,
-    recuoHorizontal: 0.012,
-    recuperacao: 5,
+    recuoVertical: 0.105,
+    recuoHorizontal: 0.032,
+    recuperacao: 6,
     tirosRetos: 1,
     zoomAds: 0.9
   },
@@ -130,9 +130,9 @@ export const ARMAS = {
     zoom: null,
     slot: 1,
     spreadMirando: 0.075,
-    recuoVertical: 0.036,
-    recuoHorizontal: 0.010,
-    recuperacao: 5.5,
+    recuoVertical: 0.082,
+    recuoHorizontal: 0.026,
+    recuperacao: 6.5,
     tirosRetos: 1,
     zoomAds: 0.9
   },
@@ -156,9 +156,9 @@ export const ARMAS = {
     zoom: null,
     slot: 1,
     spreadMirando: 0.014,
-    recuoVertical: 0.009,
-    recuoHorizontal: 0.005,
-    recuperacao: 8,
+    recuoVertical: 0.024,
+    recuoHorizontal: 0.013,
+    recuperacao: 10,
     tirosRetos: 5,
     zoomAds: 0.85
   },
@@ -182,9 +182,9 @@ export const ARMAS = {
     zoom: null,
     slot: 1,
     spreadMirando: 0.013,
-    recuoVertical: 0.011,
-    recuoHorizontal: 0.006,
-    recuperacao: 8,
+    recuoVertical: 0.027,
+    recuoHorizontal: 0.015,
+    recuperacao: 10,
     tirosRetos: 4,
     zoomAds: 0.85
   },
@@ -208,10 +208,10 @@ export const ARMAS = {
     zoom: null,
     slot: 1,
     spreadMirando: 0.008,
-    // Estilo AK: forte e difícil de segurar, recompensa quem dá tapinhas.
-    recuoVertical: 0.021,
-    recuoHorizontal: 0.009,
-    recuperacao: 6.5,
+    // Estilo AK: forte e bagunçada, recompensa quem dá tapinhas de 2-3 tiros.
+    recuoVertical: 0.052,
+    recuoHorizontal: 0.045,
+    recuperacao: 8,
     tirosRetos: 4,
     zoomAds: 0.8
   },
@@ -236,9 +236,9 @@ export const ARMAS = {
     slot: 1,
     spreadMirando: 0.006,
     // Estilo M4: menos dano que a MC-47, bem mais controlável.
-    recuoVertical: 0.013,
-    recuoHorizontal: 0.005,
-    recuperacao: 8,
+    recuoVertical: 0.034,
+    recuoHorizontal: 0.016,
+    recuperacao: 9.5,
     tirosRetos: 6,
     zoomAds: 0.8
   },
@@ -262,8 +262,8 @@ export const ARMAS = {
     zoom: null,
     slot: 1,
     spreadMirando: 0.007,
-    recuoVertical: 0.016,
-    recuoHorizontal: 0.005,
+    recuoVertical: 0.04,
+    recuoHorizontal: 0.017,
     recuperacao: 9,
     tirosRetos: 3,
     zoomAds: 0.8
@@ -288,9 +288,9 @@ export const ARMAS = {
     zoom: 0.35,
     slot: 1,
     spreadMirando: 0.002,
-    recuoVertical: 0.042,
-    recuoHorizontal: 0.006,
-    recuperacao: 4.5,
+    recuoVertical: 0.09,
+    recuoHorizontal: 0.018,
+    recuperacao: 5.5,
     tirosRetos: 1,
     zoomAds: 0.35
   },
@@ -314,9 +314,9 @@ export const ARMAS = {
     zoom: 0.25,
     slot: 1,
     spreadMirando: 0.001,
-    recuoVertical: 0.065,
-    recuoHorizontal: 0.008,
-    recuperacao: 3.5,
+    recuoVertical: 0.14,
+    recuoHorizontal: 0.024,
+    recuperacao: 4.5,
     tirosRetos: 1,
     zoomAds: 0.25
   }
@@ -343,7 +343,7 @@ export const EQUIPAMENTOS = {
   // Inclui um colete novo, como no CS.
   capacete: { id: 'capacete', nome: 'Colete + Capacete', preco: 1000 },
   granada: { id: 'granada', nome: 'Granada HE', preco: 300, maximo: 2 },
-  blocos: { id: 'blocos', nome: 'Pacote de 6 blocos', preco: 200, quantidade: 6, maximo: 30 }
+  blocos: { id: 'blocos', nome: 'Pacote de 10 blocos', preco: 250, quantidade: 10, maximo: 100 }
 };
 
 /** Sniper sem mirar atira "do quadril": spread grande de propósito. */
@@ -394,29 +394,68 @@ export function intervaloEntreTiros(arma) {
 }
 
 /**
+ * O padrão de spray, normalizado: `[vertical, horizontal]` por tiro.
+ *
+ * É o formato de "T invertido" do CS: os primeiros tiros sobem quase retos,
+ * o meio do pente puxa forte para um lado, depois vira para o outro, e a
+ * parte final oscila. Ser uma TABELA FIXA é o ponto — o padrão precisa ser
+ * decorável, porque é decorando que o jogador aprende a compensar puxando o
+ * mouse no caminho contrário.
+ *
+ * A arma entra depois, multiplicando: a MC-47 usa o mesmo desenho da MB-4,
+ * só que muito mais forte.
+ */
+const PADRAO_SPRAY = [
+  [1.0, 0.0],
+  [1.0, -0.12],
+  [0.96, 0.18],
+  [0.88, 0.5],
+  [0.78, 0.78],
+  [0.64, 0.95],
+  [0.54, 0.6],
+  [0.48, -0.3],
+  [0.44, -0.82],
+  [0.42, -1.0],
+  [0.4, -0.86],
+  [0.38, -0.34],
+  [0.36, 0.42],
+  [0.34, 0.86],
+  [0.33, 0.98],
+  [0.32, 0.7],
+  [0.3, -0.2],
+  [0.3, -0.75],
+  [0.3, -0.95],
+  [0.3, -0.6]
+];
+
+/**
  * O empurrão que um tiro dá na mira, em radianos: `{ pitch, yaw }`.
  *
- * O padrão imita o spray do CS. Os primeiros `tirosRetos` sobem quase na
- * vertical; daí em diante o tiro passa a puxar para os lados, alternando de
- * direção — segurar o gatilho apontado para o mesmo ponto deixa de funcionar,
- * e quem aprende o padrão consegue compensar.
+ * Note que isto NÃO é tremor de tela: o valor é somado ao ângulo de visão do
+ * jogador, então a bala sai mesmo de onde a mira foi parar. Segurar o gatilho
+ * apontando para o mesmo lugar joga os tiros para cima e para os lados, de
+ * verdade.
  *
  * `rnd` é injetável para o teste conseguir prever o resultado.
  */
 export function recuoDoTiro(arma, numeroDoTiro, rnd = Math.random) {
-  const vertical = arma.recuoVertical ?? 0.012;
-  const horizontal = arma.recuoHorizontal ?? 0.005;
-  const retos = arma.tirosRetos ?? 3;
+  const vertical = arma.recuoVertical ?? 0.03;
+  const horizontal = arma.recuoHorizontal ?? 0.02;
 
-  // O quanto o spray já "abriu": 0 nos primeiros tiros, 1 depois de uns 12.
-  const abertura = Math.min(1, Math.max(0, (numeroDoTiro - retos) / 8));
+  // Passado o fim da tabela, o spray continua oscilando nos últimos passos em
+  // vez de zerar — pente grande não vira arma laser no fim do carregador.
+  const i =
+    numeroDoTiro < PADRAO_SPRAY.length
+      ? numeroDoTiro
+      : PADRAO_SPRAY.length - 6 + (numeroDoTiro % 6);
+  const [passoVertical, passoHorizontal] = PADRAO_SPRAY[i];
 
-  // Sobe forte no começo e vai perdendo força conforme o spray abre.
-  const pitch = vertical * (1 - 0.35 * abertura);
+  // Um tempero pequeno para dois sprays nunca serem idênticos, sem apagar o
+  // padrão: 12% do passo, não mais que isso.
+  const ruido = (rnd() * 2 - 1) * 0.12;
 
-  // Direção lateral alternando a cada 3 tiros, com um tempero aleatório.
-  const lado = Math.floor(numeroDoTiro / 3) % 2 === 0 ? 1 : -1;
-  const yaw = horizontal * abertura * lado + (rnd() * 2 - 1) * horizontal * 0.5;
-
-  return { pitch, yaw };
+  return {
+    pitch: vertical * passoVertical * (1 + ruido),
+    yaw: horizontal * passoHorizontal + horizontal * ruido * 0.5
+  };
 }

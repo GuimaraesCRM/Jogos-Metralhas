@@ -223,6 +223,7 @@ function tratar(ws, sessao, msg, agora) {
 
   const acoes = {
     [DO_CLIENTE.ESCOLHER_TIME]: () => sala.escolherTime(eu, msg.time),
+    [DO_CLIENTE.CONFIGURAR]: () => sala.configurar(eu, msg),
     [DO_CLIENTE.INICIAR_PARTIDA]: () => {
       const r = sala.iniciarPartida(eu, agora);
       if (r.ok) {

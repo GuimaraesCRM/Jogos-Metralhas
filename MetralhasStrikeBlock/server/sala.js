@@ -7,7 +7,7 @@
 
 import { randomUUID, randomBytes } from 'node:crypto';
 import { limparNome, limparAvatar } from '../shared/protocolo.js';
-import { PARTIDA, TIMES } from '../shared/constantes.js';
+import { LIMITE_COMBATE, LIMITE_COMPRA, PARTIDA, TEMPOS, TIMES, duracaoValida } from '../shared/constantes.js';
 import { Partida } from './partida.js';
 
 const FASES_DA_SALA = { LOBBY: 'lobby', JOGO: 'jogo' };
@@ -19,6 +19,8 @@ export class Sala {
     this.jogadores = new Map();
     this.anfitriaoId = null;
     this.partida = null;
+    // Tempos do round, escolhidos pelo anfitrião no lobby.
+    this.config = { compra: TEMPOS.COMPRA, combate: TEMPOS.COMBATE };
     this.ultimaAtividade = Date.now();
   }
 
@@ -104,6 +106,29 @@ export class Sala {
     return { ok: true };
   }
 
+  /** Só o anfitrião muda os tempos, e só enquanto a partida não começou. */
+  configurar(jogadorId, { compra, combate }) {
+    this.tocar();
+    if (this.fase !== FASES_DA_SALA.LOBBY) return { ok: false, erro: 'A partida já começou.' };
+    if (jogadorId !== this.anfitriaoId) return { ok: false, erro: 'Só o anfitrião muda a configuração.' };
+
+    if (compra !== undefined) {
+      const valor = duracaoValida(compra, LIMITE_COMPRA);
+      if (valor === null) {
+        return { ok: false, erro: `O tempo de compra vai de ${LIMITE_COMPRA.MINIMO}s a ${LIMITE_COMPRA.MAXIMO}s.` };
+      }
+      this.config.compra = valor;
+    }
+    if (combate !== undefined) {
+      const valor = duracaoValida(combate, LIMITE_COMBATE);
+      if (valor === null) {
+        return { ok: false, erro: `O tempo de round vai de ${LIMITE_COMBATE.MINIMO}s a ${LIMITE_COMBATE.MAXIMO}s.` };
+      }
+      this.config.combate = valor;
+    }
+    return { ok: true };
+  }
+
   iniciarPartida(jogadorId, agora = Date.now()) {
     this.tocar();
     if (this.fase !== FASES_DA_SALA.LOBBY) return { ok: false, erro: 'A partida já começou.' };
@@ -120,7 +145,7 @@ export class Sala {
     }
 
     this.fase = FASES_DA_SALA.JOGO;
-    this.partida = new Partida({ sala: this, agora });
+    this.partida = new Partida({ sala: this, agora, tempos: this.config });
     return { ok: true };
   }
 

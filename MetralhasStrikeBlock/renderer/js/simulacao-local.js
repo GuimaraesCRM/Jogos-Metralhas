@@ -21,7 +21,8 @@ import {
   BLOCO_JOGADOR,
   FASES,
   FISICA,
-  TIMES
+  TIMES,
+  alturaDosOlhos
 } from '../../shared/constantes.js';
 import { DO_CLIENTE, DO_SERVIDOR } from '../../shared/protocolo.js';
 import {
@@ -33,7 +34,7 @@ import {
 } from '../../shared/armas.js';
 import { BLOCOS, definirBloco, obterBloco, raycastVoxel } from '../../shared/mundo.js';
 import { ZONA_BASE, dentroDaZona, direcaoDoOlhar, gerarArena } from '../../shared/mapa.js';
-import { alturaOlhos, criarCorpo, passoJogador } from '../../shared/fisica.js';
+import { criarCorpo, passoJogador } from '../../shared/fisica.js';
 
 import { FOV_PADRAO } from './config.js';
 import { criarCena } from './mundo/cena.js';
@@ -50,6 +51,8 @@ const PASSO_FISICA = 1 / 60;
 const INTERVALO_ENVIO_MS = 33;
 /** Depois deste tempo sem atirar, o spray recomeça do primeiro tiro. */
 const RESET_SPRAY_MS = 350;
+/** Quanto tempo sem atirar até a mira começar a voltar ao lugar. */
+const ATRASO_RECUPERACAO_MS = 130;
 
 export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePartida }) {
   // ------------------------------------------------------------- montagem
@@ -327,7 +330,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   function origemDoTiro() {
     return {
       x: corpo.pos.x,
-      y: corpo.pos.y + alturaOlhos(entrada.comandos.agachar),
+      y: corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar),
       z: corpo.pos.z
     };
   }
@@ -578,6 +581,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
         time: b.time,
         vivo: b.vivo,
         agachado: b.agachado,
+        mirando: b.mirando,
         armaId: b.armaId,
         velocidade,
         pos,
@@ -608,14 +612,19 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       trocarSlot(ultimaFoto.eu.slot);
     }
 
-    // Recuperação do recuo: a mira volta sozinha quando o jogador para.
+    // Recuperação do recuo — e o detalhe que faz o spray existir: ela SÓ
+    // começa depois que o jogador solta o gatilho. Se recuperasse durante a
+    // rajada, o recuo saturaria em dois graus e a mira ficaria praticamente
+    // cravada no centro, que era o defeito antes.
     const def = defAtiva();
-    const velocidadeVolta = (def?.recuperacao ?? 7) * dt;
-    const fator = Math.max(0, 1 - velocidadeVolta);
-    recuo.pitch *= fator;
-    recuo.yaw *= fator;
-    if (Math.abs(recuo.pitch) < 1e-5) recuo.pitch = 0;
-    if (Math.abs(recuo.yaw) < 1e-5) recuo.yaw = 0;
+    const atirandoAgora = performance.now() - ultimoTiroParaSpray < ATRASO_RECUPERACAO_MS;
+    if (!atirandoAgora) {
+      const fator = Math.max(0, 1 - (def?.recuperacao ?? 8) * dt);
+      recuo.pitch *= fator;
+      recuo.yaw *= fator;
+      if (Math.abs(recuo.pitch) < 1e-5) recuo.pitch = 0;
+      if (Math.abs(recuo.yaw) < 1e-5) recuo.yaw = 0;
+    }
 
     const congelado = lojaAberta || !entrada.travado();
     const comandos = congelado
@@ -650,7 +659,8 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
           pos: { x: corpo.pos.x, y: corpo.pos.y, z: corpo.pos.z },
           yaw: olhar.yaw,
           pitch: olhar.pitch,
-          agachado: entrada.comandos.agachar
+          agachado: entrada.comandos.agachar,
+          mirando: mirando()
         });
       }
     }
@@ -659,7 +669,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     const estados = estadosInterpolados(dt);
     if (vivo) {
       const olhar = olharComRecuo();
-      camera.position.set(corpo.pos.x, corpo.pos.y + alturaOlhos(entrada.comandos.agachar), corpo.pos.z);
+      camera.position.set(corpo.pos.x, corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar), corpo.pos.z);
       camera.rotation.y = olhar.yaw;
       camera.rotation.x = olhar.pitch;
     } else {

@@ -21,16 +21,85 @@ export const FISICA = {
   VEL_AGACHADO: 2.4,
   LARGURA: 0.6,
   ALTURA: 1.8,
+  ALTURA_AGACHADO: 1.35,
   OLHOS: 1.62,
-  OLHOS_AGACHADO: 1.2
+  OLHOS_AGACHADO: 1.15
 };
 
-/** Duração das fases de um round, em segundos. */
+/**
+ * As medidas do corpo, numa fonte de verdade só.
+ *
+ * O servidor monta as caixas de acerto com estes números e o cliente monta o
+ * boneco com os mesmos — é o que impede o clássico "atirei na cabeça e não
+ * contou": se cada lado tivesse a sua tabela, a cabeça desenhada e a cabeça
+ * que o tiro procura acabariam em alturas diferentes.
+ *
+ * A cabeça é sempre a fatia do topo: `base = altura - ALTURA_CABECA`. Assim,
+ * quando o jogador agacha e a altura cai, a cabeça desce junto em vez de
+ * ficar boiando no ar.
+ */
+export const CORPO = {
+  ALTURA_CABECA: 0.4,
+  LARGURA_CABECA: 0.44,
+  /** Altura do quadril, de onde pendem tronco e pernas. */
+  QUADRIL: 0.85,
+  QUADRIL_AGACHADO: 0.52
+};
+
+export function alturaDoCorpo(agachado) {
+  return agachado ? FISICA.ALTURA_AGACHADO : FISICA.ALTURA;
+}
+
+export function alturaDosOlhos(agachado) {
+  return agachado ? FISICA.OLHOS_AGACHADO : FISICA.OLHOS;
+}
+
+/**
+ * As duas caixas de acerto de um jogador, em coordenadas do mundo.
+ * `pos` são os pés. Corpo e cabeça se encostam sem sobrepor nem deixar vão.
+ */
+export function caixasDeAcerto(pos, agachado) {
+  const altura = alturaDoCorpo(agachado);
+  const meia = FISICA.LARGURA / 2;
+  const meiaCabeca = CORPO.LARGURA_CABECA / 2;
+  const baseCabeca = altura - CORPO.ALTURA_CABECA;
+
+  return {
+    corpo: {
+      min: { x: pos.x - meia, y: pos.y, z: pos.z - meia },
+      max: { x: pos.x + meia, y: pos.y + baseCabeca, z: pos.z + meia }
+    },
+    cabeca: {
+      min: { x: pos.x - meiaCabeca, y: pos.y + baseCabeca, z: pos.z - meiaCabeca },
+      max: { x: pos.x + meiaCabeca, y: pos.y + altura, z: pos.z + meiaCabeca }
+    }
+  };
+}
+
+/**
+ * Duração das fases de um round, em segundos. São os valores padrão: o dono
+ * da sala pode trocar o tempo de compra e de combate no lobby, dentro dos
+ * limites abaixo.
+ */
 export const TEMPOS = {
   COMPRA: 15,
   COMBATE: 105,
   POS_ROUND: 5
 };
+
+/** Atalhos oferecidos no lobby, em segundos. */
+export const DURACOES_COMBATE = [60, 105, 150, 210];
+export const DURACOES_COMPRA = [5, 10, 15, 25];
+
+export const LIMITE_COMBATE = { MINIMO: 30, MAXIMO: 300 };
+export const LIMITE_COMPRA = { MINIMO: 3, MAXIMO: 60 };
+
+/** Normaliza uma duração escolhida no lobby, ou devolve null se não servir. */
+export function duracaoValida(bruto, limite) {
+  const n = Math.round(Number(bruto));
+  if (!Number.isFinite(n) || n < limite.MINIMO || n > limite.MAXIMO) return null;
+  return n;
+}
 
 /** Fases possíveis de uma partida. */
 export const FASES = {
@@ -62,7 +131,7 @@ export const PARTIDA = {
 export const BLOCO_JOGADOR = {
   HP: 60,
   ALCANCE: 4,
-  MAX_CARREGADOS: 30
+  MAX_CARREGADOS: 100
 };
 
 /** Granada HE. */

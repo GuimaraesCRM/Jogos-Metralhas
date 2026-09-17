@@ -10,7 +10,7 @@
  * daquele eixo. É simples e não deixa atravessar parede — o que basta.
  */
 
-import { FISICA, GRANADA } from './constantes.js';
+import { FISICA, GRANADA, alturaDosOlhos } from './constantes.js';
 import { caixaColide } from './mundo.js';
 
 const EPS = 1e-3;
@@ -29,9 +29,8 @@ export function criarCorpo(pos) {
   };
 }
 
-export function alturaOlhos(agachado) {
-  return agachado ? FISICA.OLHOS_AGACHADO : FISICA.OLHOS;
-}
+/** Reexporta a medida das constantes: a altura do olho tem uma fonte só. */
+export { alturaDosOlhos };
 
 /**
  * Um passo de simulação do jogador.

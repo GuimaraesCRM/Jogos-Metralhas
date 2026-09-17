@@ -35,9 +35,11 @@ import {
   raycastVoxel
 } from '../shared/mundo.js';
 import { SPAWNS, ZONA_BASE, dentroDaZona, gerarArena } from '../shared/mapa.js';
-import { criarGranada, passoGranada, alturaOlhos } from '../shared/fisica.js';
+import { criarGranada, passoGranada } from '../shared/fisica.js';
 import * as regras from '../shared/regras.js';
 import { snapshotPara } from './vistas.js';
+
+import { caixasDeAcerto, alturaDosOlhos } from '../shared/constantes.js';
 
 const ALCANCE_TIRO = 200;
 const TEMPO_RECARGA_MS = 2200;
@@ -46,11 +48,9 @@ const FOLGA_CADENCIA = 0.8;
 /** O cliente pode reportar origem do tiro até isso longe da última posição aceita. */
 const DESVIO_MAX_ORIGEM = 2;
 
-// Hitboxes: caixa do corpo cobre o tronco/pernas; a cabeça é um cubo em cima.
-const CABECA = { LADO: 0.5, ALTURA: 0.4 };
 
 export class Partida {
-  constructor({ sala, agora }) {
+  constructor({ sala, agora, tempos }) {
     this.sala = sala;
     this.mundo = gerarArena();
     this.blocosDeJogador = new Map(); // "x,y,z" -> { x, y, z, id, hp }
@@ -64,7 +64,7 @@ export class Partida {
       nome: j.nome,
       time: j.time
     }));
-    this.estado = regras.criarPartida({ jogadores, agora });
+    this.estado = regras.criarPartida({ jogadores, agora, tempos });
 
     // Estado de movimento/combate que não pertence às regras puras.
     this.corpos = new Map();
@@ -74,6 +74,7 @@ export class Partida {
         yaw: 0,
         pitch: 0,
         agachado: false,
+        mirando: false,
         ultimaMsgEm: agora,
         ultimoTiroEm: 0,
         ultimoGolpeEm: 0,
@@ -124,22 +125,16 @@ export class Partida {
     this.blocosDeJogador.clear();
   }
 
-  /** Caixas de colisão de tiro de um jogador: corpo e cabeça. */
+  /**
+   * Caixas de acerto de um jogador: corpo e cabeça.
+   *
+   * Vêm de `shared/constantes.js`, as mesmas medidas que o cliente usa para
+   * desenhar o boneco — e levam o agachamento em conta, senão a cabeça de
+   * quem está agachado continuaria sendo procurada lá em cima, no ar.
+   */
   hitboxes(id) {
     const corpo = this.corpos.get(id);
-    const meia = FISICA.LARGURA / 2;
-    const alturaCorpo = FISICA.ALTURA - CABECA.ALTURA;
-    const p = corpo.pos;
-    return {
-      corpo: {
-        min: { x: p.x - meia, y: p.y, z: p.z - meia },
-        max: { x: p.x + meia, y: p.y + alturaCorpo, z: p.z + meia }
-      },
-      cabeca: {
-        min: { x: p.x - CABECA.LADO / 2, y: p.y + alturaCorpo, z: p.z - CABECA.LADO / 2 },
-        max: { x: p.x + CABECA.LADO / 2, y: p.y + FISICA.ALTURA, z: p.z + CABECA.LADO / 2 }
-      }
-    };
+    return caixasDeAcerto(corpo.pos, corpo.agachado);
   }
 
   centroDoPeito(id) {
@@ -282,6 +277,7 @@ export class Partida {
     corpo.yaw = Number(msg.yaw) || 0;
     corpo.pitch = travar(Number(msg.pitch) || 0, -Math.PI / 2, Math.PI / 2);
     corpo.agachado = Boolean(msg.agachado);
+    corpo.mirando = Boolean(msg.mirando);
 
     const dt = travar((agora - corpo.ultimaMsgEm) / 1000, 0, 0.25);
     corpo.ultimaMsgEm = agora;
@@ -340,7 +336,7 @@ export class Partida {
     // A origem precisa ser a cabeça do jogador que o servidor conhece.
     const olhos = {
       x: corpo.pos.x,
-      y: corpo.pos.y + alturaOlhos(corpo.agachado),
+      y: corpo.pos.y + alturaDosOlhos(corpo.agachado),
       z: corpo.pos.z
     };
     if (Math.hypot(origem.x - olhos.x, origem.y - olhos.y, origem.z - olhos.z) > DESVIO_MAX_ORIGEM) return;
@@ -467,7 +463,7 @@ export class Partida {
 
     const origem = {
       x: corpo.pos.x,
-      y: corpo.pos.y + alturaOlhos(corpo.agachado),
+      y: corpo.pos.y + alturaDosOlhos(corpo.agachado),
       z: corpo.pos.z
     };
     const dir = direcaoDe(corpo.yaw, corpo.pitch);
@@ -515,7 +511,7 @@ export class Partida {
     if (obterBloco(this.mundo, x, y, z) !== BLOCOS.AR) return;
 
     // Alcance a partir dos olhos até o centro da célula.
-    const olhos = { x: corpo.pos.x, y: corpo.pos.y + alturaOlhos(corpo.agachado), z: corpo.pos.z };
+    const olhos = { x: corpo.pos.x, y: corpo.pos.y + alturaDosOlhos(corpo.agachado), z: corpo.pos.z };
     const centro = { x: x + 0.5, y: y + 0.5, z: z + 0.5 };
     if (Math.hypot(centro.x - olhos.x, centro.y - olhos.y, centro.z - olhos.z) > BLOCO_JOGADOR.ALCANCE + 0.9) return;
 
@@ -553,7 +549,7 @@ export class Partida {
     if (!direcao) return;
     jogador.granadas -= 1;
 
-    const olhos = { x: corpo.pos.x, y: corpo.pos.y + alturaOlhos(corpo.agachado), z: corpo.pos.z };
+    const olhos = { x: corpo.pos.x, y: corpo.pos.y + alturaDosOlhos(corpo.agachado), z: corpo.pos.z };
     const dir = normalizar(direcao);
     const origem = somar(olhos, escalar(dir, 0.4));
     const granada = criarGranada(origem, dir);

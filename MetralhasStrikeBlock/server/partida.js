@@ -35,11 +35,16 @@ import {
   raycastVoxel
 } from '../shared/mundo.js';
 import { SPAWNS, ZONA_BASE, dentroDaZona, gerarArena } from '../shared/mapa.js';
-import { criarGranada, passoGranada } from '../shared/fisica.js';
+import { criarGranada, inclinacaoPossivel, passoGranada } from '../shared/fisica.js';
 import * as regras from '../shared/regras.js';
 import { snapshotPara } from './vistas.js';
 
-import { caixasDeAcerto, alturaDosOlhos } from '../shared/constantes.js';
+import {
+  INCLINACAO,
+  alturaDosOlhos,
+  caixasDeAcerto,
+  direitaDoJogador
+} from '../shared/constantes.js';
 
 const ALCANCE_TIRO = 200;
 const TEMPO_RECARGA_MS = 2200;
@@ -75,6 +80,7 @@ export class Partida {
         pitch: 0,
         agachado: false,
         mirando: false,
+        inclinacao: 0,
         ultimaMsgEm: agora,
         ultimoTiroEm: 0,
         ultimoGolpeEm: 0,
@@ -134,7 +140,27 @@ export class Partida {
    */
   hitboxes(id) {
     const corpo = this.corpos.get(id);
-    return caixasDeAcerto(corpo.pos, corpo.agachado);
+    return caixasDeAcerto(corpo.pos, corpo.agachado, corpo.inclinacao, corpo.yaw);
+  }
+
+  /** Posição dos olhos, já com a inclinação lateral aplicada. */
+  olhosDe(corpo) {
+    const direita = direitaDoJogador(corpo.yaw);
+    const desvio = (corpo.inclinacao ?? 0) * INCLINACAO.DESLOCAMENTO;
+    return {
+      x: corpo.pos.x + direita.x * desvio,
+      y: corpo.pos.y + alturaDosOlhos(corpo.agachado),
+      z: corpo.pos.z + direita.z * desvio
+    };
+  }
+
+  /**
+   * Dá para atirar? Vale no combate e também no pós-round: o round já está
+   * decidido, e cortar o tiro no exato instante em que o último inimigo cai
+   * fica estranho na mão de quem estava atirando.
+   */
+  podeAtirar() {
+    return this.estado.fase === FASES.COMBATE || this.estado.fase === FASES.POS_ROUND;
   }
 
   centroDoPeito(id) {
@@ -278,6 +304,10 @@ export class Partida {
     corpo.pitch = travar(Number(msg.pitch) || 0, -Math.PI / 2, Math.PI / 2);
     corpo.agachado = Boolean(msg.agachado);
     corpo.mirando = Boolean(msg.mirando);
+    // A inclinação é validada contra o mundo: ninguém espia atravessando
+    // bloco, nem no cliente nem aqui.
+    const pedida = Math.max(-1, Math.min(1, Number(msg.inclinacao) || 0));
+    corpo.inclinacao = inclinacaoPossivel(this.mundo, corpo.pos, corpo.yaw, corpo.agachado, pedida);
 
     const dt = travar((agora - corpo.ultimaMsgEm) / 1000, 0, 0.25);
     corpo.ultimaMsgEm = agora;
@@ -317,7 +347,7 @@ export class Partida {
     const jogador = this.jogador(id);
     const corpo = this.corpos.get(id);
     if (!jogador || !jogador.vivo) return;
-    if (this.estado.fase !== FASES.COMBATE) return;
+    if (!this.podeAtirar()) return;
     if (agora < corpo.recarregaAte) return; // recarregando
 
     const slot = jogador.slot;
@@ -334,11 +364,7 @@ export class Partida {
     if (!origem || !direcao) return;
 
     // A origem precisa ser a cabeça do jogador que o servidor conhece.
-    const olhos = {
-      x: corpo.pos.x,
-      y: corpo.pos.y + alturaDosOlhos(corpo.agachado),
-      z: corpo.pos.z
-    };
+    const olhos = this.olhosDe(corpo);
     if (Math.hypot(origem.x - olhos.x, origem.y - olhos.y, origem.z - olhos.z) > DESVIO_MAX_ORIGEM) return;
 
     armaEstado.municao -= 1;
@@ -456,16 +482,12 @@ export class Partida {
     const jogador = this.jogador(id);
     const corpo = this.corpos.get(id);
     if (!jogador || !jogador.vivo) return;
-    if (this.estado.fase !== FASES.COMBATE) return;
+    if (!this.podeAtirar()) return;
     if (jogador.slot !== 3) return;
     if (agora - corpo.ultimoGolpeEm < intervaloEntreTiros(MARRETA) * FOLGA_CADENCIA) return;
     corpo.ultimoGolpeEm = agora;
 
-    const origem = {
-      x: corpo.pos.x,
-      y: corpo.pos.y + alturaDosOlhos(corpo.agachado),
-      z: corpo.pos.z
-    };
+    const origem = this.olhosDe(corpo);
     const dir = direcaoDe(corpo.yaw, corpo.pitch);
 
     // Primeiro procura um jogador no alcance curto; senão, um bloco.
@@ -511,7 +533,7 @@ export class Partida {
     if (obterBloco(this.mundo, x, y, z) !== BLOCOS.AR) return;
 
     // Alcance a partir dos olhos até o centro da célula.
-    const olhos = { x: corpo.pos.x, y: corpo.pos.y + alturaDosOlhos(corpo.agachado), z: corpo.pos.z };
+    const olhos = this.olhosDe(corpo);
     const centro = { x: x + 0.5, y: y + 0.5, z: z + 0.5 };
     if (Math.hypot(centro.x - olhos.x, centro.y - olhos.y, centro.z - olhos.z) > BLOCO_JOGADOR.ALCANCE + 0.9) return;
 
@@ -549,7 +571,7 @@ export class Partida {
     if (!direcao) return;
     jogador.granadas -= 1;
 
-    const olhos = { x: corpo.pos.x, y: corpo.pos.y + alturaDosOlhos(corpo.agachado), z: corpo.pos.z };
+    const olhos = this.olhosDe(corpo);
     const dir = normalizar(direcao);
     const origem = somar(olhos, escalar(dir, 0.4));
     const granada = criarGranada(origem, dir);

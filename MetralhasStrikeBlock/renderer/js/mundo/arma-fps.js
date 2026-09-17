@@ -188,7 +188,9 @@ function pistola(cores = {}) {
   const punho = bloco(0.04, 0.115, 0.058, MATERIAIS.polimero, 0, -0.095, 0.035);
   punho.rotation.x = -0.28;
   grupo.add(punho);
-  grupo.add(bloco(0.026, 0.055, 0.03, MATERIAIS.metalClaro, 0, -0.085, 0.03)); // carregador
+  const carregadorPistola = bloco(0.026, 0.055, 0.03, MATERIAIS.metalClaro, 0, -0.085, 0.03);
+  carregadorPistola.name = 'carregador';
+  grupo.add(carregadorPistola);
   grupo.add(bloco(0.014, 0.03, 0.028, MATERIAIS.ferro, 0, -0.052, -0.008)); // gatilho/guarda
   grupo.add(cilindro(0.011, 0.06, MATERIAIS.aco, 0, 0.012, -0.155)); // cano saindo
 
@@ -204,7 +206,9 @@ function pistola(cores = {}) {
 function revolverPesado() {
   const grupo = new THREE.Group();
   grupo.add(bloco(0.04, 0.062, 0.14, MATERIAIS.aco, 0, 0.015, -0.03));
-  grupo.add(cilindro(0.032, 0.07, MATERIAIS.metalClaro, 0, 0.012, 0.01)); // tambor
+  const tambor = cilindro(0.032, 0.07, MATERIAIS.metalClaro, 0, 0.012, 0.01);
+  tambor.name = 'tambor';
+  grupo.add(tambor);
   grupo.add(cilindro(0.013, 0.16, MATERIAIS.aco, 0, 0.016, -0.14)); // cano longo
   grupo.add(bloco(0.016, 0.018, 0.14, MATERIAIS.aco, 0, 0.042, -0.14)); // pente de mira
   const punho = bloco(0.042, 0.12, 0.062, MATERIAIS.madeira, 0, -0.082, 0.05);
@@ -226,7 +230,9 @@ function shotgunCurta() {
   grupo.add(bloco(0.05, 0.062, 0.24, MATERIAIS.metalEscuro, 0, 0, -0.06)); // caixa
   grupo.add(cilindro(0.019, 0.3, MATERIAIS.aco, 0, 0.026, -0.2)); // cano
   grupo.add(cilindro(0.013, 0.26, MATERIAIS.metalMedio, 0, -0.012, -0.19)); // tubo do pente
-  grupo.add(bloco(0.05, 0.05, 0.11, MATERIAIS.madeira, 0, -0.005, -0.17)); // bomba
+  const bombaCurta = bloco(0.05, 0.05, 0.11, MATERIAIS.madeira, 0, -0.005, -0.17);
+  bombaCurta.name = 'bomba';
+  grupo.add(bombaCurta);
   const punho = bloco(0.044, 0.11, 0.06, MATERIAIS.madeira, 0, -0.078, 0.045);
   punho.rotation.x = -0.32;
   grupo.add(punho);
@@ -247,7 +253,9 @@ function shotgunLonga() {
   grupo.add(bloco(0.052, 0.07, 0.28, MATERIAIS.metalMedio, 0, 0, -0.08));
   grupo.add(cilindro(0.018, 0.4, MATERIAIS.aco, 0, 0.028, -0.27));
   grupo.add(cilindro(0.014, 0.34, MATERIAIS.metalEscuro, 0, -0.012, -0.25));
-  grupo.add(bloco(0.052, 0.052, 0.14, MATERIAIS.polimero, 0, -0.004, -0.23));
+  const bombaLonga = bloco(0.052, 0.052, 0.14, MATERIAIS.polimero, 0, -0.004, -0.23);
+  bombaLonga.name = 'bomba';
+  grupo.add(bombaLonga);
   const punho = bloco(0.044, 0.115, 0.06, MATERIAIS.polimero, 0, -0.08, 0.04);
   punho.rotation.x = -0.3;
   grupo.add(punho);
@@ -272,6 +280,7 @@ function submetralhadora(compacta) {
   grupo.add(cilindro(0.012, 0.14, MATERIAIS.aco, 0, 0.012, -0.24));
   const carregador = bloco(0.03, 0.14, 0.05, MATERIAIS.metalMedio, 0, -0.09, -0.02);
   carregador.rotation.x = 0.1;
+  carregador.name = 'carregador';
   grupo.add(carregador);
   const punho = bloco(0.042, 0.1, 0.055, MATERIAIS.polimero, 0, -0.072, 0.055);
   punho.rotation.x = -0.26;
@@ -300,12 +309,16 @@ function rifleAk() {
   grupo.add(cilindro(0.017, 0.05, MATERIAIS.metalEscuro, 0, 0.018, -0.46)); // quebra-chamas
   grupo.add(cilindro(0.012, 0.18, MATERIAIS.metalMedio, 0, 0.05, -0.28)); // tubo de gás
 
-  // Pente curvo característico: três segmentos inclinando.
+  // Pente curvo característico: três segmentos inclinando, num grupo só para
+  // a recarga conseguir tirar o pente inteiro de uma vez.
+  const penteAk = new THREE.Group();
+  penteAk.name = 'carregador';
   for (let i = 0; i < 3; i++) {
     const seg = bloco(0.03, 0.06, 0.05, MATERIAIS.metalClaro, 0, -0.07 - i * 0.05, -0.02 + i * 0.022);
     seg.rotation.x = 0.28 + i * 0.12;
-    grupo.add(seg);
+    penteAk.add(seg);
   }
+  grupo.add(penteAk);
 
   const punho = bloco(0.042, 0.11, 0.055, MATERIAIS.madeira, 0, -0.08, 0.06);
   punho.rotation.x = -0.3;
@@ -334,7 +347,9 @@ function rifleM4() {
   grupo.add(cilindro(0.011, 0.22, MATERIAIS.aco, 0, 0.016, -0.4));
   grupo.add(cilindro(0.016, 0.045, MATERIAIS.metalEscuro, 0, 0.016, -0.48));
 
-  grupo.add(bloco(0.03, 0.13, 0.048, MATERIAIS.polimero, 0, -0.085, -0.03)); // pente reto
+  const penteM4 = bloco(0.03, 0.13, 0.048, MATERIAIS.polimero, 0, -0.085, -0.03);
+  penteM4.name = 'carregador';
+  grupo.add(penteM4);
   const punho = bloco(0.042, 0.105, 0.052, MATERIAIS.polimero, 0, -0.078, 0.05);
   punho.rotation.x = -0.28;
   grupo.add(punho);
@@ -360,7 +375,9 @@ function rifleRajada() {
   grupo.add(bloco(0.05, 0.08, 0.24, MATERIAIS.metalMedio, 0, 0, -0.05));
   grupo.add(bloco(0.046, 0.046, 0.15, MATERIAIS.polimero, 0, 0.018, -0.23));
   grupo.add(cilindro(0.011, 0.18, MATERIAIS.aco, 0, 0.016, -0.35));
-  grupo.add(bloco(0.03, 0.12, 0.046, MATERIAIS.metalEscuro, 0, -0.082, -0.02));
+  const penteRajada = bloco(0.03, 0.12, 0.046, MATERIAIS.metalEscuro, 0, -0.082, -0.02);
+  penteRajada.name = 'carregador';
+  grupo.add(penteRajada);
   const punho = bloco(0.042, 0.1, 0.052, MATERIAIS.polimero, 0, -0.075, 0.05);
   punho.rotation.x = -0.28;
   grupo.add(punho);
@@ -394,15 +411,19 @@ function sniper(pesada) {
   grupo.add(cilindro(0.013, comprimentoCano, MATERIAIS.aco, 0, 0.014, -0.42));
   if (pesada) grupo.add(cilindro(0.019, 0.07, MATERIAIS.metalEscuro, 0, 0.014, -0.6));
 
-  grupo.add(bloco(0.028, 0.08, 0.05, MATERIAIS.metalClaro, 0, -0.07, -0.02)); // pente
+  const penteSniper = bloco(0.028, 0.08, 0.05, MATERIAIS.metalClaro, 0, -0.07, -0.02);
+  penteSniper.name = 'carregador';
+  grupo.add(penteSniper);
   const punho = bloco(0.042, 0.105, 0.055, corpoMat, 0, -0.078, 0.055);
   punho.rotation.x = -0.3;
   grupo.add(punho);
   grupo.add(bloco(0.048, 0.085, 0.22, corpoMat, 0, -0.012, 0.2)); // coronha longa
   grupo.add(bloco(0.048, 0.03, 0.09, corpoMat, 0, 0.042, 0.13)); // apoio de face
   grupo.add(bloco(0.014, 0.03, 0.028, MATERIAIS.ferro, 0, -0.044, 0.005));
-  // Ferrolho lateral.
-  grupo.add(cilindro(0.008, 0.07, MATERIAIS.aco, 0.034, 0.02, 0.03, 'x'));
+  // Ferrolho lateral — é ele que a recarga puxa e empurra.
+  const ferrolho = cilindro(0.008, 0.07, MATERIAIS.aco, 0.034, 0.02, 0.03, 'x');
+  ferrolho.name = 'ferrolho';
+  grupo.add(ferrolho);
   grupo.add(new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), MATERIAIS.aco).translateX(0.07).translateY(0.02).translateZ(0.03));
 
   // Luneta: tubo, campânulas e lentes.
@@ -550,6 +571,7 @@ export function criarArmaFps() {
   // Estado das animações.
   let recuo = 0; // 0..1, decai depois do tiro
   let recarga = 0; // 1 -> 0 ao longo da recarga
+  let estiloRecarga = 'pente';
   let troca = 0; // 1 -> 0 ao trocar de arma
   let golpe = 0; // 1 -> 0 durante a golpada da marreta
   let claraoAte = 0;
@@ -591,8 +613,71 @@ export function criarArmaFps() {
     golpe = 1;
   }
 
-  function recarregar() {
+  /**
+   * Começa a recarga. `def` é a arma, para escolher o gesto: pente sai e
+   * entra, bomba corre para trás e volta, ferrolho é puxado e empurrado, e o
+   * tambor do revólver bascula para fora.
+   */
+  function recarregar(def) {
     recarga = 1;
+    estiloRecarga = estiloDeRecarga(def);
+  }
+
+  /** Qual gesto de recarga cada arma faz. */
+  function estiloDeRecarga(def) {
+    if (!def) return 'pente';
+    if (def.id === 'magnum') return 'tambor';
+    if (def.categoria === 'shotgun') return 'bomba';
+    if (def.categoria === 'sniper') return 'ferrolho';
+    return 'pente';
+  }
+
+  /** Acha uma peça nomeada no modelo atual (carregador, bomba, ferrolho…). */
+  function peca(nome) {
+    return modelo?.children.find((filho) => filho.name === nome) ?? null;
+  }
+
+  /**
+   * Anima a peça certa ao longo da recarga. `t` vai de 1 (começo) a 0 (fim),
+   * então `passado` cresce de 0 a 1.
+   */
+  function animarRecarga(passado) {
+    const carregador = peca('carregador');
+    const bomba = peca('bomba');
+    const ferrolho = peca('ferrolho');
+    const tambor = peca('tambor');
+
+    // Descanso: tudo volta ao lugar quando não há recarga em andamento.
+    if (recarga <= 0) {
+      if (carregador) carregador.position.y = carregador.userData.y0 ?? carregador.position.y;
+      if (bomba) bomba.position.z = bomba.userData.z0 ?? bomba.position.z;
+      if (ferrolho) ferrolho.position.x = ferrolho.userData.x0 ?? ferrolho.position.x;
+      if (tambor) tambor.rotation.z = 0;
+      return;
+    }
+
+    const guardar = (obj, eixo) => {
+      if (obj && obj.userData[eixo + '0'] === undefined) obj.userData[eixo + '0'] = obj.position[eixo];
+    };
+    guardar(carregador, 'y');
+    guardar(bomba, 'z');
+    guardar(ferrolho, 'x');
+
+    if (estiloRecarga === 'pente' && carregador) {
+      // Primeira metade: o pente cai. Segunda: o novo sobe e encaixa.
+      const queda = passado < 0.45 ? passado / 0.45 : 1 - (passado - 0.45) / 0.55;
+      carregador.position.y = carregador.userData.y0 - queda * 0.22;
+    } else if (estiloRecarga === 'bomba' && bomba) {
+      // Vai e volta duas vezes: o gesto de bombear a shotgun.
+      const ciclo = Math.sin(passado * Math.PI * 2);
+      bomba.position.z = bomba.userData.z0 + Math.max(0, ciclo) * 0.09;
+    } else if (estiloRecarga === 'ferrolho' && ferrolho) {
+      const puxada = passado < 0.5 ? passado / 0.5 : 1 - (passado - 0.5) / 0.5;
+      ferrolho.position.x = ferrolho.userData.x0 + puxada * 0.07;
+    } else if (estiloRecarga === 'tambor' && tambor) {
+      const abertura = passado < 0.5 ? passado / 0.5 : 1 - (passado - 0.5) / 0.5;
+      tambor.rotation.z = abertura * 0.9;
+    }
   }
 
   /**
@@ -610,6 +695,7 @@ export function criarArmaFps() {
   function atualizar(dt, { mirando = false, andando = false, noChao = true } = {}) {
     recuo = Math.max(0, recuo - dt * 7.5);
     recarga = Math.max(0, recarga - dt / 2.2);
+    animarRecarga(1 - recarga);
     troca = Math.max(0, troca - dt * 3.4);
     golpe = Math.max(0, golpe - dt / MARRETA.duracaoGolpe);
 
@@ -640,7 +726,7 @@ export function criarArmaFps() {
     const arco = golpe > 0 ? subida - descida * 1.25 : 0;
 
     const alvoX = baseX + balancoX - recarga * 0.05 + arco * 0.1;
-    const alvoY = baseY + balancoY - recarga * 0.24 - troca * 0.34 + arco * 0.16;
+    const alvoY = baseY + balancoY - recarga * 0.1 - troca * 0.34 + arco * 0.16;
     const alvoZ = baseZ + recuo * 0.075 + Math.abs(arco) * 0.06;
 
     posicao.x += (alvoX - posicao.x) * Math.min(1, dt * 18);
@@ -649,9 +735,9 @@ export function criarArmaFps() {
     suporte.position.copy(posicao);
 
     // Rotação: coice para cima no tiro, giro na recarga, arco na marreta.
-    suporte.rotation.x = recuo * 0.17 + recarga * 1.0 - arco * 1.15;
-    suporte.rotation.y = recarga * 0.35 + balancoX * 1.5;
-    suporte.rotation.z = recarga * 0.25 + arco * 0.25;
+    suporte.rotation.x = recuo * 0.17 + recarga * 0.42 - arco * 1.15;
+    suporte.rotation.y = recarga * 0.18 + balancoX * 1.5;
+    suporte.rotation.z = recarga * 0.12 + arco * 0.25;
 
     // Mirando, o FOV do viewmodel também fecha um pouco: a arma "cresce" na
     // tela como num FPS de verdade.

@@ -57,6 +57,7 @@ export function snapshotPara(partida, jogadorId, agora) {
       pitch: arred(corpo.pitch),
       agachado: corpo.agachado,
       mirando: corpo.mirando,
+      inclinacao: arred(corpo.inclinacao ?? 0),
       slot: j.slot,
       armaId: j.armas[j.slot]?.id ?? 'marreta',
       // Só o próprio time sabe quanto de vida e dinheiro cada um tem.

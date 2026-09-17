@@ -112,10 +112,29 @@ export function tocarVazio() {
   estalo(saida(), { duracao: 0.04, freq: 1400, volume: 0.2 });
 }
 
-export function tocarRecarga() {
+/**
+ * Som de recarga, no ritmo do gesto de cada arma: pente sai e encaixa,
+ * shotgun bombeia duas vezes, ferrolho puxa e trava, tambor fecha girando.
+ */
+export function tocarRecarga(categoria = 'rifle') {
   const destino = saida();
-  estalo(destino, { duracao: 0.05, freq: 800, volume: 0.3 });
-  estalo(destino, { duracao: 0.05, freq: 1100, volume: 0.3, quando: 0.14 });
+  if (categoria === 'shotgun') {
+    estalo(destino, { duracao: 0.06, freq: 520, volume: 0.32 });
+    estalo(destino, { duracao: 0.07, freq: 380, volume: 0.32, quando: 0.18 });
+    estalo(destino, { duracao: 0.06, freq: 560, volume: 0.3, quando: 0.62 });
+    estalo(destino, { duracao: 0.08, freq: 400, volume: 0.3, quando: 0.8 });
+    return;
+  }
+  if (categoria === 'sniper') {
+    estalo(destino, { duracao: 0.09, freq: 300, volume: 0.34 });
+    estalo(destino, { duracao: 0.1, freq: 240, volume: 0.32, quando: 0.55 });
+    estalo(destino, { duracao: 0.07, freq: 700, volume: 0.28, quando: 1.1 });
+    return;
+  }
+  // Pente: o clique de soltar, a batida de encaixar e o ferrolho no fim.
+  estalo(destino, { duracao: 0.05, freq: 900, volume: 0.28 });
+  estalo(destino, { duracao: 0.07, freq: 520, volume: 0.32, quando: 0.5 });
+  estalo(destino, { duracao: 0.05, freq: 1150, volume: 0.26, quando: 1.15 });
 }
 
 export function tocarHit() {

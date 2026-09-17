@@ -10,7 +10,7 @@
  * daquele eixo. É simples e não deixa atravessar parede — o que basta.
  */
 
-import { FISICA, GRANADA, alturaDosOlhos } from './constantes.js';
+import { FISICA, GRANADA, INCLINACAO, alturaDosOlhos, direitaDoJogador } from './constantes.js';
 import { caixaColide } from './mundo.js';
 
 const EPS = 1e-3;
@@ -31,6 +31,39 @@ export function criarCorpo(pos) {
 
 /** Reexporta a medida das constantes: a altura do olho tem uma fonte só. */
 export { alturaDosOlhos };
+
+/**
+ * Quanto o jogador consegue realmente inclinar para o lado, de -1 a 1.
+ *
+ * Inclinar não pode virar atravessar parede: se a cabeça deslocada bate num
+ * bloco, a inclinação é cortada até caber. Cliente e servidor chamam a mesma
+ * função, então a câmera nunca mostra uma quina que o servidor não aceita.
+ */
+export function inclinacaoPossivel(mundo, pos, yaw, agachado, desejada) {
+  if (!desejada) return 0;
+  const direita = direitaDoJogador(yaw);
+  const alturaOlho = alturaDosOlhos(agachado);
+  // Uma caixinha na altura da cabeça: é ela que passa pela quina.
+  const lado = 0.4;
+
+  let melhor = 0;
+  // Testa do mais inclinado para o menos, em degraus: para na primeira que
+  // couber, o que dá uma inclinação parcial encostado na parede.
+  for (const fracao of [1, 0.75, 0.5, 0.25]) {
+    const passo = desejada * fracao;
+    const desvio = passo * INCLINACAO.DESLOCAMENTO;
+    const sonda = {
+      x: pos.x + direita.x * desvio,
+      y: pos.y + alturaOlho - lado / 2,
+      z: pos.z + direita.z * desvio
+    };
+    if (!caixaColide(mundo, sonda, lado, lado)) {
+      melhor = passo;
+      break;
+    }
+  }
+  return melhor;
+}
 
 /**
  * Um passo de simulação do jogador.

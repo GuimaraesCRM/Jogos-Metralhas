@@ -16,7 +16,9 @@ const MAPA_TECLAS = {
   KeyD: 'direita',
   Space: 'pular',
   ControlLeft: 'agachar',
-  KeyC: 'agachar'
+  KeyC: 'agachar',
+  KeyQ: 'inclinarEsquerda',
+  KeyE: 'inclinarDireita'
 };
 
 const MAPA_ACOES = {
@@ -26,12 +28,20 @@ const MAPA_ACOES = {
   Digit4: 'slot4',
   KeyR: 'recarregar',
   KeyG: 'granada',
-  KeyB: 'comprar',
-  KeyE: 'trocar-espectador'
+  KeyB: 'comprar'
 };
 
 export function criarEntrada(canvas) {
-  const comandos = { frente: false, tras: false, esquerda: false, direita: false, pular: false, agachar: false };
+  const comandos = {
+    frente: false,
+    tras: false,
+    esquerda: false,
+    direita: false,
+    pular: false,
+    agachar: false,
+    inclinarEsquerda: false,
+    inclinarDireita: false
+  };
   const olhar = { yaw: 0, pitch: 0 };
   const mouse = { atirando: false, mirando: false };
 

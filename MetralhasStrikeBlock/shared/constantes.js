@@ -54,24 +54,52 @@ export function alturaDosOlhos(agachado) {
   return agachado ? FISICA.OLHOS_AGACHADO : FISICA.OLHOS;
 }
 
+/** O quanto o corpo sai para o lado ao inclinar (Q/E), em metros. */
+export const INCLINACAO = {
+  DESLOCAMENTO: 0.55,
+  /** Inclinação da câmera, em radianos, que dá a leitura de "espiando". */
+  ROLAGEM: 0.28,
+  /** Os pés ficam; o tronco sai menos que a cabeça, como um corpo faz. */
+  FATOR_CORPO: 0.5
+};
+
+/**
+ * O vetor "direita" do jogador, no plano. Yaw 0 olha para -Z, então a direita
+ * é +X.
+ */
+export function direitaDoJogador(yaw) {
+  return { x: Math.cos(yaw), z: -Math.sin(yaw) };
+}
+
 /**
  * As duas caixas de acerto de um jogador, em coordenadas do mundo.
  * `pos` são os pés. Corpo e cabeça se encostam sem sobrepor nem deixar vão.
+ *
+ * `inclinacao` (-1 a 1) desloca as caixas para o lado. Isso é o que impede a
+ * inclinação de virar trapaça: quem espia pela quina mostra a cabeça de
+ * verdade, no lugar onde ela aparece para o inimigo.
  */
-export function caixasDeAcerto(pos, agachado) {
+export function caixasDeAcerto(pos, agachado, inclinacao = 0, yaw = 0) {
   const altura = alturaDoCorpo(agachado);
   const meia = FISICA.LARGURA / 2;
   const meiaCabeca = CORPO.LARGURA_CABECA / 2;
   const baseCabeca = altura - CORPO.ALTURA_CABECA;
 
+  const direita = direitaDoJogador(yaw);
+  const desvio = inclinacao * INCLINACAO.DESLOCAMENTO;
+  const cabecaX = pos.x + direita.x * desvio;
+  const cabecaZ = pos.z + direita.z * desvio;
+  const corpoX = pos.x + direita.x * desvio * INCLINACAO.FATOR_CORPO;
+  const corpoZ = pos.z + direita.z * desvio * INCLINACAO.FATOR_CORPO;
+
   return {
     corpo: {
-      min: { x: pos.x - meia, y: pos.y, z: pos.z - meia },
-      max: { x: pos.x + meia, y: pos.y + baseCabeca, z: pos.z + meia }
+      min: { x: corpoX - meia, y: pos.y, z: corpoZ - meia },
+      max: { x: corpoX + meia, y: pos.y + baseCabeca, z: corpoZ + meia }
     },
     cabeca: {
-      min: { x: pos.x - meiaCabeca, y: pos.y + baseCabeca, z: pos.z - meiaCabeca },
-      max: { x: pos.x + meiaCabeca, y: pos.y + altura, z: pos.z + meiaCabeca }
+      min: { x: cabecaX - meiaCabeca, y: pos.y + baseCabeca, z: cabecaZ - meiaCabeca },
+      max: { x: cabecaX + meiaCabeca, y: pos.y + altura, z: cabecaZ + meiaCabeca }
     }
   };
 }

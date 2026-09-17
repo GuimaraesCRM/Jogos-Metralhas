@@ -22,7 +22,9 @@ import {
   FASES,
   FISICA,
   TIMES,
-  alturaDosOlhos
+  INCLINACAO,
+  alturaDosOlhos,
+  direitaDoJogador
 } from '../../shared/constantes.js';
 import { DO_CLIENTE, DO_SERVIDOR } from '../../shared/protocolo.js';
 import {
@@ -34,7 +36,7 @@ import {
 } from '../../shared/armas.js';
 import { BLOCOS, definirBloco, obterBloco, raycastVoxel } from '../../shared/mundo.js';
 import { ZONA_BASE, dentroDaZona, direcaoDoOlhar, gerarArena } from '../../shared/mapa.js';
-import { criarCorpo, passoJogador } from '../../shared/fisica.js';
+import { criarCorpo, inclinacaoPossivel, passoJogador } from '../../shared/fisica.js';
 
 import { FOV_PADRAO } from './config.js';
 import { criarCena } from './mundo/cena.js';
@@ -53,6 +55,8 @@ const INTERVALO_ENVIO_MS = 33;
 const RESET_SPRAY_MS = 350;
 /** Quanto tempo sem atirar até a mira começar a voltar ao lugar. */
 const ATRASO_RECUPERACAO_MS = 130;
+/** Igual ao do servidor (server/partida.js): a animação acompanha o efeito. */
+const TEMPO_RECARGA_MS = 2200;
 
 export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePartida }) {
   // ------------------------------------------------------------- montagem
@@ -109,6 +113,11 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   const recuo = { pitch: 0, yaw: 0 };
   let tirosSeguidos = 0;
   let ultimoTiroParaSpray = 0;
+  let recarregandoAte = 0;
+
+  // Inclinação lateral (Q/E): -1 esquerda, 0 reto, +1 direita.
+  let inclinacaoAlvo = 0;
+  let inclinacao = 0;
 
   let alvoEspectador = 0;
   const posicoesAnteriores = new Map(); // id -> {x,z} do quadro anterior
@@ -151,16 +160,17 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       municaoLocal[1] = eu.armas[1]?.municao ?? 0;
       municaoLocal[2] = eu.armas[2]?.municao ?? 0;
 
-      // Só adota o slot do servidor quando ELE muda (a compra troca para a
-      // arma nova) — senão o modo bloco, que o servidor não conhece, seria
-      // desfeito a cada foto.
-      if (eu.slot !== ultimoSlotServidor) {
-        ultimoSlotServidor = eu.slot;
-        if (slotLocal !== eu.slot) {
-          slotLocal = eu.slot;
-          const arma = eu.armas[eu.slot];
-          armaFps.mostrar(eu.slot === 3 ? 'marreta' : arma?.id ?? 'marreta');
-        }
+      // Adota a escolha do servidor quando ELA muda. Compara slot E arma:
+      // comprar uma MC-47 estando com a Repetidora mantém o slot 1, e olhar
+      // só para o número deixaria a arma antiga na mão. Comparar só quando
+      // muda é o que preserva o modo bloco (slot 4), que o servidor não
+      // conhece, entre uma foto e outra.
+      const escolhaServidor = `${eu.slot}:${eu.armas[eu.slot]?.id ?? ''}`;
+      if (escolhaServidor !== ultimoSlotServidor) {
+        ultimoSlotServidor = escolhaServidor;
+        slotLocal = eu.slot;
+        const arma = eu.armas[eu.slot];
+        armaFps.mostrar(eu.slot === 3 ? 'marreta' : arma?.id ?? 'marreta');
       }
 
       if (vivo && !eu.vivo) {
@@ -328,10 +338,12 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   }
 
   function origemDoTiro() {
+    const direita = direitaDoJogador(entrada.olhar.yaw);
+    const desvio = inclinacao * INCLINACAO.DESLOCAMENTO;
     return {
-      x: corpo.pos.x,
+      x: corpo.pos.x + direita.x * desvio,
       y: corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar),
-      z: corpo.pos.z
+      z: corpo.pos.z + direita.z * desvio
     };
   }
 
@@ -428,7 +440,8 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       return;
     }
 
-    if (fase !== FASES.COMBATE) return;
+    // Vale no combate e no pós-round: o servidor aceita os dois.
+    if (fase !== FASES.COMBATE && fase !== FASES.POS_ROUND) return;
 
     if (slotLocal === 3) {
       if (!cliqueNovo) return;
@@ -499,23 +512,33 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     else if (acao === 'slot3') trocarSlot(3);
     else if (acao === 'slot4') trocarSlot(4);
     else if (acao === 'recarregar') {
-      if (slotLocal === 1 || slotLocal === 2) {
-        conexao.enviar(DO_CLIENTE.RECARREGAR, {});
-        armaFps.recarregar();
-        audio.tocarRecarga();
-      }
+      if (slotLocal !== 1 && slotLocal !== 2) return;
+      const arma = armaDoSlot(slotLocal);
+      const def = arma ? armaPorId(arma.id) : null;
+      if (!arma || !def) return;
+      // Pente cheio, ou sem reserva: não gasta animação nem som. O servidor
+      // recusa de qualquer jeito, mas o cliente não deve fingir que algo
+      // aconteceu — era isso que deixava recarregar arma cheia.
+      if (arma.municao >= def.pente || arma.reserva <= 0) return;
+      if (recarregandoAte > performance.now()) return;
+
+      conexao.enviar(DO_CLIENTE.RECARREGAR, {});
+      recarregandoAte = performance.now() + TEMPO_RECARGA_MS;
+      armaFps.recarregar(def);
+      audio.tocarRecarga(def.categoria);
     } else if (acao === 'granada') {
       if (!vivo || fase !== FASES.COMBATE) return;
       if ((ultimaFoto?.eu?.granadas ?? 0) <= 0) return;
       const olhar = olharComRecuo();
       conexao.enviar(DO_CLIENTE.LANCAR_GRANADA, { direcao: direcaoDoOlhar(olhar.yaw, olhar.pitch) });
       armaFps.disparar();
-    } else if (acao === 'trocar-espectador') {
+    } else if (acao === 'atirar-clique') {
       if (!vivo) {
+        // Morto, o clique troca de aliado observado (E agora é inclinação).
         alvoEspectador += 1;
         hud.modoEspectador(nomeDoAliadoObservado() ?? '—');
+        return;
       }
-    } else if (acao === 'atirar-clique') {
       tentarAtirar(performance.now(), true);
     } else if (acao === 'mouse-solto') {
       if (!lojaAberta && !encerrado) hud.mostrarPausa(true);
@@ -582,6 +605,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
         vivo: b.vivo,
         agachado: b.agachado,
         mirando: b.mirando,
+        inclinacao: b.inclinacao ?? 0,
         armaId: b.armaId,
         velocidade,
         pos,
@@ -646,6 +670,13 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
         corpo.pos.z = Math.min(zona.z1 - 0.31, Math.max(zona.z0 + 0.31, corpo.pos.z));
       }
       if (movendo && corpo.noChao) audio.tocarPasso();
+
+      // Inclinação lateral: a intenção vem das teclas, mas o mundo decide o
+      // quanto cabe — a mesma função que o servidor usa para validar.
+      const pedida = (comandos.inclinarDireita ? 1 : 0) - (comandos.inclinarEsquerda ? 1 : 0);
+      inclinacaoAlvo = inclinacaoPossivel(mundo, corpo.pos, entrada.olhar.yaw, comandos.agachar, pedida);
+      inclinacao += (inclinacaoAlvo - inclinacao) * Math.min(1, dt * 11);
+      if (Math.abs(inclinacao) < 0.002) inclinacao = 0;
     }
 
     if (entrada.mouse.atirando || rajadaRestante > 0) tentarAtirar(performance.now(), false);
@@ -660,7 +691,8 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
           yaw: olhar.yaw,
           pitch: olhar.pitch,
           agachado: entrada.comandos.agachar,
-          mirando: mirando()
+          mirando: mirando(),
+          inclinacao
         });
       }
     }
@@ -669,9 +701,18 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     const estados = estadosInterpolados(dt);
     if (vivo) {
       const olhar = olharComRecuo();
-      camera.position.set(corpo.pos.x, corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar), corpo.pos.z);
+      const direita = direitaDoJogador(olhar.yaw);
+      const desvio = inclinacao * INCLINACAO.DESLOCAMENTO;
+      camera.position.set(
+        corpo.pos.x + direita.x * desvio,
+        corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar),
+        corpo.pos.z + direita.z * desvio
+      );
       camera.rotation.y = olhar.yaw;
       camera.rotation.x = olhar.pitch;
+      // A rolagem é o que faz o movimento ler como "espiar" em vez de
+      // "deslizar para o lado".
+      camera.rotation.z = -inclinacao * INCLINACAO.ROLAGEM;
     } else {
       const aliados = estados.filter((j) => j.time === meuTime && j.vivo);
       const alvo = aliados[alvoEspectador % Math.max(1, aliados.length)];
@@ -679,6 +720,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
         camera.position.set(alvo.pos.x, alvo.pos.y + FISICA.OLHOS, alvo.pos.z);
         camera.rotation.y = alvo.yaw;
         camera.rotation.x = alvo.pitch;
+        camera.rotation.z = 0;
       }
     }
 

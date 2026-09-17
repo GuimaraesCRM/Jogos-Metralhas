@@ -18,7 +18,7 @@
  */
 
 import * as THREE from '../../vendor/three.module.js';
-import { CORPO, FISICA, TIMES, alturaDoCorpo } from '../../../shared/constantes.js';
+import { CORPO, FISICA, INCLINACAO, TIMES, alturaDoCorpo } from '../../../shared/constantes.js';
 import { armaPorId } from '../../../shared/armas.js';
 
 const CORES = {
@@ -501,7 +501,14 @@ export function criarJogadores(cena) {
           perna.rotation.x += (-0.5 * ag - perna.rotation.x) * Math.min(1, dt * 8);
         }
       }
-      boneco.tronco.rotation.z = balanco * 0.06;
+      // Inclinação lateral: o tronco tomba a partir do quadril, levando
+      // cabeça e braços — é o que o inimigo vê de quem espia pela quina, e
+      // casa com a caixa de acerto deslocada no servidor.
+      const inclinar = estado.inclinacao ?? 0;
+      boneco.inclinacaoSuave = boneco.inclinacaoSuave ?? 0;
+      boneco.inclinacaoSuave += (inclinar - boneco.inclinacaoSuave) * Math.min(1, dt * 11);
+      boneco.tronco.rotation.z = balanco * 0.06 - boneco.inclinacaoSuave * 0.55;
+      boneco.tronco.position.x = boneco.inclinacaoSuave * INCLINACAO.DESLOCAMENTO * 0.45;
 
       // A etiqueta fica sempre logo acima da cabeça, agachado ou não.
       boneco.etiqueta.position.y = alturaAlvo + 0.35;

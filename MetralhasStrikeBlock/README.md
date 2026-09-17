@@ -48,6 +48,7 @@ Armas fracas pagam mais por abate: matar de shotgun rende $900 e de marreta $1.5
 | **WASD** | Andar |
 | **Espaço** | Pular — pule e olhe para baixo colocando blocos para levantar uma torre |
 | **Ctrl** ou **C** | Agachar (mais devagar, mira mais firme, silhueta menor) |
+| **Q** / **E** | Inclinar para o lado — espia pela quina mostrando menos corpo |
 | **Clique esquerdo** | Atirar |
 | **Clique direito** | Mirar — vale para **todas** as armas: a arma sobe até a linha do olho, a mira fecha e o tiro fica mais preciso |
 | **R** | Recarregar |
@@ -56,7 +57,7 @@ Armas fracas pagam mais por abate: matar de shotgun rende $900 e de marreta $1.5
 | **G** | Granada |
 | **B** | Abrir e fechar a loja |
 | **TAB** | Placar |
-| **E** | Trocar de aliado observado (quando morto) |
+| **Clique** (morto) | Trocar de aliado observado |
 | **ESC** | Soltar o mouse (abre o menu de pausa) |
 | **F11** | Tela cheia |
 
@@ -93,6 +94,12 @@ Como o padrão é fixo, ele é decorável — e é decorando que se aprende a co
 Cada arma tem o próprio coice: a MC-47 é forte e difícil de segurar, a MB-4 é mais fraca mas bem mais controlável, a AWB dá um coice enorme (e não importa, porque você vai atirar uma vez). **Mirar com o botão direito** sobe a arma até a linha do olho, alinha a mira de ferro (ou a luneta) com o centro da tela, fecha o cone de tiro e segura um pouco o recuo. Andar, e principalmente pular, espalha o tiro de qualquer arma.
 
 A mira na tela mostra o cone real: ela abre quando você corre e durante o spray, e fecha quando você para. Se a mira está aberta, seu tiro vai espalhar de verdade — ela não mente para você.
+
+Cada arma recarrega do seu jeito: pente que cai e encaixa nos rifles, pistolas e submetralhadoras, bomba que corre duas vezes nas shotguns, ferrolho puxado nas snipers e tambor que bascula no revólver — com o som acompanhando o gesto. Recarregar com o pente cheio simplesmente não acontece.
+
+### Inclinar para o lado
+
+**Q** e **E** fazem o corpo tombar para o lado, deixando você espiar por uma quina expondo bem menos silhueta — como na maioria dos FPS. Não é só efeito de câmera: **a caixa de acerto vai junto**, e a cabeça sai mais que o tronco, como um corpo que realmente se inclina. Quem espia aparece de verdade no lugar onde está sendo visto, e não dá para inclinar através de um bloco: se não cabe, a inclinação é cortada até caber — no cliente e no servidor, pela mesma função.
 
 ### Blocos
 

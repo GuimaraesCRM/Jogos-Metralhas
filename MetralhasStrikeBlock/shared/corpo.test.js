@@ -87,3 +87,33 @@ test('o boneco desenhado cabe na altura que as caixas declaram', () => {
   assert.ok(Math.abs(CORPO.QUADRIL + alturaTronco + CORPO.ALTURA_CABECA - FISICA.ALTURA) < 1e-9);
   assert.ok(CORPO.QUADRIL_AGACHADO < CORPO.QUADRIL);
 });
+
+test('inclinar leva as caixas de acerto junto — espiar expõe o corpo', () => {
+  const reto = caixasDeAcerto(PES, false, 0, 0);
+  // yaw 0 olha para -Z, então a direita é +X.
+  const direita = caixasDeAcerto(PES, false, 1, 0);
+  const esquerda = caixasDeAcerto(PES, false, -1, 0);
+
+  assert.ok(direita.cabeca.min.x > reto.cabeca.min.x, 'inclinar à direita move a cabeça para +X');
+  assert.ok(esquerda.cabeca.min.x < reto.cabeca.min.x, 'inclinar à esquerda move para -X');
+
+  // A cabeça sai mais que o tronco, como um corpo que tomba.
+  const desvioCabeca = direita.cabeca.min.x - reto.cabeca.min.x;
+  const desvioCorpo = direita.corpo.min.x - reto.corpo.min.x;
+  assert.ok(desvioCabeca > desvioCorpo, 'a cabeça precisa sair mais que o tronco');
+  assert.ok(desvioCorpo > 0, 'o tronco também acompanha um pouco');
+
+  // A altura não muda ao inclinar: só o lado.
+  quase(direita.cabeca.max.y, reto.cabeca.max.y, 'altura ao inclinar');
+  assert.equal(direita.corpo.min.y, reto.corpo.min.y);
+});
+
+test('a inclinação segue o yaw: virado 90°, o desvio vai para outro eixo', () => {
+  const olhandoParaMenosZ = caixasDeAcerto(PES, false, 1, 0);
+  const olhandoParaMenosX = caixasDeAcerto(PES, false, 1, Math.PI / 2);
+
+  // Olhando para -Z, a direita é +X; girado 90°, a direita passa a ser -Z.
+  assert.ok(olhandoParaMenosZ.cabeca.min.x > PES.x - CORPO.LARGURA_CABECA);
+  quase(olhandoParaMenosX.cabeca.min.x, PES.x - CORPO.LARGURA_CABECA / 2, 'sem desvio em X');
+  assert.ok(olhandoParaMenosX.cabeca.min.z < PES.z, 'o desvio foi para -Z');
+});

@@ -31,8 +31,13 @@ export function criarCena(canvas) {
   cena.add(sol);
 
   function redimensionar() {
-    const largura = canvas.clientWidth || window.innerWidth;
-    const altura = canvas.clientHeight || window.innerHeight;
+    // Mede o container, não o canvas: o tamanho do canvas é consequência do
+    // CSS, e medi-lo aqui deixaria o renderer refém do próprio valor anterior.
+    const caixa = canvas.parentElement;
+    const largura = caixa?.clientWidth || window.innerWidth;
+    const altura = caixa?.clientHeight || window.innerHeight;
+    // updateStyle = false: quem manda no tamanho de exibição é o CSS; aqui só
+    // ajustamos a resolução do buffer.
     renderer.setSize(largura, altura, false);
     camera.aspect = largura / altura;
     camera.updateProjectionMatrix();

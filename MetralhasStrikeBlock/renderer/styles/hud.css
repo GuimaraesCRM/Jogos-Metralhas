@@ -10,6 +10,11 @@
   position: absolute;
   inset: 0;
   display: block;
+  /* Canvas é elemento substituído: `inset: 0` sozinho não o estica, ele
+     mantém os 300×150 intrínsecos. Sem estas duas linhas o mundo 3D renderiza
+     num retanguinho no canto da tela. */
+  width: 100%;
+  height: 100%;
 }
 
 .hud {

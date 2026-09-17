@@ -4,6 +4,14 @@
  * Cliente e servidor leem a mesma tabela: o menu de compra mostra estes preços
  * e o servidor cobra exatamente eles — divergência aqui viraria dinheiro de
  * graça ou compra impossível.
+ *
+ * Campos de sensação de tiro (só o cliente usa, mas moram aqui para ficarem ao
+ * lado do resto do balanceamento da arma):
+ *   recuoVertical    quanto a mira sobe por tiro, em radianos
+ *   recuoHorizontal  desvio lateral máximo por tiro, em radianos
+ *   recuperacao      fração do recuo acumulado que volta por segundo
+ *   tirosRetos       quantos tiros do spray sobem quase retos antes de abrir
+ *   zoomAds          fator de FOV ao mirar com o botão direito
  */
 
 export const CATEGORIAS = {
@@ -42,7 +50,12 @@ export const ARMAS = {
     recompensa: 300,
     zoom: null,
     slot: 2,
-    spreadMirando: 0.010
+    spreadMirando: 0.004,
+    recuoVertical: 0.026,
+    recuoHorizontal: 0.009,
+    recuperacao: 9,
+    tirosRetos: 3,
+    zoomAds: 0.85
   },
   magnum: {
     id: 'magnum',
@@ -63,7 +76,12 @@ export const ARMAS = {
     recompensa: 300,
     zoom: null,
     slot: 2,
-    spreadMirando: 0.008
+    spreadMirando: 0.003,
+    recuoVertical: 0.075,
+    recuoHorizontal: 0.02,
+    recuperacao: 7,
+    tirosRetos: 2,
+    zoomAds: 0.8
   },
   canocurto: {
     id: 'canocurto',
@@ -84,7 +102,13 @@ export const ARMAS = {
     recompensa: 900,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.120
+    // Shotgun mirando fecha um pouco o cone, mas continua um cone.
+    spreadMirando: 0.090,
+    recuoVertical: 0.105,
+    recuoHorizontal: 0.032,
+    recuperacao: 6,
+    tirosRetos: 1,
+    zoomAds: 0.9
   },
   repetidora: {
     id: 'repetidora',
@@ -105,7 +129,12 @@ export const ARMAS = {
     recompensa: 900,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.100
+    spreadMirando: 0.075,
+    recuoVertical: 0.082,
+    recuoHorizontal: 0.026,
+    recuperacao: 6.5,
+    tirosRetos: 1,
+    zoomAds: 0.9
   },
   mpbloco: {
     id: 'mpbloco',
@@ -126,7 +155,12 @@ export const ARMAS = {
     recompensa: 600,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.030
+    spreadMirando: 0.014,
+    recuoVertical: 0.024,
+    recuoHorizontal: 0.013,
+    recuperacao: 10,
+    tirosRetos: 5,
+    zoomAds: 0.85
   },
   metralhinha: {
     id: 'metralhinha',
@@ -147,7 +181,12 @@ export const ARMAS = {
     recompensa: 600,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.028
+    spreadMirando: 0.013,
+    recuoVertical: 0.027,
+    recuoHorizontal: 0.015,
+    recuperacao: 10,
+    tirosRetos: 4,
+    zoomAds: 0.85
   },
   mc47: {
     id: 'mc47',
@@ -168,7 +207,13 @@ export const ARMAS = {
     recompensa: 300,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.022
+    spreadMirando: 0.008,
+    // Estilo AK: forte e bagunçada, recompensa quem dá tapinhas de 2-3 tiros.
+    recuoVertical: 0.052,
+    recuoHorizontal: 0.045,
+    recuperacao: 8,
+    tirosRetos: 4,
+    zoomAds: 0.8
   },
   mb4: {
     id: 'mb4',
@@ -189,7 +234,13 @@ export const ARMAS = {
     recompensa: 300,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.016
+    spreadMirando: 0.006,
+    // Estilo M4: menos dano que a MC-47, bem mais controlável.
+    recuoVertical: 0.034,
+    recuoHorizontal: 0.016,
+    recuperacao: 9.5,
+    tirosRetos: 6,
+    zoomAds: 0.8
   },
   tribloco: {
     id: 'tribloco',
@@ -210,7 +261,12 @@ export const ARMAS = {
     recompensa: 300,
     zoom: null,
     slot: 1,
-    spreadMirando: 0.018
+    spreadMirando: 0.007,
+    recuoVertical: 0.04,
+    recuoHorizontal: 0.017,
+    recuperacao: 9,
+    tirosRetos: 3,
+    zoomAds: 0.8
   },
   luneta: {
     id: 'luneta',
@@ -231,7 +287,12 @@ export const ARMAS = {
     recompensa: 300,
     zoom: 0.35,
     slot: 1,
-    spreadMirando: 0.002
+    spreadMirando: 0.002,
+    recuoVertical: 0.09,
+    recuoHorizontal: 0.018,
+    recuperacao: 5.5,
+    tirosRetos: 1,
+    zoomAds: 0.35
   },
   awb: {
     id: 'awb',
@@ -252,7 +313,12 @@ export const ARMAS = {
     recompensa: 100,
     zoom: 0.25,
     slot: 1,
-    spreadMirando: 0.001
+    spreadMirando: 0.001,
+    recuoVertical: 0.14,
+    recuoHorizontal: 0.024,
+    recuperacao: 4.5,
+    tirosRetos: 1,
+    zoomAds: 0.25
   }
 };
 
@@ -265,7 +331,11 @@ export const MARRETA = {
   alcance: 2.5,
   rpm: 120,
   recompensa: 1500,
-  slot: 3
+  slot: 3,
+  /** Duração da golpada, em segundos — o cliente anima o arco nesse tempo. */
+  duracaoGolpe: 0.5,
+  /** Fração do golpe em que o dano sai: o impacto casa com o fim do arco. */
+  momentoDoImpacto: 0.45
 };
 
 export const EQUIPAMENTOS = {
@@ -273,7 +343,7 @@ export const EQUIPAMENTOS = {
   // Inclui um colete novo, como no CS.
   capacete: { id: 'capacete', nome: 'Colete + Capacete', preco: 1000 },
   granada: { id: 'granada', nome: 'Granada HE', preco: 300, maximo: 2 },
-  blocos: { id: 'blocos', nome: 'Pacote de 6 blocos', preco: 200, quantidade: 6, maximo: 30 }
+  blocos: { id: 'blocos', nome: 'Pacote de 10 blocos', preco: 250, quantidade: 10, maximo: 100 }
 };
 
 /** Sniper sem mirar atira "do quadril": spread grande de propósito. */
@@ -321,4 +391,71 @@ export function danoDoTiro(arma, parte, temColete, temCapacete, distancia = 0) {
 
 export function intervaloEntreTiros(arma) {
   return 60000 / arma.rpm;
+}
+
+/**
+ * O padrão de spray, normalizado: `[vertical, horizontal]` por tiro.
+ *
+ * É o formato de "T invertido" do CS: os primeiros tiros sobem quase retos,
+ * o meio do pente puxa forte para um lado, depois vira para o outro, e a
+ * parte final oscila. Ser uma TABELA FIXA é o ponto — o padrão precisa ser
+ * decorável, porque é decorando que o jogador aprende a compensar puxando o
+ * mouse no caminho contrário.
+ *
+ * A arma entra depois, multiplicando: a MC-47 usa o mesmo desenho da MB-4,
+ * só que muito mais forte.
+ */
+const PADRAO_SPRAY = [
+  [1.0, 0.0],
+  [1.0, -0.12],
+  [0.96, 0.18],
+  [0.88, 0.5],
+  [0.78, 0.78],
+  [0.64, 0.95],
+  [0.54, 0.6],
+  [0.48, -0.3],
+  [0.44, -0.82],
+  [0.42, -1.0],
+  [0.4, -0.86],
+  [0.38, -0.34],
+  [0.36, 0.42],
+  [0.34, 0.86],
+  [0.33, 0.98],
+  [0.32, 0.7],
+  [0.3, -0.2],
+  [0.3, -0.75],
+  [0.3, -0.95],
+  [0.3, -0.6]
+];
+
+/**
+ * O empurrão que um tiro dá na mira, em radianos: `{ pitch, yaw }`.
+ *
+ * Note que isto NÃO é tremor de tela: o valor é somado ao ângulo de visão do
+ * jogador, então a bala sai mesmo de onde a mira foi parar. Segurar o gatilho
+ * apontando para o mesmo lugar joga os tiros para cima e para os lados, de
+ * verdade.
+ *
+ * `rnd` é injetável para o teste conseguir prever o resultado.
+ */
+export function recuoDoTiro(arma, numeroDoTiro, rnd = Math.random) {
+  const vertical = arma.recuoVertical ?? 0.03;
+  const horizontal = arma.recuoHorizontal ?? 0.02;
+
+  // Passado o fim da tabela, o spray continua oscilando nos últimos passos em
+  // vez de zerar — pente grande não vira arma laser no fim do carregador.
+  const i =
+    numeroDoTiro < PADRAO_SPRAY.length
+      ? numeroDoTiro
+      : PADRAO_SPRAY.length - 6 + (numeroDoTiro % 6);
+  const [passoVertical, passoHorizontal] = PADRAO_SPRAY[i];
+
+  // Um tempero pequeno para dois sprays nunca serem idênticos, sem apagar o
+  // padrão: 12% do passo, não mais que isso.
+  const ruido = (rnd() * 2 - 1) * 0.12;
+
+  return {
+    pitch: vertical * passoVertical * (1 + ruido),
+    yaw: horizontal * passoHorizontal + horizontal * ruido * 0.5
+  };
 }

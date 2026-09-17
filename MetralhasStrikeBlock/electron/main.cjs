@@ -48,6 +48,14 @@ function quantidadeDeJanelas() {
 }
 
 /**
+ * Página a carregar. `--estudio` abre o estúdio de modelos (ferramenta de
+ * desenvolvimento) em vez do jogo.
+ */
+function paginaInicial() {
+  return process.argv.includes('--estudio') ? 'app://local/estudio.html' : 'app://local/index.html';
+}
+
+/**
  * Traduz app://local/<caminho> para um arquivo do app.
  * O normalize somado à conferência do prefixo barra a travessia de diretório
  * (app://local/../../qualquer-coisa-fora-do-app).
@@ -92,7 +100,7 @@ function criarJanela(indice = 0) {
 
   // Evita o flash branco: a janela só aparece com a primeira pintura pronta.
   janela.once('ready-to-show', () => janela.show());
-  janela.loadURL('app://local/index.html');
+  janela.loadURL(paginaInicial());
 
   // Links externos abrem no navegador do sistema, nunca dentro do jogo.
   janela.webContents.setWindowOpenHandler(({ url }) => {

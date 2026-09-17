@@ -10,6 +10,11 @@
   position: absolute;
   inset: 0;
   display: block;
+  /* Canvas é elemento substituído: `inset: 0` sozinho não o estica, ele
+     mantém os 300×150 intrínsecos. Sem estas duas linhas o mundo 3D renderiza
+     num retanguinho no canto da tela. */
+  width: 100%;
+  height: 100%;
 }
 
 .hud {
@@ -21,42 +26,49 @@
 
 /* ------------------------------------------------------------- mira e dano */
 
+/*
+  Mira de quatro traços que se afastam do centro conforme o spread real da
+  arma: parado e agachado ela fecha, correndo e no meio do spray ela abre.
+  É a leitura mais honesta que dá para oferecer sem enganar o jogador.
+*/
 .crosshair {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 22px;
-  height: 22px;
-}
-
-.crosshair::before,
-.crosshair::after {
-  content: '';
-  position: absolute;
-  background: rgba(240, 245, 255, 0.9);
-}
-
-.crosshair::before {
-  left: 50%;
-  top: 0;
   width: 2px;
-  height: 100%;
-  transform: translateX(-50%);
-}
-
-.crosshair::after {
-  top: 50%;
-  left: 0;
   height: 2px;
-  width: 100%;
-  transform: translateY(-50%);
 }
 
-.crosshair .centro-vazio {
+.crosshair .traco {
   position: absolute;
-  inset: 7px;
-  background: transparent;
+  background: rgba(235, 243, 255, 0.92);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+  transition: transform 0.05s linear;
+}
+
+.crosshair .traco.vertical {
+  width: 2px;
+  height: 9px;
+  left: 0;
+}
+
+.crosshair .traco.horizontal {
+  height: 2px;
+  width: 9px;
+  top: 0;
+}
+
+.crosshair .ponto {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(235, 243, 255, 0.85);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.9);
+}
+
+.crosshair.mirando .traco {
+  opacity: 0;
 }
 
 .hitmarker {

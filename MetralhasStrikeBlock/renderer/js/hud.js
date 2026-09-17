@@ -21,8 +21,16 @@ export function criarHud(container) {
   const raiz = el('div', 'hud');
   container.appendChild(raiz);
 
-  // Mira e feedbacks de acerto/dano.
+  // Mira: quatro traços que abrem conforme o spread, mais um ponto central.
   const crosshair = el('div', 'crosshair');
+  const tracos = {
+    cima: el('div', 'traco vertical'),
+    baixo: el('div', 'traco vertical'),
+    esquerda: el('div', 'traco horizontal'),
+    direita: el('div', 'traco horizontal')
+  };
+  crosshair.append(el('div', 'ponto'), ...Object.values(tracos));
+
   const hitmarker = el('div', 'hitmarker');
   const vinheta = el('div', 'vinheta-dano');
   const zoomSniper = el('div', 'zoom-sniper escondido');
@@ -256,6 +264,23 @@ export function criarHud(container) {
     crosshair.classList.toggle('escondido', mostrar);
   }
 
+  /** Mirando pela arma, a mira da tela some: quem mira é a arma. */
+  function definirEstadoDeMira(mirando) {
+    crosshair.classList.toggle('mirando', mirando);
+  }
+
+  /**
+   * Abertura da mira, de 0 (cravada) a 1 (espalhada). O chamador traduz o
+   * spread da arma para essa escala.
+   */
+  function definirAberturaDaMira(abertura) {
+    const px = 3 + Math.min(1, Math.max(0, abertura)) * 22;
+    tracos.cima.style.transform = `translateY(${-px - 9}px)`;
+    tracos.baixo.style.transform = `translateY(${px}px)`;
+    tracos.esquerda.style.transform = `translateX(${-px - 9}px)`;
+    tracos.direita.style.transform = `translateX(${px}px)`;
+  }
+
   return {
     aplicarSnapshot,
     atualizarRelogio,
@@ -268,6 +293,8 @@ export function criarHud(container) {
     modoEspectador,
     mostrarPausa,
     mostrarZoom,
+    definirEstadoDeMira,
+    definirAberturaDaMira,
     botaoVoltarJogo,
     destruir() {
       raiz.remove();

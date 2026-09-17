@@ -13,6 +13,7 @@ export function vistaDoLobby(sala) {
     codigo: sala.codigo,
     fase: sala.fase,
     anfitriaoId: sala.anfitriaoId,
+    config: { ...sala.config },
     jogadores: [...sala.jogadores.values()].map((j) => ({
       id: j.id,
       nome: j.nome,
@@ -55,6 +56,8 @@ export function snapshotPara(partida, jogadorId, agora) {
       yaw: arred(corpo.yaw),
       pitch: arred(corpo.pitch),
       agachado: corpo.agachado,
+      mirando: corpo.mirando,
+      inclinacao: arred(corpo.inclinacao ?? 0),
       slot: j.slot,
       armaId: j.armas[j.slot]?.id ?? 'marreta',
       // Só o próprio time sabe quanto de vida e dinheiro cada um tem.

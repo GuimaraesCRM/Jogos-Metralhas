@@ -18,6 +18,7 @@ import WebSocket from 'ws';
 import { Partida } from './partida.js';
 import { DO_CLIENTE, DO_SERVIDOR } from '../shared/protocolo.js';
 import { ECONOMIA, FASES, TIMES } from '../shared/constantes.js';
+import { EQUIPAMENTOS } from '../shared/armas.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -44,8 +45,8 @@ test('motor: compra no freeze, recusa fora dele, e bloco colocado na base', () =
   partida.tratarComprar('ana', 'blocos');
   let eventos = partida.drenarEventos();
   assert.equal(eventosDoTipo(eventos, DO_SERVIDOR.COMPRA_OK).length, 1);
-  assert.equal(partida.jogador('ana').blocos, 6);
-  assert.equal(partida.jogador('ana').dinheiro, ECONOMIA.INICIAL - 200);
+  assert.equal(partida.jogador('ana').blocos, EQUIPAMENTOS.blocos.quantidade);
+  assert.equal(partida.jogador('ana').dinheiro, ECONOMIA.INICIAL - EQUIPAMENTOS.blocos.preco);
 
   // Colocar um bloco no chão da base, ao alcance.
   const pos = partida.corpos.get('ana').pos;
@@ -54,7 +55,7 @@ test('motor: compra no freeze, recusa fora dele, e bloco colocado na base', () =
   eventos = partida.drenarEventos();
   const mudancas = eventosDoTipo(eventos, DO_SERVIDOR.BLOCO_MUDOU);
   assert.equal(mudancas.length, 1, 'o bloco deveria ter sido colocado');
-  assert.equal(partida.jogador('ana').blocos, 5);
+  assert.equal(partida.jogador('ana').blocos, EQUIPAMENTOS.blocos.quantidade - 1);
 
   // Freeze acaba; a loja fecha.
   partida.tickPartida(T0 + 16_000, 33);

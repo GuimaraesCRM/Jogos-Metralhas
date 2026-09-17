@@ -2,25 +2,41 @@
  * A partida rodando no cliente.
  *
  * Junta tudo: física local do próprio jogador (latência zero), interpolação
- * dos outros (100 ms atrás, entre dois snapshots), tiro com cadência/spread
- * locais espelhando as regras do servidor, blocos, granadas, HUD, loja e sons.
+ * dos outros (100 ms atrás, entre dois snapshots), tiro com cadência, spread e
+ * recuo locais espelhando as regras do servidor, blocos, granadas, HUD, loja e
+ * sons.
  *
  * O servidor continua mandando: qualquer divergência (posição rejeitada,
  * munição, dinheiro) é corrigida pelo estado que chega dele.
+ *
+ * O desenho sai em duas passadas: o mundo primeiro e, com o buffer de
+ * profundidade limpo, a arma em primeira pessoa por cima — é o que impede a
+ * arma de atravessar a parede quando o jogador encosta num bloco.
  */
+
+import * as THREE from '../vendor/three.module.js';
 
 import {
   ATRASO_INTERPOLACAO_MS,
   BLOCO_JOGADOR,
   FASES,
   FISICA,
-  TIMES
+  TIMES,
+  INCLINACAO,
+  alturaDosOlhos,
+  direitaDoJogador
 } from '../../shared/constantes.js';
 import { DO_CLIENTE, DO_SERVIDOR } from '../../shared/protocolo.js';
-import { SPREAD_SNIPER_SEM_MIRA, armaPorId, intervaloEntreTiros } from '../../shared/armas.js';
+import {
+  MARRETA,
+  SPREAD_SNIPER_SEM_MIRA,
+  armaPorId,
+  intervaloEntreTiros,
+  recuoDoTiro
+} from '../../shared/armas.js';
 import { BLOCOS, definirBloco, obterBloco, raycastVoxel } from '../../shared/mundo.js';
 import { ZONA_BASE, dentroDaZona, direcaoDoOlhar, gerarArena } from '../../shared/mapa.js';
-import { alturaOlhos, criarCorpo, passoJogador } from '../../shared/fisica.js';
+import { criarCorpo, inclinacaoPossivel, passoJogador } from '../../shared/fisica.js';
 
 import { FOV_PADRAO } from './config.js';
 import { criarCena } from './mundo/cena.js';
@@ -35,6 +51,12 @@ import * as audio from './audio.js';
 
 const PASSO_FISICA = 1 / 60;
 const INTERVALO_ENVIO_MS = 33;
+/** Depois deste tempo sem atirar, o spray recomeça do primeiro tiro. */
+const RESET_SPRAY_MS = 350;
+/** Quanto tempo sem atirar até a mira começar a voltar ao lugar. */
+const ATRASO_RECUPERACAO_MS = 130;
+/** Igual ao do servidor (server/partida.js): a animação acompanha o efeito. */
+const TEMPO_RECARGA_MS = 2200;
 
 export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePartida }) {
   // ------------------------------------------------------------- montagem
@@ -50,20 +72,27 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   }
 
   const { cena, camera, renderer, redimensionar, definirFov } = criarCena(canvas);
-  cena.add(camera); // a arma em primeira pessoa é filha da câmera
   const chunks = criarMalhaDoMundo(mundo, cena);
   const bonecos = criarJogadores(cena);
   const efeitos = criarEfeitos(cena);
-  const armaFps = criarArmaFps(camera);
+  const armaFps = criarArmaFps();
   const entrada = criarEntrada(canvas);
   const hud = criarHud(container);
 
   const nomes = new Map((estadoInicial?.jogadores ?? []).map((j) => [j.id, j.nome]));
 
+  // A câmera do viewmodel precisa acompanhar o formato da janela.
+  function ajustarTudo() {
+    redimensionar();
+    const caixa = container.getBoundingClientRect();
+    armaFps.redimensionar(caixa.width || window.innerWidth, caixa.height || window.innerHeight);
+  }
+  window.addEventListener('resize', ajustarTudo);
+
   // --------------------------------------------------------------- estado
 
   const corpo = criarCorpo({ x: 32, y: 2, z: 32 });
-  let fotos = []; // buffer de snapshots para interpolação
+  let fotos = [];
   let ultimaFoto = null;
   let desvioRelogio = 0;
   let meuTime = null;
@@ -72,7 +101,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   let lojaAberta = false;
   let encerrado = false;
 
-  // Espelho local da arma para atirar sem esperar o snapshot.
+  // Espelho local da arma, para atirar sem esperar o snapshot.
   let slotLocal = 2;
   let ultimoSlotServidor = null;
   let municaoLocal = { 1: 0, 2: 12 };
@@ -80,15 +109,24 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   let rajadaRestante = 0;
   let proximoTiroDaRajada = 0;
 
-  // Espectador: índice do aliado observado.
+  // Recuo: acumulado que empurra a mira, e o contador do spray.
+  const recuo = { pitch: 0, yaw: 0 };
+  let tirosSeguidos = 0;
+  let ultimoTiroParaSpray = 0;
+  let recarregandoAte = 0;
+
+  // Inclinação lateral (Q/E): -1 esquerda, 0 reto, +1 direita.
+  let inclinacaoAlvo = 0;
+  let inclinacao = 0;
+
   let alvoEspectador = 0;
+  const posicoesAnteriores = new Map(); // id -> {x,z} do quadro anterior
+  const pontaCano = new THREE.Vector3();
 
   const agoraServidor = () => Date.now() + desvioRelogio;
 
   function armaDoSlot(slot) {
-    const eu = ultimaFoto?.eu;
-    if (!eu) return null;
-    return eu.armas?.[slot] ?? null;
+    return ultimaFoto?.eu?.armas?.[slot] ?? null;
   }
 
   function defAtiva() {
@@ -97,13 +135,16 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     return arma ? armaPorId(arma.id) : null;
   }
 
+  /** Mirar vale para qualquer arma; sniper é só o caso de zoom mais forte. */
+  function mirando() {
+    return entrada.mouse.mirando && vivo && (slotLocal === 1 || slotLocal === 2) && Boolean(defAtiva());
+  }
+
   const ehSniper = () => defAtiva()?.categoria === 'sniper';
-  const mirando = () => entrada.mouse.mirando && ehSniper();
 
   // ------------------------------------------------------------ rede: fotos
 
   conexao.em(DO_SERVIDOR.SNAPSHOT, (foto) => {
-    // Desvio de relógio numa média móvel: um snapshot atrasado não sacode tudo.
     const desvioNovo = foto.agora - Date.now();
     desvioRelogio = ultimaFoto ? desvioRelogio * 0.9 + desvioNovo * 0.1 : desvioNovo;
     hud.definirDesvioRelogio(desvioRelogio);
@@ -116,24 +157,26 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     const eu = foto.eu;
     if (eu) {
       meuTime = eu.time;
-      // Sincroniza o espelho local com a verdade do servidor.
       municaoLocal[1] = eu.armas[1]?.municao ?? 0;
       municaoLocal[2] = eu.armas[2]?.municao ?? 0;
-      // Só adota o slot do servidor quando ELE muda (compra troca para a arma
-      // nova) — senão o "modo bloco" (slot 4, que o servidor não conhece)
-      // seria desfeito a cada snapshot.
-      if (eu.slot !== ultimoSlotServidor) {
-        ultimoSlotServidor = eu.slot;
-        if (slotLocal !== eu.slot) {
-          slotLocal = eu.slot;
-          const arma = eu.armas[eu.slot];
-          armaFps.mostrar(eu.slot === 3 ? 'marreta' : arma?.id ?? 'marreta');
-        }
+
+      // Adota a escolha do servidor quando ELA muda. Compara slot E arma:
+      // comprar uma MC-47 estando com a Repetidora mantém o slot 1, e olhar
+      // só para o número deixaria a arma antiga na mão. Comparar só quando
+      // muda é o que preserva o modo bloco (slot 4), que o servidor não
+      // conhece, entre uma foto e outra.
+      const escolhaServidor = `${eu.slot}:${eu.armas[eu.slot]?.id ?? ''}`;
+      if (escolhaServidor !== ultimoSlotServidor) {
+        ultimoSlotServidor = escolhaServidor;
+        slotLocal = eu.slot;
+        const arma = eu.armas[eu.slot];
+        armaFps.mostrar(eu.slot === 3 ? 'marreta' : arma?.id ?? 'marreta');
       }
 
       if (vivo && !eu.vivo) {
-        // Morremos: vira espectador até o próximo round.
         alvoEspectador = 0;
+        recuo.pitch = 0;
+        recuo.yaw = 0;
         hud.modoEspectador(nomeDoAliadoObservado() ?? '—');
       } else if (!vivo && eu.vivo) {
         hud.modoEspectador(null);
@@ -154,6 +197,8 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     if (typeof msg.yaw === 'number') {
       entrada.olhar.yaw = msg.yaw;
       entrada.olhar.pitch = 0;
+      recuo.pitch = 0;
+      recuo.yaw = 0;
     }
   });
 
@@ -232,18 +277,14 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     }
   });
 
-  conexao.em(DO_SERVIDOR.TROCA_DE_LADO, () => {
-    hud.mostrarFaixa('TROCA DE LADO!', 3500);
-  });
+  conexao.em(DO_SERVIDOR.TROCA_DE_LADO, () => hud.mostrarFaixa('TROCA DE LADO!', 3500));
 
   conexao.em(DO_SERVIDOR.FIM_PARTIDA, (msg) => {
     destruir();
     aoFimDePartida(msg);
   });
 
-  conexao.em(DO_SERVIDOR.COMPRA_OK, () => {
-    audio.tocarCompra();
-  });
+  conexao.em(DO_SERVIDOR.COMPRA_OK, () => audio.tocarCompra());
 
   conexao.em(DO_SERVIDOR.COMPRA_FALHOU, (msg) => {
     audio.tocarCompraNegada();
@@ -281,7 +322,6 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       if ((ultimaFoto?.eu?.blocos ?? 0) <= 0) return;
       slotLocal = 4;
       armaFps.mostrar('bloco');
-      // O servidor não precisa saber do "modo bloco": colocar_bloco é a ação.
       return;
     }
     if (slot === 3) {
@@ -298,25 +338,49 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   }
 
   function origemDoTiro() {
+    const direita = direitaDoJogador(entrada.olhar.yaw);
+    const desvio = inclinacao * INCLINACAO.DESLOCAMENTO;
     return {
-      x: corpo.pos.x,
-      y: corpo.pos.y + alturaOlhos(entrada.comandos.agachar),
-      z: corpo.pos.z
+      x: corpo.pos.x + direita.x * desvio,
+      y: corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar),
+      z: corpo.pos.z + direita.z * desvio
     };
   }
 
-  function direcaoComSpread(def) {
+  /** O olhar já com o recuo acumulado somado — é para onde a bala vai. */
+  function olharComRecuo() {
+    const limite = Math.PI / 2 - 0.01;
+    return {
+      yaw: entrada.olhar.yaw + recuo.yaw,
+      pitch: Math.min(limite, Math.max(-limite, entrada.olhar.pitch + recuo.pitch))
+    };
+  }
+
+  /**
+   * O spread efetivo da arma agora: base (ou de mira), mais o castigo de
+   * andar e de estar no ar. É a mesma conta que abre a mira na tela — se a
+   * mira mostrasse outro número, ela estaria mentindo para o jogador.
+   */
+  function spreadAtual(def) {
+    if (!def) return 0;
     const movendo =
       entrada.comandos.frente || entrada.comandos.tras || entrada.comandos.esquerda || entrada.comandos.direita;
+    const estaMirando = mirando();
 
     let spread;
-    if (def.categoria === 'sniper') {
-      spread = mirando() ? def.spreadMirando : SPREAD_SNIPER_SEM_MIRA;
-    } else {
-      spread = def.spreadBase + (movendo ? def.spreadAndando : 0);
-    }
+    if (estaMirando) spread = def.spreadMirando;
+    else if (def.categoria === 'sniper') spread = SPREAD_SNIPER_SEM_MIRA;
+    else spread = def.spreadBase;
 
-    const dir = direcaoDoOlhar(entrada.olhar.yaw, entrada.olhar.pitch);
+    if (movendo) spread += def.spreadAndando * (estaMirando ? 0.5 : 1);
+    if (!corpo.noChao) spread += def.spreadAndando * 1.5;
+    return spread;
+  }
+
+  function direcaoComSpread(def) {
+    const spread = spreadAtual(def);
+    const olhar = olharComRecuo();
+    const dir = direcaoDoOlhar(olhar.yaw, olhar.pitch);
     return {
       x: dir.x + (Math.random() * 2 - 1) * spread,
       y: dir.y + (Math.random() * 2 - 1) * spread,
@@ -335,19 +399,36 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     municaoLocal[slotLocal] -= 1;
     ultimoTiroLocal = agora;
 
+    // Contador do spray: pausou, recomeça do primeiro tiro.
+    if (agora - ultimoTiroParaSpray > RESET_SPRAY_MS) tirosSeguidos = 0;
+    ultimoTiroParaSpray = agora;
+
     const origem = origemDoTiro();
     const direcao = direcaoComSpread(def);
     conexao.enviar(DO_CLIENTE.ATIRAR, { origem, direcao });
 
-    // Feedback imediato: som, recuo e tracer até onde o raio local bate.
+    // Recuo: empurra a mira e, com ela, os próximos tiros. Mirando, a arma
+    // fica um pouco mais firme — como no CS.
+    const empurrao = recuoDoTiro(def, tirosSeguidos);
+    const firmeza = mirando() ? 0.75 : 1;
+    recuo.pitch += empurrao.pitch * firmeza;
+    recuo.yaw += empurrao.yaw * firmeza;
+    tirosSeguidos += 1;
+
     audio.tocarTiro(def.categoria);
     armaFps.disparar();
+
+    // Tracer: sai da ponta do cano (o mundo) em direção ao ponto de impacto.
+    camera.updateMatrixWorld();
+    armaFps.pontaDoCanoNoMundo(camera, pontaCano);
     const impacto = raycastVoxel(mundo, origem, direcao, 200);
-    const fim = impacto
-      ? { x: origem.x + direcao.x * impacto.dist, y: origem.y + direcao.y * impacto.dist, z: origem.z + direcao.z * impacto.dist }
-      : { x: origem.x + direcao.x * 200, y: origem.y + direcao.y * 200, z: origem.z + direcao.z * 200 };
-    // Normaliza o comprimento usado no tracer (a direção tem spread, módulo ~1).
-    efeitos.tracer({ x: origem.x, y: origem.y - 0.08, z: origem.z }, fim);
+    const alcance = impacto ? impacto.dist : 200;
+    const fim = {
+      x: origem.x + direcao.x * alcance,
+      y: origem.y + direcao.y * alcance,
+      z: origem.z + direcao.z * alcance
+    };
+    efeitos.tracer({ x: pontaCano.x, y: pontaCano.y, z: pontaCano.z }, fim);
   }
 
   function tentarAtirar(agora, cliqueNovo) {
@@ -359,13 +440,17 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       return;
     }
 
-    if (fase !== FASES.COMBATE) return;
+    // Vale no combate e no pós-round: o servidor aceita os dois.
+    if (fase !== FASES.COMBATE && fase !== FASES.POS_ROUND) return;
 
     if (slotLocal === 3) {
       if (!cliqueNovo) return;
+      if (agora - ultimoTiroLocal < intervaloEntreTiros(MARRETA)) return;
+      ultimoTiroLocal = agora;
       conexao.enviar(DO_CLIENTE.GOLPEAR, {});
-      armaFps.disparar();
-      audio.tocarTiro('marreta');
+      armaFps.golpear();
+      // O som do impacto sai no meio do arco, não no início dele.
+      setTimeout(() => audio.tocarTiro('marreta'), MARRETA.duracaoGolpe * MARRETA.momentoDoImpacto * 1000);
       return;
     }
 
@@ -398,12 +483,11 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     const dir = direcaoDoOlhar(entrada.olhar.yaw, entrada.olhar.pitch);
     const impacto = raycastVoxel(mundo, origem, dir, BLOCO_JOGADOR.ALCANCE);
     if (!impacto) return;
-    const alvo = {
+    conexao.enviar(DO_CLIENTE.COLOCAR_BLOCO, {
       x: impacto.x + impacto.normal.x,
       y: impacto.y + impacto.normal.y,
       z: impacto.z + impacto.normal.z
-    };
-    conexao.enviar(DO_CLIENTE.COLOCAR_BLOCO, alvo);
+    });
   }
 
   function nomeDoAliadoObservado() {
@@ -420,7 +504,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       else abrirLoja();
       return;
     }
-    if (acao === 'placar') return; // tratado com o segundo argumento abaixo
+    if (acao === 'placar') return; // tratado no segundo ouvinte
     if (lojaAberta) return;
 
     if (acao === 'slot1') trocarSlot(1);
@@ -428,30 +512,39 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     else if (acao === 'slot3') trocarSlot(3);
     else if (acao === 'slot4') trocarSlot(4);
     else if (acao === 'recarregar') {
-      if (slotLocal === 1 || slotLocal === 2) {
-        conexao.enviar(DO_CLIENTE.RECARREGAR, {});
-        armaFps.recarregar();
-        audio.tocarRecarga();
-      }
+      if (slotLocal !== 1 && slotLocal !== 2) return;
+      const arma = armaDoSlot(slotLocal);
+      const def = arma ? armaPorId(arma.id) : null;
+      if (!arma || !def) return;
+      // Pente cheio, ou sem reserva: não gasta animação nem som. O servidor
+      // recusa de qualquer jeito, mas o cliente não deve fingir que algo
+      // aconteceu — era isso que deixava recarregar arma cheia.
+      if (arma.municao >= def.pente || arma.reserva <= 0) return;
+      if (recarregandoAte > performance.now()) return;
+
+      conexao.enviar(DO_CLIENTE.RECARREGAR, {});
+      recarregandoAte = performance.now() + TEMPO_RECARGA_MS;
+      armaFps.recarregar(def);
+      audio.tocarRecarga(def.categoria);
     } else if (acao === 'granada') {
       if (!vivo || fase !== FASES.COMBATE) return;
       if ((ultimaFoto?.eu?.granadas ?? 0) <= 0) return;
-      const direcao = direcaoDoOlhar(entrada.olhar.yaw, entrada.olhar.pitch);
-      conexao.enviar(DO_CLIENTE.LANCAR_GRANADA, { direcao });
+      const olhar = olharComRecuo();
+      conexao.enviar(DO_CLIENTE.LANCAR_GRANADA, { direcao: direcaoDoOlhar(olhar.yaw, olhar.pitch) });
       armaFps.disparar();
-    } else if (acao === 'trocar-espectador') {
+    } else if (acao === 'atirar-clique') {
       if (!vivo) {
+        // Morto, o clique troca de aliado observado (E agora é inclinação).
         alvoEspectador += 1;
         hud.modoEspectador(nomeDoAliadoObservado() ?? '—');
+        return;
       }
-    } else if (acao === 'atirar-clique') {
       tentarAtirar(performance.now(), true);
     } else if (acao === 'mouse-solto') {
       if (!lojaAberta && !encerrado) hud.mostrarPausa(true);
     }
   });
 
-  // TAB pressionado/solto chega como ('placar', true|false).
   entrada.aoAcao((acao, apertado) => {
     if (acao === 'placar') hud.mostrarPlacar(apertado, ultimaFoto, meuId);
   });
@@ -463,7 +556,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
 
   // ------------------------------------------------------------ interpolação
 
-  function estadosInterpolados() {
+  function estadosInterpolados(dt) {
     const alvoT = agoraServidor() - ATRASO_INTERPOLACAO_MS;
 
     let antes = null;
@@ -487,17 +580,35 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     for (const a of antes.jogadores) {
       if (a.id === meuId) continue;
       const b = porIdDepois.get(a.id) ?? a;
+      const pos = {
+        x: a.pos[0] + (b.pos[0] - a.pos[0]) * t,
+        y: a.pos[1] + (b.pos[1] - a.pos[1]) * t,
+        z: a.pos[2] + (b.pos[2] - a.pos[2]) * t
+      };
+
+      // Velocidade no plano, medida entre quadros: é o que dosa a animação de
+      // caminhada. Medir aqui (e não no snapshot) mantém a animação suave
+      // mesmo com a rede irregular.
+      const anterior = posicoesAnteriores.get(a.id);
+      let velocidade = 0;
+      if (anterior && dt > 0) {
+        velocidade = Math.hypot(pos.x - anterior.x, pos.z - anterior.z) / dt;
+        // Média móvel para não tremer com o jitter da interpolação.
+        velocidade = anterior.v * 0.7 + velocidade * 0.3;
+      }
+      posicoesAnteriores.set(a.id, { x: pos.x, z: pos.z, v: velocidade });
+
       estados.push({
         id: a.id,
         nome: a.nome,
         time: b.time,
         vivo: b.vivo,
         agachado: b.agachado,
-        pos: {
-          x: a.pos[0] + (b.pos[0] - a.pos[0]) * t,
-          y: a.pos[1] + (b.pos[1] - a.pos[1]) * t,
-          z: a.pos[2] + (b.pos[2] - a.pos[2]) * t
-        },
+        mirando: b.mirando,
+        inclinacao: b.inclinacao ?? 0,
+        armaId: b.armaId,
+        velocidade,
+        pos,
         yaw: lerpAngulo(a.yaw, b.yaw, t),
         pitch: a.pitch + (b.pitch - a.pitch) * t
       });
@@ -525,13 +636,28 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
       trocarSlot(ultimaFoto.eu.slot);
     }
 
-    // Física do próprio jogador em passo fixo.
+    // Recuperação do recuo — e o detalhe que faz o spray existir: ela SÓ
+    // começa depois que o jogador solta o gatilho. Se recuperasse durante a
+    // rajada, o recuo saturaria em dois graus e a mira ficaria praticamente
+    // cravada no centro, que era o defeito antes.
+    const def = defAtiva();
+    const atirandoAgora = performance.now() - ultimoTiroParaSpray < ATRASO_RECUPERACAO_MS;
+    if (!atirandoAgora) {
+      const fator = Math.max(0, 1 - (def?.recuperacao ?? 8) * dt);
+      recuo.pitch *= fator;
+      recuo.yaw *= fator;
+      if (Math.abs(recuo.pitch) < 1e-5) recuo.pitch = 0;
+      if (Math.abs(recuo.yaw) < 1e-5) recuo.yaw = 0;
+    }
+
+    const congelado = lojaAberta || !entrada.travado();
+    const comandos = congelado
+      ? { frente: false, tras: false, esquerda: false, direita: false, pular: false, agachar: false }
+      : entrada.comandos;
+    const movendo = comandos.frente || comandos.tras || comandos.esquerda || comandos.direita;
+
     if (vivo) {
       acumuladorFisica += dt;
-      const congelado = lojaAberta || !entrada.travado();
-      const comandos = congelado
-        ? { frente: false, tras: false, esquerda: false, direita: false, pular: false, agachar: false }
-        : entrada.comandos;
       while (acumuladorFisica >= PASSO_FISICA) {
         passoJogador(corpo, comandos, entrada.olhar.yaw, PASSO_FISICA, mundo);
         acumuladorFisica -= PASSO_FISICA;
@@ -543,55 +669,98 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
         corpo.pos.x = Math.min(zona.x1 - 0.31, Math.max(zona.x0 + 0.31, corpo.pos.x));
         corpo.pos.z = Math.min(zona.z1 - 0.31, Math.max(zona.z0 + 0.31, corpo.pos.z));
       }
-      const movendo = comandos.frente || comandos.tras || comandos.esquerda || comandos.direita;
       if (movendo && corpo.noChao) audio.tocarPasso();
+
+      // Inclinação lateral: a intenção vem das teclas, mas o mundo decide o
+      // quanto cabe — a mesma função que o servidor usa para validar.
+      const pedida = (comandos.inclinarDireita ? 1 : 0) - (comandos.inclinarEsquerda ? 1 : 0);
+      inclinacaoAlvo = inclinacaoPossivel(mundo, corpo.pos, entrada.olhar.yaw, comandos.agachar, pedida);
+      inclinacao += (inclinacaoAlvo - inclinacao) * Math.min(1, dt * 11);
+      if (Math.abs(inclinacao) < 0.002) inclinacao = 0;
     }
 
-    // Tiro automático segurando o botão.
     if (entrada.mouse.atirando || rajadaRestante > 0) tentarAtirar(performance.now(), false);
 
-    // Reporta o estado ao servidor (30 Hz).
     acumuladorEnvio += dt * 1000;
     if (acumuladorEnvio >= INTERVALO_ENVIO_MS) {
       acumuladorEnvio = 0;
       if (vivo) {
+        const olhar = olharComRecuo();
         conexao.enviar(DO_CLIENTE.ESTADO_JOGADOR, {
           pos: { x: corpo.pos.x, y: corpo.pos.y, z: corpo.pos.z },
-          yaw: entrada.olhar.yaw,
-          pitch: entrada.olhar.pitch,
-          agachado: entrada.comandos.agachar
+          yaw: olhar.yaw,
+          pitch: olhar.pitch,
+          agachado: entrada.comandos.agachar,
+          mirando: mirando(),
+          inclinacao
         });
       }
     }
 
-    // Câmera: primeira pessoa, ou olho do aliado observado.
+    // Câmera: primeira pessoa (com o recuo somado) ou olho do aliado.
+    const estados = estadosInterpolados(dt);
     if (vivo) {
-      camera.position.set(corpo.pos.x, corpo.pos.y + alturaOlhos(entrada.comandos.agachar), corpo.pos.z);
-      camera.rotation.y = entrada.olhar.yaw;
-      camera.rotation.x = entrada.olhar.pitch;
+      const olhar = olharComRecuo();
+      const direita = direitaDoJogador(olhar.yaw);
+      const desvio = inclinacao * INCLINACAO.DESLOCAMENTO;
+      camera.position.set(
+        corpo.pos.x + direita.x * desvio,
+        corpo.pos.y + alturaDosOlhos(entrada.comandos.agachar),
+        corpo.pos.z + direita.z * desvio
+      );
+      camera.rotation.y = olhar.yaw;
+      camera.rotation.x = olhar.pitch;
+      // A rolagem é o que faz o movimento ler como "espiar" em vez de
+      // "deslizar para o lado".
+      camera.rotation.z = -inclinacao * INCLINACAO.ROLAGEM;
     } else {
-      const aliados = estadosInterpolados().filter((j) => j.time === meuTime && j.vivo);
+      const aliados = estados.filter((j) => j.time === meuTime && j.vivo);
       const alvo = aliados[alvoEspectador % Math.max(1, aliados.length)];
       if (alvo) {
         camera.position.set(alvo.pos.x, alvo.pos.y + FISICA.OLHOS, alvo.pos.z);
         camera.rotation.y = alvo.yaw;
         camera.rotation.x = alvo.pitch;
+        camera.rotation.z = 0;
       }
     }
 
-    // Zoom de sniper.
-    const zoom = mirando() ? defAtiva()?.zoom ?? 1 : 1;
+    // Mira: fecha o FOV conforme a arma. Sniper ganha a luneta na tela.
+    const estaMirando = mirando();
+    const zoom = estaMirando ? def?.zoomAds ?? 0.85 : 1;
     const fovAlvo = FOV_PADRAO * zoom;
-    if (Math.abs(camera.fov - fovAlvo) > 0.5) definirFov(camera.fov + (fovAlvo - camera.fov) * 0.4);
-    hud.mostrarZoom(mirando());
-    armaFps.esconder(mirando() || !vivo);
+    if (Math.abs(camera.fov - fovAlvo) > 0.2) {
+      definirFov(camera.fov + (fovAlvo - camera.fov) * Math.min(1, dt * 13));
+    }
+    const comLuneta = estaMirando && ehSniper();
+    hud.mostrarZoom(comLuneta);
+    hud.definirEstadoDeMira(estaMirando);
+    // A mira abre com o spread real e com o recuo já acumulado no spray.
+    if (slotLocal === 1 || slotLocal === 2) {
+      const recuoVisivel = Math.min(0.5, Math.abs(recuo.pitch) * 6);
+      hud.definirAberturaDaMira(spreadAtual(def) * 9 + recuoVisivel);
+    } else {
+      hud.definirAberturaDaMira(0.1);
+    }
+    // Sniper mirando esconde o modelo (é a luneta que ocupa a tela).
+    armaFps.esconder(comLuneta || !vivo);
 
-    bonecos.sincronizar(estadosInterpolados());
+    bonecos.sincronizar(estados, dt);
     efeitos.atualizar(dt);
-    armaFps.atualizar(dt, mirando());
+    armaFps.atualizar(dt, {
+      mirando: estaMirando,
+      andando: movendo && vivo,
+      noChao: corpo.noChao
+    });
     hud.atualizarRelogio();
 
+    // Duas passadas: mundo e, com a profundidade limpa, a arma por cima.
     renderer.render(cena, camera);
+    if (vivo && !comLuneta) {
+      renderer.autoClear = false;
+      renderer.clearDepth();
+      renderer.render(armaFps.cena, armaFps.camera);
+      renderer.autoClear = true;
+    }
   }
 
   function lerpAngulo(a, b, t) {
@@ -604,7 +773,7 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
   // --------------------------------------------------------------- arranque
 
   entrada.ativar();
-  redimensionar();
+  ajustarTudo();
   hud.mostrarFaixa('COMPRE SEU EQUIPAMENTO (B) — clique para capturar o mouse', 5000);
   idRaf = requestAnimationFrame(quadro);
 
@@ -612,12 +781,14 @@ export function criarJogo({ container, conexao, meuId, estadoInicial, aoFimDePar
     if (encerrado) return;
     encerrado = true;
     cancelAnimationFrame(idRaf);
+    window.removeEventListener('resize', ajustarTudo);
     entrada.destruir();
     hud.destruir();
     menu.destruir();
     bonecos.limpar();
     efeitos.limpar();
     chunks.destruir();
+    armaFps.destruir();
     renderer.dispose();
     container.innerHTML = '';
     container.className = '';

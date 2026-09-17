@@ -13,8 +13,9 @@
     "vendor": "node scripts/vendor.cjs",
     "start": "electron .",
     "dev": "node scripts/dev.js",
+    "estudio": "electron . --estudio",
     "server": "node server/index.js",
-    "test": "node --test shared/fisica.test.js shared/mapa.test.js shared/armas.test.js shared/regras.test.js server/integracao.test.js electron/identidade-launcher.test.cjs",
+    "test": "node --test shared/corpo.test.js shared/fisica.test.js shared/mapa.test.js shared/armas.test.js shared/regras.test.js server/integracao.test.js electron/identidade-launcher.test.cjs",
     "icone": "electron scripts/gerar-icone.cjs",
     "build": "node scripts/vendor.cjs && npm run icone && electron-builder --win"
   },

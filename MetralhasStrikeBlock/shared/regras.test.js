@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ECONOMIA, FASES, PARTIDA, TEMPOS, TIMES } from './constantes.js';
+import { EQUIPAMENTOS } from './armas.js';
 import {
   aplicarDano,
   aplicarRecarga,
@@ -73,9 +74,38 @@ test('compra de equipamentos respeita limites', () => {
   assert.equal(ana.colete, PARTIDA.COLETE_MAXIMO);
   assert.equal(ana.capacete, true);
 
-  for (let i = 0; i < 5; i++) assert.equal(comprar(p, 'a1', 'blocos', true).ok, true);
-  assert.equal(ana.blocos, 30);
-  assert.equal(comprar(p, 'a1', 'blocos', true).ok, false); // máx. 30
+  // Blocos vão até 100, o suficiente para levantar uma torre de verdade.
+  ana.dinheiro = 99_000;
+  for (let i = 0; i < 10; i++) assert.equal(comprar(p, 'a1', 'blocos', true).ok, true);
+  assert.equal(ana.blocos, EQUIPAMENTOS.blocos.maximo);
+  assert.equal(comprar(p, 'a1', 'blocos', true).ok, false); // estourou o teto
+});
+
+test('o dono da sala pode encurtar ou alongar o round', () => {
+  const rapida = criarPartida({
+    agora: T0,
+    tempos: { compra: 5, combate: 60 },
+    jogadores: [
+      { id: 'a1', nome: 'Ana', time: TIMES.AZUL },
+      { id: 'v1', nome: 'Vera', time: TIMES.VERMELHO }
+    ]
+  });
+
+  // A fase de compra já nasce com a duração escolhida.
+  assert.equal(rapida.faseTerminaEm, T0 + 5_000);
+
+  iniciarCombate(rapida, T0 + 5_000);
+  assert.equal(rapida.faseTerminaEm, T0 + 5_000 + 60_000);
+
+  // E a escolha vale para todos os rounds, não só o primeiro.
+  aplicarDano(rapida, 'v1', 999);
+  terminarRound(rapida, avaliarRound(rapida, T0 + 10_000), T0 + 10_000);
+  iniciarProximoRound(rapida, T0 + 20_000);
+  assert.equal(rapida.faseTerminaEm, T0 + 20_000 + 5_000);
+
+  // Sem escolha, valem os tempos padrão.
+  const padrao = partida2v2();
+  assert.equal(padrao.faseTerminaEm, T0 + TEMPOS.COMPRA * 1000);
 });
 
 test('dano mata, kill paga e o round fecha por eliminação', () => {

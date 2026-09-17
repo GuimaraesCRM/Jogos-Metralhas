@@ -3,7 +3,13 @@
  * de iniciar (só o anfitrião).
  */
 
-import { TIMES, ROTULO_TIME } from '../../../shared/constantes.js';
+import {
+  DURACOES_COMBATE,
+  DURACOES_COMPRA,
+  ROTULO_TIME,
+  TEMPOS,
+  TIMES
+} from '../../../shared/constantes.js';
 import { iniciais } from '../../../shared/protocolo.js';
 
 function el(tag, classe, texto) {
@@ -32,7 +38,35 @@ function itemJogador(jogador, meuId, anfitriaoId) {
   return item;
 }
 
-export function telaLobby(container, estado, meuId, { aoEscolherTime, aoIniciar, aoSair }) {
+/**
+ * Uma linha de atalhos de duração. Só o anfitrião mexe; os outros veem o
+ * valor escolhido, para saberem em que partida estão entrando.
+ */
+function linhaDeTempo(rotulo, valorAtual, opcoes, souAnfitriao, aoEscolher) {
+  const bloco = el('div', 'campo');
+  bloco.appendChild(el('label', '', rotulo));
+  const linha = el('div', 'linha');
+
+  for (const segundos of opcoes) {
+    const escolhido = segundos === valorAtual;
+    const botao = el('button', escolhido ? 'primario' : '', `${segundos}s`);
+    botao.disabled = !souAnfitriao;
+    if (!escolhido) botao.addEventListener('click', () => aoEscolher(segundos));
+    linha.appendChild(botao);
+  }
+
+  // Valor fora dos atalhos (veio digitado antes) ainda precisa aparecer.
+  if (!opcoes.includes(valorAtual)) {
+    const marca = el('button', 'primario', `${valorAtual}s`);
+    marca.disabled = true;
+    linha.appendChild(marca);
+  }
+
+  bloco.appendChild(linha);
+  return bloco;
+}
+
+export function telaLobby(container, estado, meuId, { aoEscolherTime, aoIniciar, aoSair, aoConfigurar }) {
   container.innerHTML = '';
   const tela = el('div', 'tela');
   const cartao = el('div', 'cartao largo');
@@ -72,6 +106,25 @@ export function telaLobby(container, estado, meuId, { aoEscolherTime, aoIniciar,
   cartao.appendChild(el('div', 'separador'));
 
   const souAnfitriao = meuId === estado.anfitriaoId;
+
+  // Tempos do round: quem manda na sala escolhe.
+  const config = estado.config ?? { compra: TEMPOS.COMPRA, combate: TEMPOS.COMBATE };
+  const tempos = el('div', 'lobby-tempos');
+  tempos.appendChild(
+    linhaDeTempo('Tempo de combate', config.combate, DURACOES_COMBATE, souAnfitriao, (s) =>
+      aoConfigurar({ combate: s })
+    )
+  );
+  tempos.appendChild(
+    linhaDeTempo('Tempo de compra', config.compra, DURACOES_COMPRA, souAnfitriao, (s) =>
+      aoConfigurar({ compra: s })
+    )
+  );
+  cartao.appendChild(tempos);
+  if (!souAnfitriao) {
+    cartao.appendChild(el('div', 'nota', 'Só o anfitrião muda os tempos do round.'));
+  }
+  cartao.appendChild(el('div', 'separador'));
   const botaoIniciar = el('button', 'primario', souAnfitriao ? 'Iniciar partida' : 'Aguardando o anfitrião…');
   botaoIniciar.disabled = !souAnfitriao;
   botaoIniciar.addEventListener('click', aoIniciar);

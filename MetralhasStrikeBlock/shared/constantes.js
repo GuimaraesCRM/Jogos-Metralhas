@@ -21,16 +21,113 @@ export const FISICA = {
   VEL_AGACHADO: 2.4,
   LARGURA: 0.6,
   ALTURA: 1.8,
+  ALTURA_AGACHADO: 1.35,
   OLHOS: 1.62,
-  OLHOS_AGACHADO: 1.2
+  OLHOS_AGACHADO: 1.15
 };
 
-/** Duração das fases de um round, em segundos. */
+/**
+ * As medidas do corpo, numa fonte de verdade só.
+ *
+ * O servidor monta as caixas de acerto com estes números e o cliente monta o
+ * boneco com os mesmos — é o que impede o clássico "atirei na cabeça e não
+ * contou": se cada lado tivesse a sua tabela, a cabeça desenhada e a cabeça
+ * que o tiro procura acabariam em alturas diferentes.
+ *
+ * A cabeça é sempre a fatia do topo: `base = altura - ALTURA_CABECA`. Assim,
+ * quando o jogador agacha e a altura cai, a cabeça desce junto em vez de
+ * ficar boiando no ar.
+ */
+export const CORPO = {
+  ALTURA_CABECA: 0.4,
+  LARGURA_CABECA: 0.44,
+  /** Altura do quadril, de onde pendem tronco e pernas. */
+  QUADRIL: 0.85,
+  QUADRIL_AGACHADO: 0.52
+};
+
+export function alturaDoCorpo(agachado) {
+  return agachado ? FISICA.ALTURA_AGACHADO : FISICA.ALTURA;
+}
+
+export function alturaDosOlhos(agachado) {
+  return agachado ? FISICA.OLHOS_AGACHADO : FISICA.OLHOS;
+}
+
+/** O quanto o corpo sai para o lado ao inclinar (Q/E), em metros. */
+export const INCLINACAO = {
+  DESLOCAMENTO: 0.55,
+  /** Inclinação da câmera, em radianos, que dá a leitura de "espiando". */
+  ROLAGEM: 0.28,
+  /** Os pés ficam; o tronco sai menos que a cabeça, como um corpo faz. */
+  FATOR_CORPO: 0.5
+};
+
+/**
+ * O vetor "direita" do jogador, no plano. Yaw 0 olha para -Z, então a direita
+ * é +X.
+ */
+export function direitaDoJogador(yaw) {
+  return { x: Math.cos(yaw), z: -Math.sin(yaw) };
+}
+
+/**
+ * As duas caixas de acerto de um jogador, em coordenadas do mundo.
+ * `pos` são os pés. Corpo e cabeça se encostam sem sobrepor nem deixar vão.
+ *
+ * `inclinacao` (-1 a 1) desloca as caixas para o lado. Isso é o que impede a
+ * inclinação de virar trapaça: quem espia pela quina mostra a cabeça de
+ * verdade, no lugar onde ela aparece para o inimigo.
+ */
+export function caixasDeAcerto(pos, agachado, inclinacao = 0, yaw = 0) {
+  const altura = alturaDoCorpo(agachado);
+  const meia = FISICA.LARGURA / 2;
+  const meiaCabeca = CORPO.LARGURA_CABECA / 2;
+  const baseCabeca = altura - CORPO.ALTURA_CABECA;
+
+  const direita = direitaDoJogador(yaw);
+  const desvio = inclinacao * INCLINACAO.DESLOCAMENTO;
+  const cabecaX = pos.x + direita.x * desvio;
+  const cabecaZ = pos.z + direita.z * desvio;
+  const corpoX = pos.x + direita.x * desvio * INCLINACAO.FATOR_CORPO;
+  const corpoZ = pos.z + direita.z * desvio * INCLINACAO.FATOR_CORPO;
+
+  return {
+    corpo: {
+      min: { x: corpoX - meia, y: pos.y, z: corpoZ - meia },
+      max: { x: corpoX + meia, y: pos.y + baseCabeca, z: corpoZ + meia }
+    },
+    cabeca: {
+      min: { x: cabecaX - meiaCabeca, y: pos.y + baseCabeca, z: cabecaZ - meiaCabeca },
+      max: { x: cabecaX + meiaCabeca, y: pos.y + altura, z: cabecaZ + meiaCabeca }
+    }
+  };
+}
+
+/**
+ * Duração das fases de um round, em segundos. São os valores padrão: o dono
+ * da sala pode trocar o tempo de compra e de combate no lobby, dentro dos
+ * limites abaixo.
+ */
 export const TEMPOS = {
   COMPRA: 15,
   COMBATE: 105,
   POS_ROUND: 5
 };
+
+/** Atalhos oferecidos no lobby, em segundos. */
+export const DURACOES_COMBATE = [60, 105, 150, 210];
+export const DURACOES_COMPRA = [5, 10, 15, 25];
+
+export const LIMITE_COMBATE = { MINIMO: 30, MAXIMO: 300 };
+export const LIMITE_COMPRA = { MINIMO: 3, MAXIMO: 60 };
+
+/** Normaliza uma duração escolhida no lobby, ou devolve null se não servir. */
+export function duracaoValida(bruto, limite) {
+  const n = Math.round(Number(bruto));
+  if (!Number.isFinite(n) || n < limite.MINIMO || n > limite.MAXIMO) return null;
+  return n;
+}
 
 /** Fases possíveis de uma partida. */
 export const FASES = {
@@ -62,7 +159,7 @@ export const PARTIDA = {
 export const BLOCO_JOGADOR = {
   HP: 60,
   ALCANCE: 4,
-  MAX_CARREGADOS: 30
+  MAX_CARREGADOS: 100
 };
 
 /** Granada HE. */

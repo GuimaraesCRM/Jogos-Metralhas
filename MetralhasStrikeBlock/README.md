@@ -47,7 +47,7 @@ Armas fracas pagam mais por abate: matar de shotgun rende $900 e de marreta $1.5
 | **Espaço** | Pular |
 | **Ctrl** ou **C** | Agachar (mais devagar, mira mais firme, silhueta menor) |
 | **Clique esquerdo** | Atirar |
-| **Clique direito** | Mirar (só snipers — sem mirar elas atiram do quadril) |
+| **Clique direito** | Mirar — vale para **todas** as armas: a arma sobe até a linha do olho, a mira fecha e o tiro fica mais preciso |
 | **R** | Recarregar |
 | **1 / 2 / 3** | Arma primária / pistola / marreta |
 | **4** | Modo bloco (clique coloca um bloco) |
@@ -79,6 +79,14 @@ Todos os preços, danos e cadências ficam em [`shared/armas.js`](shared/armas.j
 Equipamento: **Colete** $650 · **Colete + Capacete** $1.000 · **Granada HE** $300 (máx. 2) · **Pacote de 6 blocos** $200 (máx. 30 carregados). A **Marreta** é de graça e fica sempre no slot 3.
 
 Headshot multiplica o dano (×4 em rifles, pistolas e snipers); o capacete corta esse multiplicador para ×2. O colete absorve 40% do dano no corpo e vai se gastando. Shotguns perdem dano com a distância. A MC-47 mata de um tiro na cabeça sem capacete; a AWB mata de um tiro no corpo.
+
+### Recuo e mira
+
+**Segurar o gatilho apontando para o mesmo lugar não funciona.** Cada tiro empurra a mira para cima e, depois dos primeiros disparos, o spray passa a puxar para os lados alternadamente — como no CS. Quem aprende o padrão da arma consegue compensar puxando o mouse para baixo; quem não aprende leva vantagem dando tapinhas de 2 ou 3 tiros e deixando a mira voltar.
+
+Cada arma tem o próprio coice: a MC-47 é forte e difícil de segurar, a MB-4 é mais fraca mas bem mais controlável, a AWB dá um coice enorme (e não importa, porque você vai atirar uma vez). **Mirar com o botão direito** sobe a arma até a linha do olho, alinha a mira de ferro (ou a luneta) com o centro da tela, fecha o cone de tiro e segura um pouco o recuo. Andar, e principalmente pular, espalha o tiro de qualquer arma.
+
+A mira na tela mostra o cone real: ela abre quando você corre e durante o spray, e fecha quando você para. Se a mira está aberta, seu tiro vai espalhar de verdade — ela não mente para você.
 
 ### Blocos
 
@@ -124,9 +132,14 @@ Outros comandos:
 ```bash
 npm start            # só o app (conecta no servidor que você indicar na tela)
 npm run server       # só o servidor de partidas
+npm run estudio      # estúdio de modelos (veja abaixo)
 npm test             # toda a bateria de testes
 npm run vendor       # recopia o Three para renderer/vendor/ (o npm install já faz)
 ```
+
+### Estúdio de modelos
+
+`npm run estudio` abre uma tela de desenvolvimento que mostra o boneco e todas as armas fora da partida: dá para girar em volta, alternar entre andando/agachado/mirando, trocar de arma e disparar (espaço), recarregar (R) e golpear com a marreta (F). É onde se ajusta proporção, cor e pose sem precisar entrar num jogo e correr até o inimigo.
 
 > `npm install` é obrigatório antes do primeiro `npm start`: o Three.js é copiado de `node_modules` para `renderer/vendor/` pelo script `postinstall`. Essa pasta é derivada e não vai para o Git.
 

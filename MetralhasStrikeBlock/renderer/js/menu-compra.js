@@ -1,9 +1,15 @@
 /**
  * A loja, estilo CS2: categorias com preços, aberta com B durante o freeze.
  * O servidor é quem valida tudo — o menu só mostra e pede.
+ *
+ * Os botões são criados UMA vez e depois só têm o estado atualizado. Recriar o
+ * DOM a cada foto do servidor (20×/s) engolia os cliques: um `click` exige que
+ * mousedown e mouseup caiam no mesmo elemento, e o botão era destruído entre
+ * os dois.
  */
 
 import { ARMAS, CATEGORIAS, EQUIPAMENTOS, ROTULO_CATEGORIA } from '../../shared/armas.js';
+import { PARTIDA } from '../../shared/constantes.js';
 
 function el(tag, classe, texto) {
   const node = document.createElement(tag);
@@ -11,6 +17,13 @@ function el(tag, classe, texto) {
   if (texto !== undefined) node.textContent = texto;
   return node;
 }
+
+const DETALHE_EQUIPAMENTO = {
+  colete: 'Absorve 40% do dano no corpo',
+  capacete: 'Colete novo + proteção de headshot',
+  granada: 'Explosiva · máx. 2',
+  blocos: 'Construa cobertura · máx. 30'
+};
 
 export function criarMenuCompra(container, { aoComprar, aoFechar }) {
   const raiz = el('div', 'menu-compra escondido');
@@ -30,83 +43,83 @@ export function criarMenuCompra(container, { aoComprar, aoFechar }) {
 
   raiz.append(cabecalho, corpo, rodape);
 
-  let euAtual = null;
+  /** id do item -> { botao, estado(eu) => ({ bloqueado, comprado }) } */
+  const itens = new Map();
 
-  function botaoItem(id, nome, detalhe, preco) {
+  function criarBotao(id, nome, detalhe, preco, estado) {
     const botao = el('button', 'item-compra');
     const info = el('div');
     info.append(el('div', 'nome', nome), el('div', 'detalhe', detalhe));
     botao.append(info, el('div', 'preco', preco === 0 ? 'GRÁTIS' : `$${preco}`));
     botao.addEventListener('click', () => aoComprar(id));
+    itens.set(id, { botao, estado });
     return botao;
   }
 
-  function reconstruir() {
-    corpo.innerHTML = '';
-    const eu = euAtual;
+  // ---- montagem única -------------------------------------------------------
 
-    // Colunas: armas por categoria + equipamentos.
-    const porCategoria = new Map();
-    for (const arma of Object.values(ARMAS)) {
-      if (!porCategoria.has(arma.categoria)) porCategoria.set(arma.categoria, []);
-      porCategoria.get(arma.categoria).push(arma);
+  const porCategoria = new Map();
+  for (const arma of Object.values(ARMAS)) {
+    if (!porCategoria.has(arma.categoria)) porCategoria.set(arma.categoria, []);
+    porCategoria.get(arma.categoria).push(arma);
+  }
+
+  const ordem = [CATEGORIAS.PISTOLA, CATEGORIAS.SHOTGUN, CATEGORIAS.SMG, CATEGORIAS.RIFLE, CATEGORIAS.SNIPER];
+  for (const categoria of ordem) {
+    const bloco = el('div', 'categoria-compra');
+    bloco.appendChild(el('h3', '', ROTULO_CATEGORIA[categoria]));
+    for (const arma of porCategoria.get(categoria) ?? []) {
+      if (arma.preco === 0) continue; // a PM-9 já vem de graça
+      const detalhe = `${arma.dano}${arma.pellets > 1 ? `×${arma.pellets}` : ''} dano · ${arma.rpm} RPM`;
+      bloco.appendChild(
+        criarBotao(arma.id, arma.nome, detalhe, arma.preco, (eu) => {
+          const comprado = eu.armas[arma.slot]?.id === arma.id;
+          return { comprado, bloqueado: comprado || arma.preco > eu.dinheiro };
+        })
+      );
     }
+    corpo.appendChild(bloco);
+  }
 
-    const ordem = [CATEGORIAS.PISTOLA, CATEGORIAS.SHOTGUN, CATEGORIAS.SMG, CATEGORIAS.RIFLE, CATEGORIAS.SNIPER];
-    for (const categoria of ordem) {
-      const bloco = el('div', 'categoria-compra');
-      bloco.appendChild(el('h3', '', ROTULO_CATEGORIA[categoria]));
-      for (const arma of porCategoria.get(categoria) ?? []) {
-        if (arma.preco === 0) continue; // a PM-9 já vem de graça
-        const detalhe = `${arma.dano}${arma.pellets > 1 ? `×${arma.pellets}` : ''} dano · ${arma.rpm} RPM`;
-        const botao = botaoItem(arma.id, arma.nome, detalhe, arma.preco);
-        if (eu) {
-          const jaTem = eu.armas[arma.slot]?.id === arma.id;
-          botao.disabled = arma.preco > eu.dinheiro || jaTem;
-          botao.classList.toggle('comprado', jaTem);
+  const equipamentos = el('div', 'categoria-compra');
+  equipamentos.appendChild(el('h3', '', 'Equipamento'));
+  for (const eq of Object.values(EQUIPAMENTOS)) {
+    equipamentos.appendChild(
+      criarBotao(eq.id, eq.nome, DETALHE_EQUIPAMENTO[eq.id] ?? '', eq.preco, (eu) => {
+        let comprado = false;
+        if (eq.id === 'colete') comprado = eu.colete >= PARTIDA.COLETE_MAXIMO && !eu.capacete;
+        else if (eq.id === 'capacete') comprado = eu.capacete && eu.colete >= PARTIDA.COLETE_MAXIMO;
+        else if (eq.id === 'granada') comprado = eu.granadas >= EQUIPAMENTOS.granada.maximo;
+        else if (eq.id === 'blocos') {
+          comprado = eu.blocos + EQUIPAMENTOS.blocos.quantidade > EQUIPAMENTOS.blocos.maximo;
         }
-        bloco.appendChild(botao);
-      }
-      corpo.appendChild(bloco);
-    }
+        return { comprado, bloqueado: comprado || eq.preco > eu.dinheiro };
+      })
+    );
+  }
+  corpo.appendChild(equipamentos);
 
-    const equipamentos = el('div', 'categoria-compra');
-    equipamentos.appendChild(el('h3', '', 'Equipamento'));
-    const detalhes = {
-      colete: 'Absorve 40% do dano no corpo',
-      capacete: 'Colete novo + proteção de headshot',
-      granada: 'Explosiva · máx. 2',
-      blocos: 'Construa cobertura · máx. 30'
-    };
-    for (const eq of Object.values(EQUIPAMENTOS)) {
-      const botao = botaoItem(eq.id, eq.nome, detalhes[eq.id] ?? '', eq.preco);
-      if (eu) {
-        let bloqueado = eq.preco > eu.dinheiro;
-        if (eq.id === 'colete' && eu.colete >= 100) bloqueado = true;
-        if (eq.id === 'capacete' && eu.capacete && eu.colete >= 100) bloqueado = true;
-        if (eq.id === 'granada' && eu.granadas >= EQUIPAMENTOS.granada.maximo) bloqueado = true;
-        if (eq.id === 'blocos' && eu.blocos + EQUIPAMENTOS.blocos.quantidade > EQUIPAMENTOS.blocos.maximo) {
-          bloqueado = true;
-        }
-        botao.disabled = bloqueado;
-      }
-      equipamentos.appendChild(botao);
+  // ---- atualização de estado (sem tocar na estrutura) ------------------------
+
+  function refletir(eu) {
+    dinheiro.textContent = `$${eu?.dinheiro ?? 0}`;
+    if (!eu) return;
+    for (const { botao, estado } of itens.values()) {
+      const { bloqueado, comprado } = estado(eu);
+      // Só escreve quando muda: mexer no DOM à toa também custa caro.
+      if (botao.disabled !== bloqueado) botao.disabled = bloqueado;
+      botao.classList.toggle('comprado', comprado);
     }
-    corpo.appendChild(equipamentos);
   }
 
   function abrir(eu) {
-    euAtual = eu;
-    dinheiro.textContent = `$${eu?.dinheiro ?? 0}`;
-    reconstruir();
+    refletir(eu);
     raiz.classList.remove('escondido');
   }
 
   function atualizar(eu) {
     if (raiz.classList.contains('escondido')) return;
-    euAtual = eu;
-    dinheiro.textContent = `$${eu?.dinheiro ?? 0}`;
-    reconstruir();
+    refletir(eu);
   }
 
   function fechar() {

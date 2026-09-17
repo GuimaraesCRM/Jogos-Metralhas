@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARMAS, CATEGORIAS, EQUIPAMENTOS, MARRETA, armaPorId, precoDe, fatorDistancia, danoDoTiro, intervaloEntreTiros } from './armas.js';
+import { ARMAS, CATEGORIAS, EQUIPAMENTOS, MARRETA, armaPorId, precoDe, fatorDistancia, danoDoTiro, intervaloEntreTiros, recuoDoTiro } from './armas.js';
 
 test('tabela tem as 11 armas com campos completos', () => {
   assert.equal(Object.keys(ARMAS).length, 11);
@@ -73,9 +73,53 @@ test('intervaloEntreTiros converte rpm em ms', () => {
   assert.ok(Math.abs(x - 1463.4) < 0.1);
 });
 
+test('toda arma tem os dados de recuo e de mira', () => {
+  for (const [id, arma] of Object.entries(ARMAS)) {
+    assert.ok(arma.recuoVertical > 0, `${id} sem recuo vertical`);
+    assert.ok(arma.recuoHorizontal > 0, `${id} sem recuo horizontal`);
+    assert.ok(arma.recuperacao > 0, `${id} sem recuperação`);
+    assert.ok(arma.tirosRetos >= 1, `${id} sem tirosRetos`);
+    assert.ok(arma.zoomAds > 0 && arma.zoomAds <= 1, `${id} com zoomAds fora de 0..1`);
+    // Mirar sempre tem de valer a pena: o cone fecha, nunca abre.
+    assert.ok(arma.spreadMirando <= arma.spreadBase, `${id} fica pior mirando`);
+  }
+});
+
+test('recuo: sobe no primeiro tiro e abre para os lados no meio do spray', () => {
+  const semSorte = () => 0.5; // rnd fixo no meio: sem tempero aleatório
+  const arma = ARMAS.mc47;
+
+  const primeiro = recuoDoTiro(arma, 0, semSorte);
+  assert.ok(primeiro.pitch > 0, 'o primeiro tiro precisa empurrar para cima');
+  assert.ok(Math.abs(primeiro.yaw) < 1e-9, 'os primeiros tiros sobem retos');
+
+  // Já dentro do spray, o tiro passa a puxar para o lado.
+  const decimo = recuoDoTiro(arma, 10, semSorte);
+  assert.ok(Math.abs(decimo.yaw) > Math.abs(primeiro.yaw), 'o spray precisa abrir');
+  // E sobe um pouco menos que no começo.
+  assert.ok(decimo.pitch < primeiro.pitch);
+
+  // O lado alterna ao longo do spray, senão daria para compensar com um giro só.
+  const lados = new Set();
+  for (let tiro = 4; tiro < 16; tiro++) {
+    lados.add(Math.sign(recuoDoTiro(arma, tiro, semSorte).yaw));
+  }
+  assert.ok(lados.has(1) && lados.has(-1), 'o spray precisa puxar para os dois lados');
+});
+
+test('recuo: arma pesada coice mais que arma leve', () => {
+  const rnd = () => 0.5;
+  assert.ok(recuoDoTiro(ARMAS.awb, 0, rnd).pitch > recuoDoTiro(ARMAS.mc47, 0, rnd).pitch);
+  assert.ok(recuoDoTiro(ARMAS.mc47, 0, rnd).pitch > recuoDoTiro(ARMAS.mb4, 0, rnd).pitch);
+  assert.ok(recuoDoTiro(ARMAS.mb4, 0, rnd).pitch > recuoDoTiro(ARMAS.mpbloco, 0, rnd).pitch);
+});
+
 test('marreta e equipamentos', () => {
   assert.equal(MARRETA.recompensa, 1500);
   assert.equal(MARRETA.slot, 3);
+  // O impacto sai durante o arco da golpada, nunca depois que ele acabou.
+  assert.ok(MARRETA.momentoDoImpacto > 0 && MARRETA.momentoDoImpacto < 1);
+  assert.ok(MARRETA.duracaoGolpe > 0);
   assert.equal(EQUIPAMENTOS.granada.maximo, 2);
   assert.equal(EQUIPAMENTOS.blocos.quantidade, 6);
   assert.equal(EQUIPAMENTOS.blocos.maximo, 30);
